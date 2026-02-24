@@ -1,7 +1,11 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE test [
-  <!ENTITY xxe "XXE_TEST">
-]>
-<template>
-  <content>&xxe;</content>
-</template>
+<!-- Method 1: window.location.replace() -->
+<button onclick="window.location.replace('https://www.google.com')">Click Me</button>
+
+<!-- Method 2: window.location.href with full URL -->
+<button onclick="window.location.href='http://www.google.com'">Click Me</button>
+
+<!-- Method 3: Using top.location -->
+<button onclick="top.location.href='https://www.google.com'">Click Me</button>
+
+<!-- Method 4: Multiple fallback methods -->
+<button onclick="window.location.href='https://www.google.com'; return false;">Click Me</button>

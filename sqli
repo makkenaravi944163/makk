@@ -1,7 +1,5 @@
-<a href="https://www.google.com" target="_blank">Click Me</a>
-<meta http-equiv="refresh" content="0; url=https://www.google.com">
-<form action="https://www.google.com" method="get">
-    <button type="submit">Click Me</button>
-</form>
-<marquee><a href='https://google.com'><b>CLICK</b></a></marquee>
-<a href='https://google.com'>GO</a>
+// Override the trialAlert function to always return false
+aip_clientlink_docs.wlima.view.LiMAResource.trialAlert = function() { 
+    console.log("Bypassed trialAlert");
+    return false; 
+};

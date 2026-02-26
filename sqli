@@ -3,3 +3,7 @@ aip_clientlink_docs.wlima.view.LiMAResource.trialAlert = function() {
     console.log("Bypassed trialAlert");
     return false; 
 };
+
+
+var currentUser = aip_clientlink_docs.wlima.view.LiMAResource.userInfo.userId;
+console.log("Current User:", currentUser);

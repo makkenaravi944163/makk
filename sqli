@@ -1,3 +1,1 @@
-=HYPERLINK(CONCAT("https","://","bing.com"),"hi")
-
-=HYPERLINK(CONCAT("https://","bing",".com"),"hi")
+aip_clientlink_docs.wlima.view.LiMAResource.userInfo.userId = "xuhuaf";

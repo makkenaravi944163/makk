@@ -1,321 +1,81 @@
-1. Authentication & Authorization Issues
-
-Search for logic that controls login, session validation, or role checks.
-
-Keywords
-
-auth
-authentication
-authorize
-authorization
-isAdmin
-isAuthenticated
-hasRole
-role
-permission
-access
-checkAccess
-validateUser
-userRole
-admin
-session
-token
-jwt
-verify
-login
-logout
-
-Look for:
-
-Missing permission checks
-
-Client-side authorization
-
-Hardcoded role checks
-
-2. Hardcoded Credentials / Secrets
-
-Very common critical finding.
-
-Keywords
-
-password
-passwd
-pwd
-secret
-api_key
-apikey
-token
-private_key
-client_secret
-access_key
-auth_key
-credential
-connectionString
-db_password
-db_user
-
-Also search for:
-
-AKIA
-BEGIN RSA
-BEGIN PRIVATE KEY
-3. SQL Injection
-
-Search database query construction.
-
-Keywords
-
-select
-insert
-update
-delete
-executeQuery
-executeUpdate
-prepareStatement
-createStatement
-query =
-sql =
-where
-statement
-db.query
-cursor.execute
-
-Red flag patterns:
-
-"SELECT * FROM users WHERE id=" +
-query + userInput
-4. Command Injection
-
-Check if system commands are executed.
-
-Keywords
-
-exec
-system
-Runtime.getRuntime
-ProcessBuilder
-shell
-cmd
-powershell
-bash
-sh
-subprocess
-os.system
-popen
-spawn
-5. Cross Site Scripting (XSS)
-
-Search where user input is rendered in HTML.
-
-Keywords
-
-innerHTML
-outerHTML
-document.write
-eval
-setTimeout
-setInterval
-dangerouslySetInnerHTML
-append
-html(
-render
-response.write
-
-User input variables to track:
-
-request.getParameter
-req.body
-req.query
-params
-input
-form
-6. File Upload Vulnerabilities
-
-Look for upload handling.
-
-Keywords
-
-upload
-multipart
-fileUpload
-uploadFile
-saveFile
-fileName
-filePath
-getOriginalFilename
-writeFile
-storeFile
-
-Check if validation exists:
-
-filetype
-contentType
-extension
-7. Path Traversal
-
-Look for file read/write operations.
-
-Keywords
-
-File
-FileReader
-FileWriter
-readFile
-writeFile
-open
-path
-filepath
-directory
-getPath
-getCanonicalPath
-
-Check if user input controls file path.
-
-8. Open Redirect
-
-Search redirect logic.
-
-Keywords
-
-redirect
-sendRedirect
-location.href
-response.redirect
-window.location
-9. Sensitive Information Exposure
-
-Look for debug logs.
-
-Keywords
-
-console.log
-printStackTrace
-logger.debug
-debug
-trace
-System.out.println
-stacktrace
-10. Insecure Deserialization
-
-Common in Java, .NET.
-
-Keywords
-
-deserialize
-readObject
-ObjectInputStream
-pickle
-unserialize
-deserializeObject
-JSON.parse
-eval
-11. Cryptography Issues
-
-Weak crypto usage.
-
-Keywords
-
-MD5
-SHA1
-DES
-RC4
-ECB
-Cipher
-encrypt
-decrypt
-crypto
-hash
-digest
-
-Weak crypto example:
-
-MD5(password)
-SHA1(password)
-12. Session Issues
-
-Search session handling.
-
-Keywords
-
-session
-sessionId
-sessionToken
-setCookie
-getSession
-cookie
-secure
-httponly
-samesite
-13. CORS Misconfiguration
-
-Check cross-origin settings.
-
-Keywords
-
-Access-Control-Allow-Origin
-CORS
-cors
-*
-allowOrigin
-14. Dangerous Functions
-
-Very important.
-
-Keywords
-
-eval
-Function(
-setTimeout(
-setInterval(
-exec
-system
-shell
-15. User Input Entry Points
-
-These are starting points for tracking vulnerabilities.
-
-Keywords
-
-request
-req
-params
-query
-body
-input
-form
-header
-cookie
-16. API Endpoints
-
-Find exposed endpoints.
-
-Keywords
-
-@GetMapping
-@PostMapping
-@PutMapping
-@DeleteMapping
-@RequestMapping
-app.get
-app.post
-router.get
-router.post
-endpoint
-api
-17. Debug/Test Backdoors
-
-Sometimes developers leave hidden endpoints.
-
-Keywords
-
-test
-debug
-dev
-internal
-admin
-bypass
-temp
-todo
-fixme
-hack
+Vulnerability Title
+
+Authorization Bypass via Response Manipulation Allowing Access to Restricted Modules
+
+Risk Level
+
+High
+
+CVSS v3.1 Score (Intranet Application)
+
+8.2 – High
+
+Vector String:
+CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N
+
+Vulnerability Category
+
+Broken Access Control / Authorization Bypass
+
+OWASP Category
+
+OWASP Top 10 2021 – A01: Broken Access Control
+https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+
+Vulnerability Description
+
+The application implements role-based access control to restrict user access to certain modules such as Post Trade Compliance, Pre Allocation, and other restricted modules. During testing, it was observed that users without appropriate permissions are normally denied access to these modules.
+
+However, by intercepting the server response using a proxy tool and modifying a specific authorization parameter in the response from false to true, the application allowed the user to access the restricted modules.
+
+This indicates that the application relies on client-side authorization checks instead of enforcing proper server-side access control validation, making it possible for attackers to manipulate responses and gain unauthorized access to restricted functionalities.
+
+Impact
+
+Unauthorized users can access restricted modules within the application.
+
+Exposure of sensitive financial and portfolio management functionalities.
+
+Attackers may manipulate or view confidential business data.
+
+Potential compromise of business logic and workflow integrity.
+
+Could lead to unauthorized financial decisions or operational misuse within the platform.
+
+Proof of Concept (PoC) Steps
+
+Step 1: Login to the application using a user account that does not have access to restricted modules such as Post Trade Compliance or Pre Allocation.
+
+Step 2: Navigate to a restricted module or initiate a request that checks access permissions.
+
+Step 3: Intercept the server response using Burp Suite Proxy.
+
+Step 4: Identify the authorization flag or parameter in the response (e.g., access:false).
+
+Step 5: Modify the value from false to true.
+
+Step 6: Forward the modified response to the browser.
+
+Step 7: Observe that the restricted module becomes accessible despite the user not having proper authorization.
+
+Recommendations
+
+Implement strict server-side authorization checks for all restricted modules.
+
+Do not rely on client-side responses or flags to determine access control decisions.
+
+Validate user permissions on every request at the server level.
+
+Implement role-based access control (RBAC) with proper backend enforcement.
+
+Monitor and log unauthorized access attempts for security auditing.
+
+Perform regular security testing and code reviews to detect access control weaknesses.
+
+References
+
+OWASP Top 10 – Broken Access Control
+https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+
+OWASP Web Security Testing Guide – Authorization Testing
+https://owasp.org/www-project-web-security-testing-guide/

@@ -1,81 +1,38 @@
 Vulnerability Title
 
-Authorization Bypass via Response Manipulation Allowing Access to Restricted Modules
-
-Risk Level
-
-High
-
-CVSS v3.1 Score (Intranet Application)
-
-8.2 – High
-
-Vector String:
-CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N
-
-Vulnerability Category
-
-Broken Access Control / Authorization Bypass
-
-OWASP Category
-
-OWASP Top 10 2021 – A01: Broken Access Control
-https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+Improper Authorization Leading to User Identity Manipulation in Sandbox Model Creation
 
 Vulnerability Description
 
-The application implements role-based access control to restrict user access to certain modules such as Post Trade Compliance, Pre Allocation, and other restricted modules. During testing, it was observed that users without appropriate permissions are normally denied access to these modules.
+The application allows users to create a sandbox model through the Sandbox module. During the sandbox creation process, the client request includes the username parameter which is sent to the server. It was observed that this parameter is not validated on the server side. By intercepting the request and modifying the username value to another user’s name, the sandbox model can be successfully created under the modified username.
 
-However, by intercepting the server response using a proxy tool and modifying a specific authorization parameter in the response from false to true, the application allowed the user to access the restricted modules.
-
-This indicates that the application relies on client-side authorization checks instead of enforcing proper server-side access control validation, making it possible for attackers to manipulate responses and gain unauthorized access to restricted functionalities.
+This indicates that the application relies on client-supplied user identity instead of server-side session validation, allowing attackers to manipulate the user identity associated with the sandbox model.
 
 Impact
 
-Unauthorized users can access restricted modules within the application.
+Attackers can create sandbox models under another user’s identity.
 
-Exposure of sensitive financial and portfolio management functionalities.
+Leads to user impersonation and data integrity issues.
 
-Attackers may manipulate or view confidential business data.
+Malicious users may perform actions that appear to be executed by other legitimate users.
 
-Potential compromise of business logic and workflow integrity.
+This can affect audit logs, accountability, and traceability within the system.
 
-Could lead to unauthorized financial decisions or operational misuse within the platform.
+May lead to unauthorized access or manipulation of portfolio analysis data.
 
-Proof of Concept (PoC) Steps
+Mitigation
 
-Step 1: Login to the application using a user account that does not have access to restricted modules such as Post Trade Compliance or Pre Allocation.
+The application should not trust client-supplied username parameters.
 
-Step 2: Navigate to a restricted module or initiate a request that checks access permissions.
+The server must derive the authenticated user identity directly from the session/token (e.g., session ID, JWT, SSO token).
 
-Step 3: Intercept the server response using Burp Suite Proxy.
+Implement server-side validation to ensure the username parameter cannot be modified by the client.
 
-Step 4: Identify the authorization flag or parameter in the response (e.g., access:false).
+Enforce proper access control checks before creating sandbox models.
 
-Step 5: Modify the value from false to true.
-
-Step 6: Forward the modified response to the browser.
-
-Step 7: Observe that the restricted module becomes accessible despite the user not having proper authorization.
-
-Recommendations
-
-Implement strict server-side authorization checks for all restricted modules.
-
-Do not rely on client-side responses or flags to determine access control decisions.
-
-Validate user permissions on every request at the server level.
-
-Implement role-based access control (RBAC) with proper backend enforcement.
-
-Monitor and log unauthorized access attempts for security auditing.
-
-Perform regular security testing and code reviews to detect access control weaknesses.
+Log and monitor suspicious identity mismatches between session user and request parameters.
 
 References
 
 OWASP Top 10 – Broken Access Control
 https://owasp.org/Top10/A01_2021-Broken_Access_Control/
-
-OWASP Web Security Testing Guide – Authorization Testing
-https://owasp.org/www-project-web-security-testing-guide/

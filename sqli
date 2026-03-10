@@ -1,6 +1,6 @@
 Vulnerability Title
 
-User Impersonation in Business Report Email Functionality
+Stored Cross-Site Scripting (XSS) in Sandbox Model Name Field
 
 Risk Level
 
@@ -8,71 +8,75 @@ Moderate
 
 CVSS v3.1 Score (Intranet Application)
 
-5.9 – Medium
+6.1 – Medium
 
 Vector String:
-CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:N
+CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:N
 
 Vulnerability Category
 
-Broken Access Control / Parameter Tampering
+Cross-Site Scripting (Stored XSS)
 
 OWASP Category
 
-OWASP Top 10 2021 – A01: Broken Access Control
-https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+OWASP Top 10 2021 – A03: Injection (Cross-Site Scripting)
+https://owasp.org/Top10/A03_2021-Injection/
 
 Vulnerability Description
 
-The application contains a Business Report module that allows users to send selected reports to email addresses. During testing, it was observed that the email sending request includes the username parameter, which is supplied from the client side.
+The application provides a Sandbox module that allows users to create new sandbox models by entering a model name. During testing, it was observed that the application does not properly sanitize or validate user input in the model name field.
 
-By intercepting the request and modifying the username value to another valid user within the organization, the application successfully sends the email report while appearing to originate from the modified username.
+By inserting the following payload in the model name field:
 
-Although the application restricts email sending to internal employee email addresses, it does not validate whether the username parameter matches the authenticated user session. This allows attackers to impersonate other users within the organization while sending business reports.
+<img src=x onerror=alert('XSS')>
+
+the application stores the input and renders it directly in the application interface without proper encoding. When the sandbox model is viewed or loaded, the injected payload executes in the browser, resulting in a JavaScript alert popup.
+
+This confirms the presence of a Stored Cross-Site Scripting (XSS) vulnerability, where malicious scripts can be permanently stored in the application and executed when users access the affected page.
 
 Impact
 
-Attackers can send emails appearing to originate from other internal users.
+Attackers can execute malicious JavaScript in the browsers of other users.
 
-May lead to internal user impersonation and trust abuse.
+May lead to session hijacking or theft of authentication tokens.
 
-Could be used to distribute misleading or unauthorized business reports.
+Attackers could perform actions on behalf of other users within the application.
 
-Impacts audit logs, accountability, and traceability of email actions.
+Potential exposure of sensitive data accessible through the application interface.
 
-May facilitate social engineering or internal phishing attempts within the organization.
+Could be leveraged for phishing attacks or further client-side exploitation.
 
 Proof of Concept (PoC) Steps
 
 Step 1: Login to the application with valid user credentials.
 
-Step 2: Navigate to the Business Report module.
+Step 2: Navigate to the Sandbox module.
 
-Step 3: Select a report and use the Send to Email option.
+Step 3: Click on Create New Sandbox Model.
 
-Step 4: Intercept the email sending request using Burp Suite Proxy.
+Step 4: In the Model Name field, enter the following payload:
 
-Step 5: Locate the username parameter in the captured request.
+<img src=x onerror=alert('XSS')>
 
-Step 6: Modify the username value to another valid internal user.
+Step 5: Save the sandbox model.
 
-Step 7: Forward the modified request to the server.
+Step 6: Open or view the created sandbox model.
 
-Step 8: Observe that the email report is successfully sent while appearing to originate from the modified username.
+Step 7: Observe that a JavaScript alert popup appears, confirming the execution of injected script code.
 
 Recommendations
 
-The application should not rely on client-supplied username parameters.
+Implement server-side input validation and sanitization for all user-supplied input fields.
 
-Derive the user identity directly from the authenticated session or token on the server side.
+Apply output encoding (HTML entity encoding) before rendering user input in the browser.
 
-Implement server-side validation to ensure the request username matches the authenticated user.
+Use frameworks or libraries that automatically escape untrusted input.
 
-Add logging and monitoring for suspicious user identity mismatches.
+Implement Content Security Policy (CSP) to restrict execution of malicious scripts.
 
-Apply strong access control checks for email sending functionality.
+Conduct regular secure code reviews and penetration testing to identify similar injection issues.
 
 References
 
-OWASP Top 10 – Broken Access Control
-https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+OWASP Cross Site Scripting (XSS)
+https://owasp.org/www-community/attacks/xss/

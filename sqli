@@ -1,82 +1,75 @@
 Vulnerability Title
 
-Stored Cross-Site Scripting (XSS) in Sandbox Model Name Field
+Exposure of Usernames in Client-Side JavaScript Source Code
 
 Risk Level
 
-Moderate
+Low
 
 CVSS v3.1 Score (Intranet Application)
 
-6.1 – Medium
+3.7 – Low
 
 Vector String:
-CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:N
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
 
 Vulnerability Category
 
-Cross-Site Scripting (Stored XSS)
+Information Disclosure
 
 OWASP Category
 
-OWASP Top 10 2021 – A03: Injection (Cross-Site Scripting)
-https://owasp.org/Top10/A03_2021-Injection/
+OWASP Top 10 2021 – A02: Cryptographic Failures (Sensitive Data Exposure)
+https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
 
 Vulnerability Description
 
-The application provides a Sandbox module that allows users to create new sandbox models by entering a model name. During testing, it was observed that the application does not properly sanitize or validate user input in the model name field.
+During the security assessment, it was observed that the application’s client-side JavaScript file (app.js) contains references to internal usernames. These usernames are exposed within the source code that is publicly accessible through the browser.
 
-By inserting the following payload in the model name field:
+Any user can view the JavaScript file by inspecting the page source or directly accessing the app.js file from the application. The exposed usernames may belong to internal employees or application users.
 
-<img src=x onerror=alert('XSS')>
-
-the application stores the input and renders it directly in the application interface without proper encoding. When the sandbox model is viewed or loaded, the injected payload executes in the browser, resulting in a JavaScript alert popup.
-
-This confirms the presence of a Stored Cross-Site Scripting (XSS) vulnerability, where malicious scripts can be permanently stored in the application and executed when users access the affected page.
+Although this does not immediately allow direct system compromise, exposing internal usernames increases the risk of user enumeration and targeted attacks such as phishing or brute-force attempts against user accounts.
 
 Impact
 
-Attackers can execute malicious JavaScript in the browsers of other users.
+Disclosure of internal usernames to unauthorized users.
 
-May lead to session hijacking or theft of authentication tokens.
+Attackers can use the exposed usernames for credential brute-force attacks.
 
-Attackers could perform actions on behalf of other users within the application.
+Increases the risk of targeted phishing or social engineering attacks.
 
-Potential exposure of sensitive data accessible through the application interface.
-
-Could be leveraged for phishing attacks or further client-side exploitation.
+May assist attackers in identifying valid accounts within the system.
 
 Proof of Concept (PoC) Steps
 
-Step 1: Login to the application with valid user credentials.
+Step 1: Open the application in a web browser.
 
-Step 2: Navigate to the Sandbox module.
+Step 2: Right-click on the page and select Inspect or press F12 to open developer tools.
 
-Step 3: Click on Create New Sandbox Model.
+Step 3: Navigate to the Sources or Network tab.
 
-Step 4: In the Model Name field, enter the following payload:
+Step 4: Locate and open the JavaScript file named app.js.
 
-<img src=x onerror=alert('XSS')>
+Step 5: Review the contents of the file and observe that internal usernames are present within the source code.
 
-Step 5: Save the sandbox model.
+Step 6: Alternatively, access the file directly via the browser using the URL:
+https://<application-domain>/path/app.js
 
-Step 6: Open or view the created sandbox model.
-
-Step 7: Observe that a JavaScript alert popup appears, confirming the execution of injected script code.
+Step 7: Confirm that the usernames are visible in the JavaScript code.
 
 Recommendations
 
-Implement server-side input validation and sanitization for all user-supplied input fields.
+Avoid storing sensitive information such as usernames in client-side JavaScript files.
 
-Apply output encoding (HTML entity encoding) before rendering user input in the browser.
+Move sensitive configuration data to secure server-side storage.
 
-Use frameworks or libraries that automatically escape untrusted input.
+Implement code minimization and obfuscation techniques to reduce exposure of internal details.
 
-Implement Content Security Policy (CSP) to restrict execution of malicious scripts.
+Review all client-side scripts to ensure no sensitive information is exposed.
 
-Conduct regular secure code reviews and penetration testing to identify similar injection issues.
+Follow secure coding practices to prevent information disclosure.
 
 References
 
-OWASP Cross Site Scripting (XSS)
-https://owasp.org/www-community/attacks/xss/
+OWASP Top 10 – Cryptographic Failures / Sensitive Data Exposure
+https://owasp.org/Top10/A02_2021-Cryptographic_Failures/

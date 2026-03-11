@@ -1,55 +1,27 @@
-Authorization Bypass via Response Manipulation Allowing Access to Restricted Modules
-The application fails to properly enforce authorization controls, allowing attackers to manipulate server responses or parameters to access restricted modules.
-OWASP Category: A01:2021 – Broken Access Control.
+Implement strict server-side authorization checks and validate user roles before granting access to restricted resources.
 
-Improper Authorization Leading to User Identity Manipulation in Sandbox Model Creation
-The system does not validate user identity during sandbox model creation, allowing attackers to manipulate parameters and impersonate other users.
-OWASP Category: A01:2021 – Broken Access Control.
+Enforce server-side identity validation and prevent manipulation of user identity parameters in requests.
 
-HTML Injection
-The application improperly sanitizes user input before rendering it in the browser, allowing attackers to inject arbitrary HTML content.
-OWASP Category: A03:2021 – Injection.
+Apply proper input validation and output encoding to sanitize user-supplied data before rendering in the browser.
 
-Insecure HTTP Communication
-Sensitive data is transmitted over unencrypted HTTP instead of HTTPS, exposing it to interception or manipulation by attackers.
-OWASP Category: A02:2021 – Cryptographic Failures.
+Enforce HTTPS for all communications and disable insecure HTTP connections.
 
-User Impersonation in Business Report Email Functionality
-The email functionality allows manipulation of sender details, enabling attackers to send emails while impersonating legitimate users.
-OWASP Category: A01:2021 – Broken Access Control.
+Validate and restrict email sender parameters on the server side to prevent impersonation.
 
-Unauthenticated Direct Access to Post Trade Compliance Reports
-The application allows direct access to sensitive compliance reports without proper authentication or authorization checks.
-OWASP Category: A01:2021 – Broken Access Control.
+Ensure authentication and authorization checks are implemented before accessing sensitive reports.
 
-Sensitive Authentication Token Exposure in URL Parameters
-Authentication tokens are included in URL parameters, which may be logged, cached, or exposed through browser history and referrer headers.
-OWASP Category: A02:2021 – Cryptographic Failures.
+Avoid passing authentication tokens in URLs and use secure cookies or authorization headers instead.
 
-Lack of Rate Limiting in Business Report Email Functionality Leading to Email Flooding
-The application does not implement rate limiting, allowing attackers to repeatedly trigger email functionality and cause email flooding or denial of service.
-OWASP Category: A04:2021 – Insecure Design.
+Implement rate limiting and request throttling mechanisms to prevent abuse of functionality.
 
-Cross-Site Scripting (XSS)
-The application fails to properly validate or encode user input, allowing attackers to inject malicious scripts that execute in users’ browsers.
-OWASP Category: A03:2021 – Injection.
+Use input validation, output encoding, and Content Security Policy (CSP) to mitigate script injection attacks.
 
-Weak Input Validation
-The application does not properly validate or sanitize user input, increasing the risk of injection attacks and unexpected application behavior.
-OWASP Category: A03:2021 – Injection.
+Implement strict server-side input validation using allowlists to accept only expected data formats.
 
-Missing Security Headers
-Important HTTP security headers such as Content-Security-Policy, X-Frame-Options, and X-Content-Type-Options are missing, reducing protection against common web attacks.
-OWASP Category: A05:2021 – Security Misconfiguration.
+Configure HTTP security headers such as CSP, HSTS, X-Frame-Options, and X-Content-Type-Options.
 
-Inadequate Cookie Attributes
-Cookies are not configured with security attributes such as HttpOnly, Secure, and SameSite, increasing the risk of session hijacking and cross-site attacks.
-OWASP Category: A05:2021 – Security Misconfiguration.
+Set cookie attributes including HttpOnly, Secure, and SameSite to protect session cookies.
 
-Exposure of Usernames in Client-Side JavaScript Source Code
-Sensitive information such as usernames is exposed in client-side JavaScript, which can be accessed by anyone viewing the source code.
-OWASP Category: A02:2021 – Cryptographic Failures.
+Avoid exposing sensitive information in client-side code and store such data securely on the server side.
 
-Use of PrintStackTrace
-The application exposes stack trace details during exceptions, revealing internal implementation details that may assist attackers in exploiting vulnerabilities.
-OWASP Category: A05:2021 – Security Misconfiguration.
+Implement secure error handling with generic messages and disable detailed stack traces in production.

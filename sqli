@@ -1,84 +1,27 @@
-Vulnerability Title
+Authorization Bypass via Response Manipulation Allowing Access to Restricted Modules
+
+Improper Authorization Leading to User Identity Manipulation in Sandbox Model Creation
+
+HTML Injection
+
+Insecure HTTP Communication
+
+User Impersonation in Business Report Email Functionality
+
+Unauthenticated Direct Access to Post Trade Compliance Reports
 
 Sensitive Authentication Token Exposure in URL Parameters
 
-Risk Level
+Lack of Rate Limiting in Business Report Email Functionality Leading to Email Flooding
 
-Moderate
+Cross-Site Scripting (XSS)
 
-CVSS v3.1 Score (Intranet Application)
+Weak Input Validation
 
-5.8 – Medium
+Missing Security Headers
 
-Vector String:
-CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:N
+Inadequate Cookie Attributes
 
-Vulnerability Category
+Exposure of Usernames in Client-Side JavaScript Source Code
 
-Sensitive Information Exposure / Insecure Token Handling
-
-OWASP Category
-
-OWASP Top 10 2021 – A02: Cryptographic Failures (Sensitive Data Exposure)
-https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
-
-Vulnerability Description
-
-During the security assessment, it was observed that the application transmits an important authentication/authorization token within the URL parameters while performing operations such as creating a sandbox model.
-
-Example request observed:
-
-GET /rest/RestResponse?Param=...&Func=SAVESANDBOXMODEL&Token=vMuLpiRLPmkutU%2BCAeyTiVYHOcRogjHQ60YIdAMKkKI%3D HTTP/1.1
-
-The token included in the URL is used by the application to validate and process requests for creating models. Passing sensitive tokens within URL parameters is insecure because URLs can be exposed through browser history, server logs, proxy logs, referrer headers, and monitoring systems.
-
-An attacker who obtains this token may potentially reuse it to perform unauthorized actions within the application.
-
-Impact
-
-Exposure of sensitive authentication tokens through logs or browser history.
-
-Tokens may be captured through network monitoring tools, proxies, or referrer headers.
-
-Attackers may reuse the token to perform unauthorized operations such as creating sandbox models.
-
-Increased risk of session misuse or replay attacks.
-
-Proof of Concept (PoC) Steps
-
-Step 1: Login to the application using valid credentials.
-
-Step 2: Navigate to the Sandbox module and create a new sandbox model.
-
-Step 3: Intercept the request using Burp Suite Proxy.
-
-Step 4: Observe that the request contains a token parameter in the URL.
-
-Example:
-
-Token=vMuLpiRLPmkutU%2BCAeyTiVYHOcRogjHQ60YIdAMKkKI%3D
-
-Step 5: Copy the full URL containing the token.
-
-Step 6: Paste the URL into another browser or tool.
-
-Step 7: Observe that the token is used to process the request, indicating that sensitive tokens are exposed in the URL.
-
-Recommendations
-
-Avoid passing authentication tokens or sensitive parameters in URLs.
-
-Use secure HTTP headers or POST request bodies to transmit tokens.
-
-Implement short-lived tokens and token expiration mechanisms.
-
-Ensure sensitive tokens are not logged in server logs or monitoring tools.
-
-Use HTTPS encryption and secure session management practices.
-
-References
-
-OWASP Top 10 – Cryptographic Failures
-https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
-
-OWASP Information Exposure Through Query Strings
+Use of PrintStackTrace

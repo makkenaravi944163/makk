@@ -1,75 +1,76 @@
 Vulnerability Title
 
-Exposure of Usernames in Client-Side JavaScript Source Code
+Unauthenticated Direct Access to Post Trade Compliance Reports
 
 Risk Level
 
-Low
+High
 
 CVSS v3.1 Score (Intranet Application)
 
-3.7 – Low
+7.5 – High
 
 Vector String:
-CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
 
 Vulnerability Category
 
-Information Disclosure
+Broken Access Control / Insecure Direct Object Reference (IDOR)
 
 OWASP Category
 
-OWASP Top 10 2021 – A02: Cryptographic Failures (Sensitive Data Exposure)
-https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
+OWASP Top 10 2021 – A01: Broken Access Control
+https://owasp.org/Top10/A01_2021-Broken_Access_Control/
 
 Vulnerability Description
 
-During the security assessment, it was observed that the application’s client-side JavaScript file (app.js) contains references to internal usernames. These usernames are exposed within the source code that is publicly accessible through the browser.
+The application contains a Post Trade Compliance module that allows authorized users to download compliance reports based on the selected year. During testing, it was observed that when a user downloads a report, the application generates a direct download link for the file.
 
-Any user can view the JavaScript file by inspecting the page source or directly accessing the app.js file from the application. The exposed usernames may belong to internal employees or application users.
+By copying the generated download URL and pasting it into another browser session where the user is not authenticated, the report file can still be downloaded successfully without requiring login credentials.
 
-Although this does not immediately allow direct system compromise, exposing internal usernames increases the risk of user enumeration and targeted attacks such as phishing or brute-force attempts against user accounts.
+This indicates that the application does not enforce proper authentication and authorization checks on the report download endpoint, allowing unauthorized users with the direct link to access sensitive compliance reports.
 
 Impact
 
-Disclosure of internal usernames to unauthorized users.
+Unauthorized users can download sensitive compliance reports without authentication.
 
-Attackers can use the exposed usernames for credential brute-force attacks.
+Potential exposure of confidential financial and regulatory data.
 
-Increases the risk of targeted phishing or social engineering attacks.
+Could lead to data leakage within or outside the organization.
 
-May assist attackers in identifying valid accounts within the system.
+Attackers may share or distribute sensitive reports without proper authorization.
+
+Compromises the confidentiality of internal compliance information.
 
 Proof of Concept (PoC) Steps
 
-Step 1: Open the application in a web browser.
+Step 1: Login to the application with a valid user account that has access to the Post Trade Compliance module.
 
-Step 2: Right-click on the page and select Inspect or press F12 to open developer tools.
+Step 2: Navigate to the Post Trade Compliance section.
 
-Step 3: Navigate to the Sources or Network tab.
+Step 3: Select a specific year and download a compliance report.
 
-Step 4: Locate and open the JavaScript file named app.js.
+Step 4: Capture or copy the direct download URL of the report file.
 
-Step 5: Review the contents of the file and observe that internal usernames are present within the source code.
+Step 5: Open a new browser session or private/incognito window where no user is authenticated.
 
-Step 6: Alternatively, access the file directly via the browser using the URL:
-https://<application-domain>/path/app.js
+Step 6: Paste the copied download link into the browser address bar.
 
-Step 7: Confirm that the usernames are visible in the JavaScript code.
+Step 7: Observe that the report file downloads successfully without requiring authentication.
 
 Recommendations
 
-Avoid storing sensitive information such as usernames in client-side JavaScript files.
+Enforce authentication checks on all file download endpoints.
 
-Move sensitive configuration data to secure server-side storage.
+Validate user session and authorization before allowing file access.
 
-Implement code minimization and obfuscation techniques to reduce exposure of internal details.
+Avoid exposing direct file paths; instead generate secure, time-limited download tokens.
 
-Review all client-side scripts to ensure no sensitive information is exposed.
+Implement access control validation at the server level for every request.
 
-Follow secure coding practices to prevent information disclosure.
+Use secure file access mechanisms that restrict access only to authorized users.
 
 References
 
-OWASP Top 10 – Cryptographic Failures / Sensitive Data Exposure
-https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
+OWASP Top 10 – Broken Access Control
+https://owasp.org/Top10/A01_2021-Broken_Access_Control/

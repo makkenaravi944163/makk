@@ -1,27 +1,41 @@
 Authorization Bypass via Response Manipulation Allowing Access to Restricted Modules
+The application relies on client-side response values to enforce access control. By modifying the response parameter from false to true, unauthorized users can access restricted modules. This indicates missing server-side authorization validation.
 
 Improper Authorization Leading to User Identity Manipulation in Sandbox Model Creation
+The application accepts the username parameter from the client request during sandbox model creation. By modifying this parameter, a user can create sandbox models under another user's identity. This demonstrates improper server-side validation of user identity.
 
 HTML Injection
+The application does not properly sanitize user input before rendering it in the browser. As a result, injected HTML code is interpreted by the application interface. This allows attackers to embed malicious links or content within the application.
 
 Insecure HTTP Communication
+Sensitive application data is transmitted over unencrypted HTTP communication. This exposes the data to interception through network monitoring or man-in-the-middle attacks. Lack of encryption increases the risk of unauthorized data disclosure.
 
 User Impersonation in Business Report Email Functionality
+The email request contains a client-controlled username parameter used to send business reports. By modifying this value, an attacker can send emails appearing to originate from another internal user. This may lead to misuse of the system for impersonation or social engineering.
 
 Unauthenticated Direct Access to Post Trade Compliance Reports
+The report download endpoint does not properly verify user authentication. By directly accessing the report URL in another browser session, files can be downloaded without login. This results in unauthorized exposure of sensitive reports.
 
 Sensitive Authentication Token Exposure in URL Parameters
+The application transmits authentication tokens within URL parameters during certain operations. URLs can be logged, cached, or stored in browser history, exposing sensitive tokens. Attackers may reuse these tokens to perform unauthorized actions.
 
 Lack of Rate Limiting in Business Report Email Functionality Leading to Email Flooding
+The email sending feature does not enforce rate limiting or request throttling. By replaying requests using automated tools, a large number of emails can be sent in a short period. This may lead to email flooding and potential abuse of the mail system.
 
 Cross-Site Scripting (XSS)
+The application fails to properly validate or encode user input before rendering it in the browser. This allows attackers to inject malicious scripts into the application. The scripts execute in the context of other users' sessions.
 
 Weak Input Validation
+User-supplied inputs are not properly validated or sanitized by the application. This allows malicious data to be submitted and processed by the system. Weak validation can lead to multiple security issues including injection attacks.
 
 Missing Security Headers
+The application responses do not include several recommended HTTP security headers. These headers help protect against attacks such as XSS, clickjacking, and MIME sniffing. Missing headers weaken the browser-side security posture.
 
 Inadequate Cookie Attributes
+Session cookies are missing important security attributes such as Secure, HttpOnly, or SameSite. Without these protections, cookies may be exposed to client-side scripts or transmitted over insecure connections. This increases the risk of session theft.
 
 Exposure of Usernames in Client-Side JavaScript Source Code
+Internal usernames are present within publicly accessible JavaScript files. Anyone viewing the source code can identify valid user accounts. This may assist attackers in conducting targeted attacks such as credential guessing.
 
 Use of PrintStackTrace
+The application uses printStackTrace() to log exceptions directly. If exposed to users or logs accessible externally, it may reveal internal system information. This information can help attackers understand application structure and identify further vulnerabilities.

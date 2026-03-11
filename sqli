@@ -1,76 +1,84 @@
 Vulnerability Title
 
-Unauthenticated Direct Access to Post Trade Compliance Reports
+Sensitive Authentication Token Exposure in URL Parameters
 
 Risk Level
 
-High
+Moderate
 
 CVSS v3.1 Score (Intranet Application)
 
-7.5 – High
+5.8 – Medium
 
 Vector String:
-CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
+CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:N
 
 Vulnerability Category
 
-Broken Access Control / Insecure Direct Object Reference (IDOR)
+Sensitive Information Exposure / Insecure Token Handling
 
 OWASP Category
 
-OWASP Top 10 2021 – A01: Broken Access Control
-https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+OWASP Top 10 2021 – A02: Cryptographic Failures (Sensitive Data Exposure)
+https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
 
 Vulnerability Description
 
-The application contains a Post Trade Compliance module that allows authorized users to download compliance reports based on the selected year. During testing, it was observed that when a user downloads a report, the application generates a direct download link for the file.
+During the security assessment, it was observed that the application transmits an important authentication/authorization token within the URL parameters while performing operations such as creating a sandbox model.
 
-By copying the generated download URL and pasting it into another browser session where the user is not authenticated, the report file can still be downloaded successfully without requiring login credentials.
+Example request observed:
 
-This indicates that the application does not enforce proper authentication and authorization checks on the report download endpoint, allowing unauthorized users with the direct link to access sensitive compliance reports.
+GET /rest/RestResponse?Param=...&Func=SAVESANDBOXMODEL&Token=vMuLpiRLPmkutU%2BCAeyTiVYHOcRogjHQ60YIdAMKkKI%3D HTTP/1.1
+
+The token included in the URL is used by the application to validate and process requests for creating models. Passing sensitive tokens within URL parameters is insecure because URLs can be exposed through browser history, server logs, proxy logs, referrer headers, and monitoring systems.
+
+An attacker who obtains this token may potentially reuse it to perform unauthorized actions within the application.
 
 Impact
 
-Unauthorized users can download sensitive compliance reports without authentication.
+Exposure of sensitive authentication tokens through logs or browser history.
 
-Potential exposure of confidential financial and regulatory data.
+Tokens may be captured through network monitoring tools, proxies, or referrer headers.
 
-Could lead to data leakage within or outside the organization.
+Attackers may reuse the token to perform unauthorized operations such as creating sandbox models.
 
-Attackers may share or distribute sensitive reports without proper authorization.
-
-Compromises the confidentiality of internal compliance information.
+Increased risk of session misuse or replay attacks.
 
 Proof of Concept (PoC) Steps
 
-Step 1: Login to the application with a valid user account that has access to the Post Trade Compliance module.
+Step 1: Login to the application using valid credentials.
 
-Step 2: Navigate to the Post Trade Compliance section.
+Step 2: Navigate to the Sandbox module and create a new sandbox model.
 
-Step 3: Select a specific year and download a compliance report.
+Step 3: Intercept the request using Burp Suite Proxy.
 
-Step 4: Capture or copy the direct download URL of the report file.
+Step 4: Observe that the request contains a token parameter in the URL.
 
-Step 5: Open a new browser session or private/incognito window where no user is authenticated.
+Example:
 
-Step 6: Paste the copied download link into the browser address bar.
+Token=vMuLpiRLPmkutU%2BCAeyTiVYHOcRogjHQ60YIdAMKkKI%3D
 
-Step 7: Observe that the report file downloads successfully without requiring authentication.
+Step 5: Copy the full URL containing the token.
+
+Step 6: Paste the URL into another browser or tool.
+
+Step 7: Observe that the token is used to process the request, indicating that sensitive tokens are exposed in the URL.
 
 Recommendations
 
-Enforce authentication checks on all file download endpoints.
+Avoid passing authentication tokens or sensitive parameters in URLs.
 
-Validate user session and authorization before allowing file access.
+Use secure HTTP headers or POST request bodies to transmit tokens.
 
-Avoid exposing direct file paths; instead generate secure, time-limited download tokens.
+Implement short-lived tokens and token expiration mechanisms.
 
-Implement access control validation at the server level for every request.
+Ensure sensitive tokens are not logged in server logs or monitoring tools.
 
-Use secure file access mechanisms that restrict access only to authorized users.
+Use HTTPS encryption and secure session management practices.
 
 References
 
-OWASP Top 10 – Broken Access Control
-https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+OWASP Top 10 – Cryptographic Failures
+https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
+
+OWASP Information Exposure Through Query Strings

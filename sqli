@@ -1,26 +1,29 @@
-' AND DB_NAME() LIKE 'A%'--
-' AND DB_NAME() LIKE 'B%'--
-' AND DB_NAME() LIKE 'C%'--
-' AND DB_NAME() LIKE 'D%'--
-' AND DB_NAME() LIKE 'E%'--
-' AND DB_NAME() LIKE 'F%'--
-' AND DB_NAME() LIKE 'G%'--
-' AND DB_NAME() LIKE 'H%'--
-' AND DB_NAME() LIKE 'I%'--
-' AND DB_NAME() LIKE 'J%'--
-' AND DB_NAME() LIKE 'K%'--
-' AND DB_NAME() LIKE 'L%'--
-' AND DB_NAME() LIKE 'M%'--
-' AND DB_NAME() LIKE 'N%'--
-' AND DB_NAME() LIKE 'O%'--
-' AND DB_NAME() LIKE 'P%'--
-' AND DB_NAME() LIKE 'Q%'--
-' AND DB_NAME() LIKE 'R%'--
-' AND DB_NAME() LIKE 'S%'--
-' AND DB_NAME() LIKE 'T%'--
-' AND DB_NAME() LIKE 'U%'--
-' AND DB_NAME() LIKE 'V%'--
-' AND DB_NAME() LIKE 'W%'--
-' AND DB_NAME() LIKE 'X%'--
-' AND DB_NAME() LIKE 'Y%'--
-' AND DB_NAME() LIKE 'Z%'--
+' AND DB_NAME()='master'--
+' AND DB_NAME()='tempdb'--
+' AND DB_NAME()='model'--
+' AND DB_NAME()='msdb'--
+' AND SYSTEM_USER='sa'--
+' AND SYSTEM_USER='dbo'--
+' AND USER_NAME()='dbo'--
+' AND USER_NAME()='guest'--
+' AND LEN(DB_NAME())=5 AND DB_NAME()='test1'--
+' AND LEN(DB_NAME())=6 AND DB_NAME()='prod01'--
+' AND LEN(DB_NAME())=7 AND DB_NAME()='dmwqa01'--
+' AND DB_NAME()>'a'--
+' AND DB_NAME()>'m'--
+' AND DB_NAME()<'m'--
+' AND DB_NAME()>'d'--
+' AND DB_NAME()<'d'--
+' AND DB_NAME()>'aaaaa'--
+' AND DB_NAME()>'mmmmm'--
+' AND DB_NAME()<'mmmmm'--
+' AND DB_NAME()>'dmw'--
+' AND DB_NAME()<'dmw'--
+' AND SYSTEM_USER>'a'--
+' AND SYSTEM_USER>'m'--
+' AND SYSTEM_USER<'m'--
+' AND SYSTEM_USER='dbo'--
+' AND SYSTEM_USER='sa'--
+' AND DB_NAME()='DMWQA'--
+' AND DB_NAME()='dmwqa'--
+' AND DB_NAME()='DmwQa'--

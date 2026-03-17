@@ -1,29 +1,3 @@
-' AND DB_NAME()='master'--
-' AND DB_NAME()='tempdb'--
-' AND DB_NAME()='model'--
-' AND DB_NAME()='msdb'--
-' AND SYSTEM_USER='sa'--
-' AND SYSTEM_USER='dbo'--
-' AND USER_NAME()='dbo'--
-' AND USER_NAME()='guest'--
-' AND LEN(DB_NAME())=5 AND DB_NAME()='test1'--
-' AND LEN(DB_NAME())=6 AND DB_NAME()='prod01'--
-' AND LEN(DB_NAME())=7 AND DB_NAME()='dmwqa01'--
-' AND DB_NAME()>'a'--
-' AND DB_NAME()>'m'--
-' AND DB_NAME()<'m'--
-' AND DB_NAME()>'d'--
-' AND DB_NAME()<'d'--
-' AND DB_NAME()>'aaaaa'--
-' AND DB_NAME()>'mmmmm'--
-' AND DB_NAME()<'mmmmm'--
-' AND DB_NAME()>'dmw'--
-' AND DB_NAME()<'dmw'--
-' AND SYSTEM_USER>'a'--
-' AND SYSTEM_USER>'m'--
-' AND SYSTEM_USER<'m'--
-' AND SYSTEM_USER='dbo'--
-' AND SYSTEM_USER='sa'--
 ' AND DB_NAME()='DMWQA'--
 ' AND DB_NAME()='dmwqa'--
 ' AND DB_NAME()='DmwQa'--

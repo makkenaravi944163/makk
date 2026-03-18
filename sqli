@@ -1,4 +1,221 @@
-#MySQL Payload
-'%2b(select*from(select(IF(LENGTH(DATABASE())=1,FALSE,SLEEP(5))))a)%2b'
-#MSSQL Payload
-'; IF (LEN(DB_NAME()) = 1) WAITFOR DELAY '00:00:05'--
+🔴 1. SQL Injection (Highest Priority)
+🔍 Keywords to Search
+SqlCommand
+ExecuteReader
+ExecuteNonQuery
+ExecuteScalar
+SqlDataAdapter
+OleDbCommand
+OdbcCommand
+CommandText
+FromSqlRaw
+🚨 Vulnerable Patterns
+"SELECT * FROM users WHERE id=" + userInput
+"WHERE name = '" + input + "'"
+string query = "..." + Request["param"]
+✅ Safe Pattern
+cmd.Parameters.AddWithValue("@id", id);
+🔴 2. Command Injection
+🔍 Search
+Process.Start
+cmd.exe
+powershell
+Execute
+Runtime.exec
+🚨 Vulnerable
+Process.Start("cmd.exe", userInput);
+🔴 3. File Upload Vulnerabilities
+🔍 Search
+FileUpload
+SaveAs
+Request.Files
+IFormFile
+PostedFile
+🚨 Vulnerable
+file.SaveAs(path + fileName);
+🔍 Check
+
+No extension validation
+
+No content-type validation
+
+Using user-controlled filename
+
+🔴 4. Path Traversal
+🔍 Search
+Server.MapPath
+File.ReadAllText
+File.Open
+Directory.GetFiles
+Path.Combine
+🚨 Vulnerable
+var path = Server.MapPath("/files/" + userInput);
+🔴 5. Authentication Issues
+🔍 Search
+Login
+Authenticate
+FormsAuthentication
+SignIn
+Password
+🚨 Issues
+
+Hardcoded credentials
+
+No lockout
+
+Plaintext password comparison
+
+🔴 6. Authorization / Access Control
+🔍 Search
+[Authorize]
+Role
+IsInRole
+User.Identity
+🚨 Issues
+
+Missing authorization checks
+
+Role not validated
+
+Direct object access (IDOR)
+
+🔴 7. ViewState Vulnerabilities (ASP.NET Specific)
+🔍 Search
+EnableViewStateMac
+ViewState
+__VIEWSTATE
+🚨 Dangerous
+enableViewStateMac="false"
+🔴 8. Deserialization
+🔍 Search
+BinaryFormatter
+JsonConvert.DeserializeObject
+XmlSerializer
+🚨 Vulnerable
+BinaryFormatter.Deserialize(stream);
+🔴 9. XSS (Cross-Site Scripting)
+🔍 Search
+Response.Write
+InnerHtml
+Html.Raw
+Render
+🚨 Vulnerable
+Response.Write(userInput);
+✅ Safe
+HttpUtility.HtmlEncode(userInput);
+🔴 10. CSRF
+🔍 Search
+[HttpPost]
+ValidateAntiForgeryToken
+🚨 Vulnerable
+
+Missing:
+
+[ValidateAntiForgeryToken]
+🔴 11. Sensitive Data Exposure
+🔍 Search
+connectionString
+password
+secret
+key
+token
+apiKey
+🚨 Issues
+
+Hardcoded secrets
+
+Plaintext storage
+
+🔴 12. Logging Issues
+🔍 Search
+log
+Logger
+WriteLog
+🚨 Issues
+
+Logging passwords
+
+Logging tokens
+
+🔴 13. Error Handling
+🔍 Search
+try
+catch
+throw
+customErrors
+🚨 Vulnerable
+<customErrors mode="Off" />
+🔴 14. Insecure Redirects
+🔍 Search
+Response.Redirect
+Redirect
+🚨 Vulnerable
+Response.Redirect(userInput);
+🔴 15. Hardcoded URLs / Internal Info
+🔍 Search
+http://
+internal
+localhost
+IP
+\\
+🔴 16. File Storage Issues
+🔍 Search
+SaveAs
+WriteAllBytes
+FileStream
+🚨 Issues
+
+No access control
+
+Predictable file names
+
+🔴 17. Business Logic Issues
+🔍 Search
+if (condition)
+Validate
+Check
+🚨 Issues
+
+Validation only client-side
+
+Missing server validation
+
+🔴 18. API Security
+🔍 Search
+[HttpGet]
+[HttpPost]
+Route
+ApiController
+🚨 Issues
+
+No authentication
+
+IDOR
+
+mass assignment
+
+🔴 19. Encryption Issues
+🔍 Search
+MD5
+SHA1
+DES
+🚨 Vulnerable
+MD5.Create()
+🔴 20. Dependency Issues
+🔍 Check
+packages.config
+.csproj
+
+Look for:
+
+outdated libraries
+
+known CVEs
+
+🔴 21. Configuration Issues
+🔍 Search (web.config)
+debug="true"
+customErrors
+connectionStrings
+authentication
+authorization

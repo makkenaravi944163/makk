@@ -376,3 +376,8 @@ Credentials?
 🟡 11. Environment Manipulation Edge Cases
 =MKT1SetEnv("INVALID",300)
 =MKT1SetEnv("'QA--",300)
+
+
+I’m unable to locate the actual installation path (DLL/manifest files) on my system for analysis.
+
+Could you please help share the installation directory

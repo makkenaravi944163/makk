@@ -1,221 +1,282 @@
-🔴 1. SQL Injection (Highest Priority)
-🔍 Keywords to Search
-SqlCommand
-ExecuteReader
-ExecuteNonQuery
-ExecuteScalar
-SqlDataAdapter
-OleDbCommand
-OdbcCommand
-CommandText
-FromSqlRaw
-🚨 Vulnerable Patterns
-"SELECT * FROM users WHERE id=" + userInput
-"WHERE name = '" + input + "'"
-string query = "..." + Request["param"]
-✅ Safe Pattern
-cmd.Parameters.AddWithValue("@id", id);
-🔴 2. Command Injection
-🔍 Search
-Process.Start
-cmd.exe
-powershell
-Execute
-Runtime.exec
-🚨 Vulnerable
-Process.Start("cmd.exe", userInput);
-🔴 3. File Upload Vulnerabilities
-🔍 Search
-FileUpload
-SaveAs
-Request.Files
-IFormFile
-PostedFile
-🚨 Vulnerable
-file.SaveAs(path + fileName);
-🔍 Check
+🎯 1. Installation & Binary Security
+🔹 Test Case 1: Digital Signature Validation
 
-No extension validation
+Steps:
 
-No content-type validation
+Locate .dll (from Apps\2.0 folder)
+Right-click → Properties → Digital Signatures
+Verify:
+Valid signer
+Certificate chain
 
-Using user-controlled filename
+Expected Issue:
 
-🔴 4. Path Traversal
-🔍 Search
-Server.MapPath
-File.ReadAllText
-File.Open
-Directory.GetFiles
-Path.Combine
-🚨 Vulnerable
-var path = Server.MapPath("/files/" + userInput);
-🔴 5. Authentication Issues
-🔍 Search
-Login
-Authenticate
-FormsAuthentication
-SignIn
-Password
-🚨 Issues
+Unsigned / tampered DLL
+🔹 Test Case 2: DLL Tampering
 
-Hardcoded credentials
+Steps:
 
-No lockout
+Copy DLL → backup
+Modify DLL (open in hex editor / dnSpy and change string)
+Replace original DLL
+Open Excel
 
-Plaintext password comparison
+Check:
 
-🔴 6. Authorization / Access Control
-🔍 Search
-[Authorize]
-Role
-IsInRole
-User.Identity
-🚨 Issues
+Does add-in still load?
 
-Missing authorization checks
+Vulnerability:
 
-Role not validated
+No integrity validation
+🔹 Test Case 3: File Permission Check
 
-Direct object access (IDOR)
+Steps:
 
-🔴 7. ViewState Vulnerabilities (ASP.NET Specific)
-🔍 Search
-EnableViewStateMac
-ViewState
-__VIEWSTATE
-🚨 Dangerous
-enableViewStateMac="false"
-🔴 8. Deserialization
-🔍 Search
-BinaryFormatter
-JsonConvert.DeserializeObject
-XmlSerializer
-🚨 Vulnerable
-BinaryFormatter.Deserialize(stream);
-🔴 9. XSS (Cross-Site Scripting)
-🔍 Search
-Response.Write
-InnerHtml
-Html.Raw
-Render
-🚨 Vulnerable
-Response.Write(userInput);
-✅ Safe
-HttpUtility.HtmlEncode(userInput);
-🔴 10. CSRF
-🔍 Search
-[HttpPost]
-ValidateAntiForgeryToken
-🚨 Vulnerable
+Right-click DLL → Properties → Security
+Check:
+Write permission for normal user
 
-Missing:
+Vulnerability:
 
-[ValidateAntiForgeryToken]
-🔴 11. Sensitive Data Exposure
-🔍 Search
+Writable binary → privilege escalation
+🎯 2. Environment Manipulation
+🔹 Test Case 4: Default Environment Check
+
+Steps:
+
+=MKT1GetEnv()
+
+Check:
+
+Should NOT be PROD for testing
+🔹 Test Case 5: Switch to QA
+
+Steps:
+
+=MKT1SetEnv("QA",300)
+
+Then:
+
+=MKT1GetEnv()
+
+Check:
+
+Should show QA server
+🔹 Test Case 6: Environment Injection
+
+Steps:
+
+=MKT1SetEnv("QA'; DROP TABLE test--",300)
+
+Check:
+
+Error / execution
+
+Vulnerability:
+
+Injection in env function
+🎯 3. SQL Injection (CRITICAL)
+🔹 Test Case 7: Basic SQL Injection
+
+Steps:
+In Excel:
+
+=MKT1Data("' OR 1=1--", "2024-01-01", "2024-01-10", "NY", "FX")
+
+Check:
+
+More data returned than expected
+🔹 Test Case 8: Error-Based Injection
+=MKT1Data("' AND 1=CAST((SELECT @@version) AS INT)--",...)
+
+Check:
+
+DB error message appears
+🔹 Test Case 9: Time-Based Injection
+=MKT1Data("'; WAITFOR DELAY '0:0:5'--",...)
+
+Check:
+
+Delay in response
+🔹 Test Case 10: UNION Injection
+=MKT1Data("' UNION SELECT name FROM sysobjects--",...)
+
+Check:
+
+Unexpected DB metadata
+🎯 4. Parameter Manipulation
+🔹 Test Case 11: Invalid Input Types
+=MKT1Data(12345, "AAAA", NULL, "@@@", "")
+
+Check:
+
+Validation errors
+🔹 Test Case 12: Long Input (Buffer Test)
+=MKT1Data(REPT("A",5000),...)
+
+Check:
+
+Crash / truncation
+🎯 5. Authorization Testing
+🔹 Test Case 13: No TAM Role Access
+
+Steps:
+
+Use account without DB role
+Run:
+=MKT1Data(...)
+
+Check:
+
+Should fail
+🔹 Test Case 14: Privilege Escalation
+=MKT1Data("' UNION SELECT * FROM sysobjects--",...)
+
+Check:
+
+System tables accessible?
+🎯 6. Database Enumeration
+🔹 Test Case 15: List Tables
+' UNION SELECT name FROM sysobjects--
+🔹 Test Case 16: Column Discovery
+' UNION SELECT column_name FROM information_schema.columns--
+🎯 7. Registry Manipulation
+🔹 Test Case 17: Modify Registry
+
+Steps:
+
+Open regedit
+
+Navigate:
+
+Excel\Addins\Market1...
+Modify values
+
+Check:
+
+Add-in behavior changes?
+🎯 8. Configuration File Testing
+🔹 Test Case 18: Locate Config
+
+Steps:
+
+Go to DLL folder
+Look for .config
+
+Check:
+
+DB connection strings?
+Credentials?
+🎯 9. Network Testing
+🔹 Test Case 19: Traffic Capture
+
+Steps:
+
+Run Wireshark
+Execute Excel query
+
+Check:
+
+Plaintext data?
+Credentials?
+🎯 10. Log Analysis
+🔹 Test Case 20: View Logs
+
+Steps:
+
+Excel → Market One → View Logs
+Trigger error
+
+Check:
+
+SQL queries exposed?
+Stack trace?
+🎯 11. Reverse Engineering
+🔹 Test Case 21: Decompile DLL
+
+Steps:
+
+Open DLL in dnSpy
+
+Search:
+
+SQL
+SELECT
 connectionString
-password
-secret
-key
-token
-apiKey
-🚨 Issues
 
-Hardcoded secrets
+Check:
 
-Plaintext storage
+Hardcoded queries?
+DB endpoints?
+🎯 12. Excel Abuse
+🔹 Test Case 22: Mass Query Execution
 
-🔴 12. Logging Issues
-🔍 Search
-log
-Logger
-WriteLog
-🚨 Issues
+Steps:
 
-Logging passwords
+Press F9 repeatedly
 
-Logging tokens
+Check:
 
-🔴 13. Error Handling
-🔍 Search
-try
-catch
-throw
-customErrors
-🚨 Vulnerable
-<customErrors mode="Off" />
-🔴 14. Insecure Redirects
-🔍 Search
-Response.Redirect
-Redirect
-🚨 Vulnerable
-Response.Redirect(userInput);
-🔴 15. Hardcoded URLs / Internal Info
-🔍 Search
-http://
-internal
-localhost
-IP
-\\
-🔴 16. File Storage Issues
-🔍 Search
-SaveAs
-WriteAllBytes
-FileStream
-🚨 Issues
+Rate limiting?
+🔹 Test Case 23: Large Data Extraction
+=MKT1Data("EURUSD","2000-01-01","2025-01-01",...)
 
-No access control
+Check:
 
-Predictable file names
+Large dump allowed?
+🎯 13. Denial of Service
+🔹 Test Case 24: Heavy Queries
+Use wide date range
+Multiple sheets
 
-🔴 17. Business Logic Issues
-🔍 Search
-if (condition)
-Validate
-Check
-🚨 Issues
+Check:
 
-Validation only client-side
+DB slowdown
+🎯 14. Driver Testing
+🔹 Test Case 25: Sybase Driver Tampering
 
-Missing server validation
+Steps:
 
-🔴 18. API Security
-🔍 Search
-[HttpGet]
-[HttpPost]
-Route
-ApiController
-🚨 Issues
+Replace driver (if possible)
 
-No authentication
+Check:
 
-IDOR
+Add-in behavior
+🎯 15. Persistence & Session
+🔹 Test Case 26: Environment Reset
 
-mass assignment
+Steps:
 
-🔴 19. Encryption Issues
-🔍 Search
-MD5
-SHA1
-DES
-🚨 Vulnerable
-MD5.Create()
-🔴 20. Dependency Issues
-🔍 Check
-packages.config
-.csproj
+Set QA
+Close Excel
+Reopen
 
-Look for:
+Check:
 
-outdated libraries
+Resets to PROD?
+🎯 16. Formula Injection
+🔹 Test Case 27:
+=HYPERLINK("http://attacker.com","Click")
+🎯 17. File System Abuse
+🔹 Test Case 28:
+Replace DLL with malicious one
+🎯 18. Hardening Checks
+🔹 Test Case 29:
+Check:
+ASLR
+DEP
 
-known CVEs
+Tools:
 
-🔴 21. Configuration Issues
-🔍 Search (web.config)
-debug="true"
-customErrors
-connectionStrings
-authentication
-authorization
+PEStudio
+🎯 19. Data Leakage
+🔹 Test Case 30:
+Try accessing:
+Other asset classes
+Hidden data
+🎯 20. Edge Cases
+🔹 Test Case 31:
+Null values
+Empty parameters
+Special chars:
+' " ; -- < >

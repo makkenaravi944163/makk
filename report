@@ -1,0 +1,741 @@
+SQL Injection (Time-Based Blind) in PageID Parameter
+
+Risk Level
+
+High
+
+CVSS 3.1 Score
+
+8.6 (High)
+Vector: AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:L
+
+Vulnerability Category
+
+Injection
+
+OWASP Category
+
+OWASP Top 10 2021 – A03: Injection
+
+Description
+
+It was observed that the application is vulnerable to SQL Injection through the PageID parameter. The application fails to properly validate and sanitize user-supplied input before incorporating it into backend SQL queries.
+
+During testing, it was identified that injecting logical conditions such as ' AND 1=1-- returned a valid response, while ' AND 1=2-- resulted in an error response, confirming that user input is directly influencing SQL query execution.
+
+Furthermore, time-based payloads using SQL Server functions like WAITFOR DELAY demonstrated that the application executes injected queries. For example, injecting a delay of 10 seconds resulted in a 10-second response time, and similarly, a 20-second delay caused a proportional delay in response.
+
+This confirms the presence of a time-based blind SQL injection vulnerability, allowing attackers to infer database responses even when no direct output is returned.
+
+Impact
+
+An attacker exploiting this vulnerability may be able to:
+
+Extract sensitive information from the backend database (e.g., account details, financial data)
+Enumerate database structure (tables, columns)
+Bypass authentication and authorization mechanisms
+Modify or delete critical data
+Execute administrative database operations
+Potentially achieve remote code execution depending on database configuration
+
+Given that this is an intranet application handling sensitive business data, the impact is considered high.
+
+Proof of Concept (PoC Steps)
+
+Step 1: Navigate to the vulnerable endpoint:
+
+/dmw/Image.aspx?PageID=1
+
+Step 2: Inject a boolean condition:
+
+/dmw/Image.aspx?PageID=' AND 1=1--
+
+➡️ Application returns valid response
+
+Step 3: Inject a false condition:
+
+/dmw/Image.aspx?PageID=' AND 1=2--
+
+➡️ Application returns error/different response
+
+Step 4: Perform time-based injection:
+
+/dmw/Image.aspx?PageID=' WAITFOR DELAY '0:0:10'--
+
+➡️ Response delayed by 10 seconds
+
+Step 5: Increase delay:
+
+/dmw/Image.aspx?PageID=' WAITFOR DELAY '0:0:20'--
+
+➡️ Response delayed by 20 seconds
+
+➡️ Confirms time-based blind SQL injection
+
+Recommendations
+
+It is recommended to implement proper input validation and secure coding practices to prevent SQL injection vulnerabilities:
+
+Use parameterized queries (prepared statements) instead of dynamic SQL
+Implement input validation and sanitization on all user inputs
+Use stored procedures with strict parameter handling
+Apply least privilege principle for database accounts
+Implement Web Application Firewall (WAF) to detect and block injection attempts
+Avoid exposing detailed error messages to users
+Conduct regular secure code reviews and penetration testing
+References
+https://owasp.org/Top10/A03_2021-Injection/
+https://cwe.mitre.org/data/definitions/89.html
+https://portswigger.net/web-security/sql-injection
+https://learn.microsoft.com/en-us/sql/relational-databases/security/sql-injection
+
+
+
+Vulnerability Title
+
+Sensitive Information Exposure via Accessible Configuration XML File
+
+Risk Level
+
+High
+
+CVSS 3.1 Score
+
+7.5 (High)
+Vector: AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
+
+Vulnerability Category
+
+Sensitive Data Exposure / Information Disclosure
+
+OWASP Category
+
+OWASP Top 10 2021 – A02: Cryptographic Failures (Sensitive Data Exposure)
+
+Description
+
+It was observed that the application exposes sensitive configuration details through an accessible XML file (AccessInfoFile.xml) after authentication. The file contains critical backend information such as database hostnames, ports, schema names, environment details, and database credentials including usernames and passwords in plaintext.
+
+Additionally, the file reveals internal infrastructure details such as server names, environment mappings (Prod, QA, Dev), and database connection configurations. This information is highly sensitive and should not be exposed to users, even after authentication, unless strictly required and properly protected.
+
+The exposure of such configuration data indicates improper access control and insecure handling of sensitive information within the application.
+
+Impact
+
+An attacker with authenticated access can leverage this information to:
+
+Gain direct access to backend databases using exposed credentials
+Perform unauthorized queries and extract sensitive business data
+Understand internal infrastructure and network architecture
+Facilitate further attacks such as SQL injection, lateral movement, or privilege escalation
+Compromise multiple environments (QA, Dev, Prod) due to exposed configurations
+
+This significantly increases the attack surface and can lead to full system compromise.
+
+Proof of Concept (PoC Steps)
+
+Step 1: Login to the application with valid credentials
+
+Step 2: Navigate to the following endpoint:
+
+/returnedcheckweb/DAL/AccessInfoFile.xml
+
+Step 3: Observe the response containing sensitive data:
+
+Database host details (e.g., db81, port 50000)
+Environment configurations (Prod, QA, Dev)
+Database driver and schema information
+Plaintext credentials:
+<Username>...</Username>
+<Password>...</Password>
+
+Step 4: Verify that this data can be used to identify backend systems and potentially access them
+
+Recommendations
+
+It is recommended to implement strict controls to prevent exposure of sensitive configuration data:
+
+Remove sensitive information such as credentials from client-accessible files
+Store secrets securely using encrypted configuration stores or secret management systems
+Restrict access to configuration files using proper authorization checks
+Avoid exposing internal infrastructure details in responses
+Use environment-based secure configuration management (e.g., Azure Key Vault, AWS Secrets Manager)
+Ensure sensitive files are not accessible via direct URLs
+Implement role-based access control (RBAC) for sensitive endpoints
+Regularly audit and remove unnecessary exposed endpoints
+References
+https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
+https://cwe.mitre.org/data/definitions/522.html
+ (Insufficiently Protected Credentials)
+https://cwe.mitre.org/data/definitions/200.html
+ (Information Exposure)
+https://owasp.org/www-project-top-ten/2017/A3_2017-Sensitive_Data_Exposure
+
+
+
+
+Vulnerability Title
+
+Directory Listing Enabled Leading to Exposure of Sensitive Application Files
+
+Risk Level
+
+High
+
+CVSS 3.1 Score
+
+7.1 (High)
+Vector: AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
+
+Vulnerability Category
+
+Security Misconfiguration / Information Disclosure
+
+OWASP Category
+
+OWASP Top 10 2021 – A05: Security Misconfiguration
+
+Description
+
+It was observed that directory listing is enabled on the application endpoint (/returnedcheckweb/), allowing authenticated users to view the contents of the web application directory.
+
+The directory listing exposes critical application files and folders such as bin, DAL, Services, configuration files (web.config, Web.Debug.config, Web.Release.config), and compiled libraries (.dll, .pdb).
+
+This indicates improper server configuration where directory browsing has not been disabled. Even though access requires authentication, exposing such internal files significantly increases the risk of further exploitation.
+
+Impact
+
+An attacker with authenticated access can:
+
+Identify internal application structure and architecture
+Download sensitive configuration files (e.g., web.config) which may contain connection strings, credentials, or secrets
+Analyze .dll and .pdb files to reverse engineer application logic
+Discover hidden endpoints, APIs, and internal services
+Facilitate further attacks such as SQL injection, privilege escalation, or remote code execution
+
+This exposure can significantly reduce the effort required to exploit other vulnerabilities.
+
+Proof of Concept (PoC Steps)
+
+Step 1: Login to the application with valid credentials
+
+Step 2: Navigate to the following URL:
+
+/returnedcheckweb/
+
+Step 3: Observe that directory listing is enabled and displays:
+
+Folders: bin, DAL, Jobs, Services
+Files: web.config, .dll, .pdb, .aspx
+
+Step 4: Attempt to access sensitive files such as:
+
+/returnedcheckweb/web.config
+
+Step 5: Verify that internal application structure and files are exposed
+
+Recommendations
+
+It is recommended to implement proper server configuration and access controls to prevent directory listing:
+
+Disable directory browsing on the web server (IIS setting: directoryBrowse="false")
+Restrict direct access to sensitive files such as web.config, .dll, .pdb
+Implement proper authorization controls for all directories
+Remove unnecessary files from production environments (e.g., debug files, .pdb)
+Configure the application to return a custom error page (403/404) instead of directory listing
+Use least privilege principle for file access
+Regularly audit exposed endpoints and files
+References
+https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+https://cwe.mitre.org/data/definitions/548.html
+ (Exposure of Directory Listing)
+
+
+
+
+
+Vulnerability Title
+
+Unrestricted File Upload Allowing Dangerous File Extensions
+
+Risk Level
+
+Moderate
+
+CVSS 3.1 Score
+
+5.3 (Moderate)
+Vector: AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:N
+
+Vulnerability Category
+
+Improper Input Validation / Unrestricted File Upload
+
+OWASP Category
+
+OWASP Top 10 2021 – A05: Security Misconfiguration
+OWASP Top 10 2021 – A03: Injection (Indirect Risk via File Upload)
+
+Description
+
+It was observed that the application allows users to upload files with dangerous extensions such as .php without proper validation. Although the uploaded files are not executed on the server and are only available for download, the application fails to enforce strict file type restrictions.
+
+The lack of validation on file extensions and content type indicates improper input validation controls in the file upload functionality. This could potentially lead to security risks if the application behavior changes or if the uploaded files are accessed in different contexts.
+
+Impact
+
+An attacker with authenticated access can:
+
+Upload malicious files (e.g., .php, .aspx, scripts) into the system
+Use the application as a malware hosting platform
+Trick users into downloading malicious files (phishing or social engineering)
+Potentially achieve Remote Code Execution (RCE) if:
+File execution becomes enabled due to misconfiguration
+Files are moved to executable directories
+Bypass security monitoring by storing malicious payloads within the application
+
+Although currently not executable, this represents a latent high-risk vulnerability.
+
+Proof of Concept (PoC Steps)
+
+Step 1: Login to the application with valid credentials
+
+Step 2: Navigate to the file upload functionality
+
+Step 3: Upload a file with a dangerous extension:
+
+test.php
+
+Step 4: Observe that the application accepts the file without validation
+
+Step 5: Download the uploaded file from the application
+
+Step 6: Confirm that:
+
+File is stored successfully
+File is downloadable
+No restriction on extension type
+Recommendations
+
+It is recommended to implement strict file upload validation controls to prevent misuse:
+
+Allow only whitelisted file extensions (e.g., .pdf, .jpg, .png)
+Validate file MIME type and content, not just extension
+Rename uploaded files to random names to prevent direct access
+Store uploaded files outside the web root
+Implement file size restrictions
+Scan uploaded files using antivirus/malware detection tools
+Block execution of uploaded files at server level (IIS configuration)
+Implement proper access controls for file download endpoints
+References
+https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+https://owasp.org/www-community/vulnerabilities/Unrestricted_File_Upload
+
+
+
+Vulnerability Title
+
+Missing Rate Limiting Leading to Unrestricted Record Creation (Job ID / Batch Size Manipulation)
+
+Risk Level
+
+Moderate
+
+CVSS 3.1 Score
+
+6.5 (Medium)
+Vector: AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:L
+
+Vulnerability Category
+
+Improper Rate Limiting / Business Logic Flaw
+
+OWASP Category
+
+OWASP Top 10 2021 – A04: Insecure Design
+OWASP Top 10 2021 – A05: Security Misconfiguration
+
+Description
+
+It was observed that the application does not enforce rate limiting or request throttling on the functionality responsible for creating records using Job ID and Batch Size inputs.
+
+During testing, it was possible to intercept and manipulate requests using an automated tool (e.g., Burp Suite Intruder) and repeatedly submit modified Job ID and Batch Size values. The application accepted these requests without restriction, resulting in the creation of multiple records with unique IDs.
+
+This indicates the absence of server-side controls to limit request frequency or validate repeated submissions, leading to uncontrolled resource usage and potential abuse of business logic.
+
+Impact
+
+An authenticated attacker can:
+
+Generate a large number of records (Unique IDs) in a short period
+Flood the system with unnecessary data (data pollution)
+Cause performance degradation or potential denial of service
+Manipulate business workflows dependent on Job ID / Batch Size
+Exhaust backend resources such as database storage and processing capacity
+Impact reporting accuracy and operational integrity
+
+Although authentication is required, the lack of rate limiting allows easy abuse once access is obtained.
+
+Proof of Concept (PoC Steps)
+
+Step 1: Login to the application with valid credentials
+
+Step 2: Navigate to the module containing Job ID and Batch Size inputs
+
+Step 3: Intercept the request using Burp Suite
+
+Step 4: Send the request to Intruder and modify parameters:
+
+JobID=20180226-12345-XXXX
+BatchSize=XXX
+
+Step 5: Configure Intruder to send multiple requests (e.g., 100–1000 requests)
+
+Step 6: Execute the attack and observe:
+
+Each request is accepted
+New records with unique IDs are created
+
+Step 7: Verify in the UI that multiple entries are generated without restriction
+
+Recommendations
+
+It is recommended to implement proper rate limiting and business logic controls:
+
+Enforce rate limiting / throttling on critical endpoints
+Implement CAPTCHA or request validation for repeated submissions
+Apply server-side validation for Job ID and Batch Size inputs
+Prevent duplicate or excessive record creation
+Introduce transaction controls and quotas per user/session
+Monitor and log abnormal request patterns
+Implement API gateway or WAF rules to limit request frequency
+Apply idempotency checks to prevent repeated processing
+References
+https://owasp.org/Top10/A04_2021-Insecure_Design/
+https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+https://cwe.mitre.org/data/definitions/770.html
+ (Allocation of Resources Without Limits)
+https://portswigger.net/web-security/rate-limiting
+
+
+Vulnerability Title
+
+Improper Input Validation Leading to HTML Injection in Document Type Field
+
+Risk Level
+
+Moderate
+
+CVSS 3.1 Score
+
+5.4 (Medium)
+Vector: AV:N/AC:L/PR:L/UI:R/S:U/C:L/I:L/A:N
+
+Vulnerability Category
+
+Cross-Site Scripting (XSS) / HTML Injection
+
+OWASP Category
+
+OWASP Top 10 2021 – A03: Injection
+
+Description
+
+It was observed that the application fails to properly sanitize user input in the Document Type field, allowing HTML content to be injected and rendered in the application interface.
+
+During testing, it was identified that when HTML tags such as <button>clickme</button> are entered into the input field, the application renders the button element on the page instead of treating it as plain text.
+
+Although the application enforces a limitation on input length (restricting more than 7 characters inside the tag), it still allows HTML injection within that constraint. This indicates insufficient server-side input validation and improper output encoding.
+
+Impact
+
+An attacker with authenticated access can:
+
+Inject arbitrary HTML elements into the application UI
+Manipulate the user interface and mislead users
+Perform phishing attacks by creating fake buttons or links
+Potentially escalate to stored or reflected XSS if script execution becomes possible
+Impact data integrity and user trust
+
+While current restrictions limit payload size, this vulnerability may be leveraged in combination with other weaknesses.
+
+Proof of Concept (PoC Steps)
+
+Step 1: Login to the application with valid credentials
+
+Step 2: Navigate to the File Upload / Document Type input field
+
+Step 3: Enter the following payload:
+
+<button>clickme</button>
+
+Step 4: Submit the request
+
+Step 5: Observe that:
+
+A clickable button is rendered in the UI
+Input is not escaped or sanitized
+
+Step 6: Attempt longer payloads and observe that input length is restricted but HTML is still rendered
+
+Recommendations
+
+It is recommended to implement proper input validation and output encoding mechanisms:
+
+Encode all user inputs before rendering (e.g., HTML encoding)
+Validate and restrict input to only expected formats (e.g., alphanumeric values)
+Reject or sanitize HTML tags from user inputs
+Implement server-side validation instead of relying only on client-side restrictions
+Use secure frameworks or libraries that automatically escape output
+Conduct regular input validation testing across all fields
+References
+https://owasp.org/Top10/A03_2021-Injection/
+https://owasp.org/www-community/attacks/xss/
+https://cwe.mitre.org/data/definitions/79.html
+https://portswigger.net/web-security/cross-site-scripting
+
+
+
+Vulnerability Title
+
+Improper Server-Side Validation Allowing Future Date Manipulation in Document Start Date
+
+Risk Level
+
+Moderate
+
+CVSS 3.1 Score
+
+5.9 (Medium)
+Vector: AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:N
+
+Vulnerability Category
+
+Business Logic Flaw / Improper Input Validation
+
+OWASP Category
+
+OWASP Top 10 2021 – A04: Insecure Design
+
+Description
+
+It was observed that the application enforces validation on the Document Start Date field at the client/UI level, restricting users from selecting a future date. However, this validation can be bypassed by intercepting and modifying the request.
+
+During testing, after uploading a document, the request was intercepted and the Document Start Date parameter was modified to a future date (e.g., 2029-05-16). The application accepted the manipulated request and successfully stored the future date, despite displaying a validation error in the UI initially.
+
+This indicates the absence of proper server-side validation, allowing attackers to bypass business rules and manipulate critical data fields.
+
+Impact
+
+An attacker with authenticated access can:
+
+Bypass business rules related to date validation
+Insert incorrect or manipulated future dates into the system
+Affect downstream workflows dependent on document dates
+Cause inconsistencies in reporting, auditing, and processing
+Potentially exploit date-based logic for unauthorized benefits
+
+This impacts data integrity and business process reliability.
+
+Proof of Concept (PoC Steps)
+
+Step 1: Login to the application with valid credentials
+
+Step 2: Upload a document using the file upload functionality
+
+Step 3: Enter a valid Document Start Date in the UI
+
+Step 4: Intercept the request using Burp Suite
+
+Step 5: Modify the request parameter:
+
+DocumentStartDate=2029-05-16
+
+Step 6: Forward the request to the server
+
+Step 7: Observe that:
+
+The application accepts the request
+The future date is stored and displayed in the UI
+Recommendations
+
+It is recommended to implement strict server-side validation for all input fields:
+
+Enforce server-side validation for Document Start Date
+Reject future dates based on business rules at backend level
+Do not rely solely on client-side validation
+Implement centralized validation logic across all endpoints
+Log and monitor abnormal input patterns
+Apply data integrity checks before persisting records
+References
+https://owasp.org/Top10/A04_2021-Insecure_Design/
+https://cwe.mitre.org/data/definitions/20.html
+ (Improper Input Validation)
+
+
+Vulnerability Title
+
+Detailed Error Message Disclosure Revealing Internal Application and System Information
+
+Risk Level
+
+Moderate
+
+CVSS 3.1 Score
+
+6.1 (Medium)
+Vector: AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
+
+Vulnerability Category
+
+Information Disclosure / Security Misconfiguration
+
+OWASP Category
+
+OWASP Top 10 2021 – A05: Security Misconfiguration
+
+Description
+
+It was observed that the application discloses detailed error messages when invalid or unexpected requests are processed. The error responses expose sensitive internal information such as:
+
+Full stack traces (including internal class and method names)
+Internal application components (e.g., MorganStanley.DotNetCore...)
+Backend service details (e.g., LDAP errors, API calls)
+Physical file paths (e.g., d:\inetpub\qa\dmw\_siteroot\...)
+Server configuration details and modules (IIS, handlers)
+Internal URLs and ports
+
+These details are visible to authenticated users and indicate that proper error handling and information masking are not implemented.
+
+Impact
+
+An attacker with authenticated access can:
+
+Gain insights into application architecture and technology stack
+Identify internal APIs, services, and components
+Discover file system structure and deployment paths
+Use stack trace details to craft targeted attacks (e.g., SQLi, RCE, LDAP attacks)
+Facilitate further exploitation by reducing attack complexity
+
+This significantly increases the likelihood of successful exploitation of other vulnerabilities.
+
+Proof of Concept (PoC Steps)
+
+Step 1: Login to the application with valid credentials
+
+Step 2: Navigate to an invalid or malformed endpoint:
+
+/dmw/*.aspx
+
+Step 3: Observe the error response displaying:
+
+Runtime error messages
+Web.config hints (customErrors mode="Off")
+Stack trace with internal classes
+
+Step 4: Trigger additional errors (e.g., invalid IDs or parameters)
+
+Step 5: Observe disclosure of:
+
+Physical path:
+d:\inetpub\qa\dmw\_siteroot\...
+Stack trace and internal service errors
+Recommendations
+
+It is recommended to implement secure error handling and prevent information disclosure:
+
+Configure custom error pages (customErrors mode="On" or RemoteOnly)
+Disable stack trace and detailed error messages in production
+Log detailed errors securely on the server side instead of displaying them
+Avoid exposing internal file paths, class names, and system details
+Implement centralized exception handling
+Ensure consistent error responses across the application
+Perform regular security reviews of error handling mechanisms
+References
+https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+https://cwe.mitre.org/data/definitions/209.html
+ (Information Exposure Through an Error Message)
+https://portswigger.net/kb/issues/00600100_information-disclosure-in-error-messages
+
+
+Vulnerability Title
+
+Overly Permissive CORS Policy Allowing Access from Any Origin
+
+Risk Level
+
+Moderate
+
+CVSS 3.1 Score
+
+6.5 (Medium)
+Vector: AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:L/A:N
+
+Vulnerability Category
+
+Security Misconfiguration / Cross-Origin Resource Sharing (CORS) Misconfiguration
+
+OWASP Category
+
+OWASP Top 10 2021 – A05: Security Misconfiguration
+
+Description
+
+It was observed that the application is configured with an overly permissive Cross-Origin Resource Sharing (CORS) policy. The HTTP response header includes:
+
+Access-Control-Allow-Origin: *
+
+This configuration allows any external domain to access the application resources without restriction. Additionally, multiple HTTP methods (GET, POST, PUT, DELETE, OPTIONS) and headers are allowed, increasing the exposure surface.
+
+Although authentication may still be required, such a permissive CORS policy weakens the browser’s same-origin policy and can enable unauthorized cross-origin interactions.
+
+Impact
+
+An attacker can:
+
+Perform cross-origin requests from malicious domains
+Potentially access sensitive data if combined with authentication/session weaknesses
+Launch phishing or malicious web applications interacting with the target system
+Abuse APIs exposed via the application
+Increase risk of data exfiltration when combined with other vulnerabilities
+
+The impact becomes significantly higher if sensitive endpoints are exposed or if credentials are improperly handled.
+
+Proof of Concept (PoC Steps)
+
+Step 1: Intercept any application request using Burp Suite
+
+Step 2: Observe the response headers:
+
+Access-Control-Allow-Origin: *
+
+Step 3: Create a malicious HTML page on another domain:
+
+<script>
+fetch("https://target-app-url", {
+  method: "GET"
+})
+.then(res => res.text())
+.then(data => console.log(data));
+</script>
+
+Step 4: Open the malicious page in a browser
+
+Step 5: Verify that the request is successfully processed due to permissive CORS policy
+
+Recommendations
+
+It is recommended to implement a strict and secure CORS policy:
+
+Restrict Access-Control-Allow-Origin to trusted domains only
+Avoid using wildcard (*) in production environments
+Limit allowed HTTP methods to only required ones
+Restrict allowed headers to necessary values
+Avoid exposing sensitive endpoints via cross-origin requests
+Implement proper authentication and authorization checks
+Validate origin headers on the server side
+Regularly review and audit CORS configurations
+References
+https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+https://portswigger.net/web-security/cors
+https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS

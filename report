@@ -71,3 +71,53 @@ Step 4: Inspect File Content
 
 Open .enc file using a text editor and observe encrypted/binary data.
 Open .txt files and verify presence of readable or structured key material.
+
+
+
+
+🧾 Vulnerability Write-up (Use This)
+🏷️ Title
+
+Verbose Error Message Leading to Information Disclosure
+
+⚠️ Risk
+
+Low
+
+📊 CVSS 3.1
+CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N → 3.3 (Low)
+📂 Category
+Information Disclosure
+Security Misconfiguration
+🧩 OWASP Category
+
+A05:2021 – Security Misconfiguration
+
+📖 Description
+
+It was observed that the application returns detailed system-level error messages when processing user requests. The error message reveals internal implementation details such as file paths, class names, assembly names, and technology stack information.
+
+💥 Impact
+Exposure of internal system architecture
+Disclosure of technology stack and dependencies
+Assists attackers in crafting targeted attacks
+Increases overall attack surface
+🛠️ Recommendation
+
+It is recommended to implement proper error handling mechanisms to ensure that detailed system errors are not exposed to end users.
+
+It is recommended to implement generic error messages for users while logging detailed errors securely on the server side.
+
+🔗 References
+https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html
+https://cwe.mitre.org/data/definitions/209.html
+🧪 PoC Steps
+
+Step 1: Execute function with invalid/misconfigured environment
+
+=mkt1Utils("searchCode", ...)
+
+Step 2: Observe application error
+
+Step 3: Verify exposure of:

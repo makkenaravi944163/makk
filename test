@@ -5,3 +5,6 @@ Increases the likelihood of successful exploitation by aiding reconnaissance and
 It is recommended to implement centralized exception handling and suppress detailed stack traces in the Excel add-in UI.
 Configure the application to display generic user-friendly error messages while logging detailed errors securely on the server side.
 Disable debug/verbose logging in production builds and ensure sensitive information (paths, assemblies) is not exposed to end users.
+
+
+It was observed that the application returns detailed error messages including full stack traces when invalid or unexpected input is provided through the Excel add-in function. The error response discloses internal implementation details such as assembly names, file paths, class names, and method calls. These details reveal backend technology components (e.g., .NET assemblies and database connectors) and internal directory structures. Such exposure can assist attackers in understanding the application architecture and identifying potential attack vectors.

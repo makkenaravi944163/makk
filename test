@@ -1,26 +1,26 @@
 🔴 Vulnerability Title
 
-Unsigned DLL Allowing Potential Code Tampering and Execution
+Hardcoded Database Credentials in Configuration File
 
 🔴 Description
 
-It was observed that the application loads a DLL file (fidev.mkt1xladdin.Market1.XL.dll) that is not digitally signed, as confirmed using signature verification tools. The absence of a valid digital signature prevents verification of the file’s integrity and authenticity. This DLL is loaded by the Excel add-in during execution from a shared/network-accessible path. Lack of code signing introduces a risk of unauthorized modification without detection.
+It was observed that the application stores database credentials, including username and password, in plaintext within the DBAccessInfo.xml configuration file. These credentials are accessible through a shared network path used by the Excel add-in. The file exposes sensitive authentication details without encryption or protection. This indicates insecure credential management and improper handling of sensitive data.
 
 🔴 Impact
-Attackers can replace or tamper with the DLL to execute malicious code
-Leads to unauthorized code execution within the Excel add-in context
-Potential full system compromise if malicious DLL is loaded
+Attackers can directly use exposed credentials to access backend databases
+Leads to unauthorized data access, modification, or deletion
+May result in full compromise of application and connected systems
 🔧 Mitigation
-It is recommended to implement code signing for all DLLs using trusted certificates to ensure integrity and authenticity
-Enforce signature validation before loading DLLs within the application
-Restrict write access to DLL directories and monitor for unauthorized modifications
-Implement application whitelisting to allow only trusted signed binaries
+It is recommended to implement secure credential storage using a centralized secrets management solution (e.g., vault or encrypted store)
+Avoid storing plaintext credentials in configuration files and use secure authentication methods such as integrated authentication or tokens
+Restrict access to configuration files and enforce encryption for sensitive data at rest
 📌 PoC Steps
 
-Step 1: Identify DLL file used by application
-Step 2: Run sigcheck.exe <dll_path>
-Step 3: Observe output showing “Unsigned”
-Step 4: Confirm absence of digital signature
+Step 1: Navigate to shared path containing configuration files
+Step 2: Open DBAccessInfo.xml
+Step 3: Locate <Username> and <Password> fields
+Step 4: Observe plaintext credentials exposed
 
 📚 References
-https://learn.microsoft.com/en-us/windows/win32/seccrypto/digital-signatures
+https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+https://owasp.org/Top10/A02_2021-Cryptographic_Failures/

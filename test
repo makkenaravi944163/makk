@@ -1,10 +1,12 @@
-Internal implementation details such as assembly names, file paths, and code structure are exposed to users.
-Attackers can use this information to identify backend technologies and target specific components (e.g., DLL hijacking, dependency attacks).
-Increases the likelihood of successful exploitation by aiding reconnaissance and reducing attack complexity.
+🔴 Description
+
+It was observed that the application stores encrypted credential files (.enc) along with corresponding key and IV files (.txt) within the same accessible directory path. The files are available in a shared network location used by the Excel add-in. This implementation exposes all required components needed to decrypt sensitive credentials. Storing encryption keys together with encrypted data defeats the purpose of encryption and indicates improper key management.
+
+🔴 Impact
+Attackers with access to the directory can decrypt credentials and gain unauthorized access to databases/services
+Leads to compromise of sensitive financial or market data handled by the application
+Increases risk of privilege escalation and lateral movement across environments
 🔧 Mitigation
-It is recommended to implement centralized exception handling and suppress detailed stack traces in the Excel add-in UI.
-Configure the application to display generic user-friendly error messages while logging detailed errors securely on the server side.
-Disable debug/verbose logging in production builds and ensure sensitive information (paths, assemblies) is not exposed to end users.
-
-
-It was observed that the application returns detailed error messages including full stack traces when invalid or unexpected input is provided through the Excel add-in function. The error response discloses internal implementation details such as assembly names, file paths, class names, and method calls. These details reveal backend technology components (e.g., .NET assemblies and database connectors) and internal directory structures. Such exposure can assist attackers in understanding the application architecture and identifying potential attack vectors.
+It is recommended to implement secure key management by storing encryption keys separately in a protected key vault or HSM instead of local/shared directories
+Restrict access to credential files using least privilege and remove exposure from shared network paths
+Use strong encryption practices with proper key rotation and ensure keys are never stored alongside encrypted data

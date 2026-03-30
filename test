@@ -1,3 +1,4 @@
+Insecure Storage of Encrypted Credentials with Co-located Key and IV Files
 🔴 Description
 
 It was observed that the application stores encrypted credential files (.enc) along with corresponding key and IV files (.txt) within the same accessible directory path. The files are available in a shared network location used by the Excel add-in. This implementation exposes all required components needed to decrypt sensitive credentials. Storing encryption keys together with encrypted data defeats the purpose of encryption and indicates improper key management.

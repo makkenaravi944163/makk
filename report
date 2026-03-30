@@ -125,16 +125,14 @@ Step 3: Verify exposure of:
 
 
 
-
-
 🔴 1. Information Disclosure via Environment Enumeration
 Risk
 
 Medium
 
-CVSS 3.1 (Intranet)
+CVSS 3.1
 
-5.5 (Medium) – AV:L/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N
+5.5 (Medium)
 
 Vulnerability Category
 
@@ -142,24 +140,26 @@ Information Disclosure / Security Misconfiguration
 
 Description
 
-It was observed that the application exposes multiple environment details such as production, QA, and test configurations within accessible files. Server names, database identifiers, and environment mappings are clearly visible. This information is accessible through shared directories. Such exposure enables attackers to understand internal infrastructure and plan targeted attacks.
+It was observed that the application exposes multiple environment details such as production, QA, and test configurations within accessible files. Server names, database identifiers, and environment mappings are clearly visible. These files are stored in shared locations accessible to users. This exposure allows understanding of internal infrastructure.
 
 Impact
-Internal infrastructure mapping
-Easier lateral movement
-Targeted attacks on production systems
+Attackers can map internal environments and identify critical systems
+Enables targeted attacks on production databases and services
+Increases risk of lateral movement within the network
 Recommendations
 
-It is recommended to implement strict access controls on configuration files and avoid exposing environment details in client-accessible locations.
+It is recommended to implement strict access controls on configuration files and restrict access to authorized users only. Sensitive environment details should not be exposed in client-accessible paths. Use environment abstraction or secure configuration management. Store such configurations securely on backend systems instead of shared locations.
 
 References
+
 https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+
 PoC Steps
 
-Step 1: Navigate to shared path
-Step 2: Open DBAccessInfo.xml
-Step 3: Observe multiple environment entries
-Step 4: Identify server/database mappings
+Step 1: Navigate to shared directory
+Step 2: Open configuration files
+Step 3: Identify environment entries
+Step 4: Observe server/database mappings
 
 OWASP Category
 
@@ -180,24 +180,26 @@ Information Disclosure
 
 Description
 
-It was observed that the application displays detailed system error messages such as “Object reference not set to an instance of an object.” These messages reveal internal exception handling and application behavior. Exposure of such details can assist attackers in understanding backend logic. This information may be used to refine further attacks.
+It was observed that the application displays detailed system error messages such as “Object reference not set to an instance of an object.” These messages expose internal exception handling details. Such information reveals application behavior and backend logic. This can assist attackers in refining exploitation attempts.
 
 Impact
-Exposure of internal logic
-Easier vulnerability exploitation
-Debugging information leakage
+Internal application logic is exposed to users
+Attackers can use error details to craft targeted attacks
+Increases overall attack surface
 Recommendations
 
-It is recommended to implement generic error handling and suppress detailed system-level messages in production environments.
+It is recommended to implement centralized error handling and display generic error messages to end users. Detailed exceptions should be logged securely on the server side only. Disable debug mode in production environments. Ensure proper exception handling across all modules.
 
 References
+
 https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
+
 PoC Steps
 
-Step 1: Provide invalid input
-Step 2: Execute function
+Step 1: Provide invalid input in Excel function
+Step 2: Execute the request
 Step 3: Observe detailed error message
-Step 4: Note internal information leakage
+Step 4: Identify internal information leakage
 
 OWASP Category
 
@@ -218,24 +220,26 @@ Broken Cryptography / Sensitive Data Exposure
 
 Description
 
-It was observed that encrypted credential files are stored along with their corresponding key and IV files in the same directory. All components required for decryption are accessible from shared network paths. This design defeats the purpose of encryption and allows attackers to recover plaintext credentials. No secure key management mechanism is implemented.
+It was observed that encrypted credential files are stored along with their corresponding key and IV files in the same directory. All required components for decryption are accessible from shared paths. This design nullifies the effectiveness of encryption. No secure key management mechanism is implemented.
 
 Impact
-Full credential disclosure
-Unauthorized database access
-Complete system compromise
+Attackers can decrypt credentials and gain unauthorized access
+Leads to full compromise of database and application services
+Sensitive data exposure across environments
 Recommendations
 
-It is recommended to implement secure key management by storing encryption keys separately in a secure vault and restricting access to credential files.
+It is recommended to implement secure key management by storing encryption keys in a centralized vault (e.g., HSM or secrets manager). Separate keys from encrypted data and restrict access using role-based controls. Encrypt sensitive data using strong algorithms and rotate keys periodically. Avoid storing cryptographic materials in shared directories.
 
 References
+
 https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
+
 PoC Steps
 
-Step 1: Locate .enc, key, and IV files
-Step 2: Verify all are in same directory
-Step 3: Confirm accessibility
-Step 4: Identify decryption feasibility
+Step 1: Locate encrypted password file
+Step 2: Identify key and IV files in same path
+Step 3: Verify accessibility
+Step 4: Confirm decryption feasibility
 
 OWASP Category
 
@@ -256,24 +260,26 @@ Security Misconfiguration / Code Integrity
 
 Description
 
-It was observed that application DLL files are not digitally signed, preventing verification of their integrity. The absence of code signing allows malicious modification without detection. These DLLs are loaded from shared locations without validation. This increases the risk of executing tampered or malicious code.
+It was observed that application DLL files are not digitally signed, preventing validation of their integrity. These DLLs are loaded dynamically by the Excel add-in from shared locations. Lack of code signing allows unauthorized modification without detection. This introduces risk of malicious code execution.
 
 Impact
-Arbitrary code execution
-Malware injection
-System compromise
+Attackers can replace DLLs with malicious code
+Leads to execution of unauthorized code within Excel environment
+Potential full system compromise
 Recommendations
 
-It is recommended to implement code signing using trusted certificates and enforce integrity validation during DLL loading.
+It is recommended to digitally sign all DLLs using trusted code-signing certificates. Enforce integrity checks before loading binaries in the application. Restrict write access to DLL directories and monitor for unauthorized changes. Implement application whitelisting to prevent execution of untrusted binaries.
 
 References
+
 https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+
 PoC Steps
 
 Step 1: Navigate to DLL location
-Step 2: Open file properties
-Step 3: Check Digital Signature tab
-Step 4: Observe absence of signature
+Step 2: Open properties
+Step 3: Check digital signature tab
+Step 4: Observe unsigned status
 
 OWASP Category
 
@@ -294,18 +300,20 @@ Sensitive Data Exposure
 
 Description
 
-It was observed that database credentials are stored in plaintext within configuration files. These credentials are accessible via shared network paths. No encryption or secure storage mechanism is implemented. Attackers can directly use these credentials to access backend databases.
+It was observed that database credentials are stored in plaintext within configuration files. These files are accessible via shared network locations. No encryption or protection mechanism is applied. This allows direct exposure of sensitive authentication data.
 
 Impact
-Unauthorized database access
-Data leakage and manipulation
-Full backend compromise
+Unauthorized access to database systems
+Data theft, modification, or deletion
+Full compromise of backend infrastructure
 Recommendations
 
-It is recommended to implement secure credential storage using secrets management systems and avoid storing plaintext credentials in configuration files.
+It is recommended to store database credentials securely using a secrets management solution. Avoid hardcoding credentials in configuration files and use secure authentication mechanisms such as integrated authentication or token-based access. Restrict access to configuration files and implement encryption for sensitive data.
 
 References
+
 https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+
 PoC Steps
 
 Step 1: Open configuration file
@@ -332,18 +340,20 @@ Sensitive Data Exposure
 
 Description
 
-It was observed that LDAP credentials are hardcoded within configuration files. These credentials are accessible to users with file access. No secure storage or encryption mechanism is implemented. This allows unauthorized access to directory services.
+It was observed that LDAP credentials are hardcoded within configuration files used by the application. These credentials are accessible through shared directories. No encryption or secure storage mechanism is applied. This exposes directory authentication details.
 
 Impact
-Unauthorized LDAP access
-Exposure of user data
-Privilege escalation risk
+Unauthorized access to LDAP services
+Exposure of user and directory data
+Potential privilege escalation
 Recommendations
 
-It is recommended to implement secure storage for LDAP credentials using encrypted vaults and restrict access to configuration files.
+It is recommended to store LDAP credentials securely in a centralized secrets vault and avoid hardcoding them in files. Use secure authentication mechanisms such as Kerberos or integrated authentication. Restrict access to configuration files and rotate credentials periodically. Implement least privilege for LDAP accounts.
 
 References
+
 https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
+
 PoC Steps
 
 Step 1: Open configuration file
@@ -370,13 +380,30 @@ Insecure Communication
 
 Description
 
-It was observed that LDAP communication is configured without secure protocols such as LDAPS. Communication occurs over standard LDAP, which transmits data in plaintext. Credentials are exposed during transmission over the network. This makes the system vulnerable to interception attacks.
+It was observed that LDAP communication is configured without using secure protocols such as LDAPS. Communication occurs over standard LDAP, which transmits data in plaintext. Sensitive credentials are exposed during transmission. This increases risk of interception attacks.
 
 Impact
-Credential interception
-Man-in-the-middle attacks
-Unauthorized access
+Credentials can be intercepted over the network
+Enables man-in-the-middle attacks
+Unauthorized access to directory services
 Recommendations
+
+It is recommended to enforce LDAPS (port 636) with TLS encryption for all LDAP communications. Ensure certificate validation is properly implemented in the application. Disable insecure LDAP (port 389) where possible. Monitor and secure network traffic carrying authentication data.
+
+References
+
+https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/ldap-over-ssl-ldaps
+
+PoC Steps
+
+Step 1: Review LDAP configuration
+Step 2: Identify use of non-secure LDAP
+Step 3: Confirm absence of LDAPS
+Step 4: Validate plaintext transmission risk
+
+OWASP Category
+
+A02: Cryptographic Failures
 
 It is recommended to implement LDAPS over port 636 and enforce TLS encryption for all directory communications.
 

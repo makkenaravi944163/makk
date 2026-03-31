@@ -1,7 +1,21 @@
-Restrict access to configuration files and avoid exposing environment details in shared or client-accessible locations.
-Implement centralized error handling and display generic messages while logging detailed errors securely on the server.
-Store encryption keys separately in a secure vault and never keep key/IV with encrypted credential files.
-Digitally sign all DLLs and enforce signature validation before loading them in the application.
-Use a secure secrets management solution instead of storing database credentials in plaintext configuration files.
-Avoid hardcoding LDAP credentials and use secure authentication mechanisms like Kerberos or integrated authentication.
-Enforce LDAPS with TLS encryption and disable insecure LDAP communication over port 389.
+Information Disclosure via Environment Enumeration
+It was observed that the application exposes multiple environment details such as production, QA, and test configurations in accessible files.
+This allows users to identify internal server names, database mappings, and infrastructure details.
+Verbose Error Message Leading to Information Disclosure
+It was observed that the application returns detailed error messages including stack traces when invalid input is provided.
+These messages reveal internal application logic, file paths, and backend technology details.
+Insecure Storage of Encrypted Credentials with Co-located Key Material
+It was observed that encrypted credential files are stored along with their corresponding key and IV files in the same directory.
+This exposes all components required for decryption and weakens the effectiveness of encryption.
+Unsigned DLL (Code Integrity Issue)
+It was observed that application DLL files are not digitally signed and are loaded during execution without validation.
+This allows potential tampering or replacement of DLLs without detection.
+Hardcoded Database Credentials
+It was observed that database credentials are stored in plaintext within configuration files accessible via shared paths.
+This exposes sensitive authentication information without any encryption or protection.
+Hardcoded LDAP Credentials
+It was observed that LDAP credentials are hardcoded in configuration files used by the application.
+These credentials are accessible in plaintext, leading to potential unauthorized directory access.
+Insecure LDAP Communication (Non-LDAPS)
+It was observed that the application uses LDAP communication over non-secure channels without encryption.
+This exposes sensitive credentials and data to interception over the network.

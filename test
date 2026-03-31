@@ -1,21 +1,3 @@
-Information Disclosure via Environment Enumeration
-It was observed that the application exposes multiple environment details such as production, QA, and test configurations in accessible files.
-This allows users to identify internal server names, database mappings, and infrastructure details.
-Verbose Error Message Leading to Information Disclosure
-It was observed that the application returns detailed error messages including stack traces when invalid input is provided.
-These messages reveal internal application logic, file paths, and backend technology details.
-Insecure Storage of Encrypted Credentials with Co-located Key Material
-It was observed that encrypted credential files are stored along with their corresponding key and IV files in the same directory.
-This exposes all components required for decryption and weakens the effectiveness of encryption.
-Unsigned DLL (Code Integrity Issue)
-It was observed that application DLL files are not digitally signed and are loaded during execution without validation.
-This allows potential tampering or replacement of DLLs without detection.
-Hardcoded Database Credentials
-It was observed that database credentials are stored in plaintext within configuration files accessible via shared paths.
-This exposes sensitive authentication information without any encryption or protection.
-Hardcoded LDAP Credentials
-It was observed that LDAP credentials are hardcoded in configuration files used by the application.
-These credentials are accessible in plaintext, leading to potential unauthorized directory access.
-Insecure LDAP Communication (Non-LDAPS)
-It was observed that the application uses LDAP communication over non-secure channels without encryption.
-This exposes sensitive credentials and data to interception over the network.
+Nusummit conducted a security assessment of the Excel-based Market1 add-in application using a custom-developed testing approach aligned with OWASP testing guidelines. The assessment focused on identifying vulnerabilities within the add-in, underlying DLL components, and associated configuration files stored in shared network locations. Particular attention was given to how the application handles sensitive data, authentication mechanisms, and integration with backend database and LDAP services.
+
+During the engagement, the team evaluated multiple security areas including input validation within Excel functions, potential injection points, insecure credential storage, and exposure of sensitive configuration data. The assessment also covered risks related to unsigned binaries, improper cryptographic implementations, and insecure communication protocols (e.g., non-LDAPS). Additionally, the review examined the possibility of unauthorized access, credential compromise, and privilege escalation due to misconfigurations and exposed internal resources.

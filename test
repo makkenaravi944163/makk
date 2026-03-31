@@ -1,3 +1,12 @@
-Nusummit conducted a security assessment of the Excel-based Market1 add-in application using a custom-developed testing approach aligned with OWASP testing guidelines. The assessment focused on identifying vulnerabilities within the add-in, underlying DLL components, and associated configuration files stored in shared network locations. Particular attention was given to how the application handles sensitive data, authentication mechanisms, and integration with backend database and LDAP services.
+🔴 Description
 
-During the engagement, the team evaluated multiple security areas including input validation within Excel functions, potential injection points, insecure credential storage, and exposure of sensitive configuration data. The assessment also covered risks related to unsigned binaries, improper cryptographic implementations, and insecure communication protocols (e.g., non-LDAPS). Additionally, the review examined the possibility of unauthorized access, credential compromise, and privilege escalation due to misconfigurations and exposed internal resources.
+It was observed that the application communicates with the LDAP server over an insecure protocol (LDAP) without using encryption (LDAPS). The communication occurs over default port 389, which transmits data in plaintext. Sensitive information such as credentials and directory queries are exposed during transmission. This indicates lack of secure communication controls for directory services.
+
+🔴 Impact
+Credentials can be intercepted by attackers through network sniffing
+Enables man-in-the-middle attacks on authentication traffic
+Unauthorized access to directory services and user information
+🔧 Mitigation
+It is recommended to implement LDAPS (LDAP over SSL/TLS) using port 636 to encrypt all directory communications
+Configure the application to enforce certificate validation and disable insecure LDAP connections
+Ensure all sensitive authentication traffic is transmitted over secure channels only

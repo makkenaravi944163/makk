@@ -1,7 +1,5 @@
-Hi Team,
+The interaction with the ETRADE-related domain was not intentional. On the first day of testing, the activity was performed from within the MS network, and my Burp Suite was configured with an upstream proxy (webproxy-intra.gslb.ms.com). Due to this configuration not being disabled at that time, some requests were routed through the internal proxy, which likely resulted in the observed DNS queries involving the ETRADE domain.
 
-Yes, the observed DNS queries to the Burp Collaborator domains were generated as part of authorized penetration testing activities conducted on April 7th.
+There was no direct or targeted testing performed on E*TRADE systems. The activity was incidental and related to the proxy routing behavior during the initial setup.
 
-These interactions are expected behavior during security testing, specifically while validating out-of-band (OOB) interaction scenarios such as SSRF and related vulnerabilities.
-
-The activity was performed in a controlled manner and does not indicate any malicious intent
+The configuration has since been corrected, and subsequent testing has been limited strictly to the intended in-scope India websites.

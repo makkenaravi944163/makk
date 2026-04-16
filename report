@@ -1,9 +1,7 @@
-Implement a strict Content Security Policy by removing unsafe-inline and unsafe-eval and allowing only trusted domains.
+Hi Team,
 
-Upgrade all outdated libraries like jQuery to the latest secure version and avoid unsafe DOM manipulation methods.
+Yes, the observed DNS queries to the Burp Collaborator domains were generated as part of authorized penetration testing activities conducted on April 7th.
 
-Disable deprecated TLS versions and weak cipher suites such as 3DES and enforce TLS 1.2 or higher.
+These interactions are expected behavior during security testing, specifically while validating out-of-band (OOB) interaction scenarios such as SSRF and related vulnerabilities.
 
-Sanitize all application outputs to prevent exposure of internal file paths and sensitive system information.
-
-Set HttpOnly and SameSite attributes on cookies to protect against XSS and CSRF attacks.
+The activity was performed in a controlled manner and does not indicate any malicious intent

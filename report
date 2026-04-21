@@ -2,20 +2,12 @@ Hi Team,
 
 Thank you for your observation.
 
-The identified outdated jQuery library (v1.12.4) is being loaded from a centralized/static resource path:
-/etc.clientlibs/clientlibs/granite/jquery.min...js. This indicates that the library is part of a shared client library (likely Adobe Experience Manager or similar CMS framework) rather than being directly embedded within the two in-scope application pages.
-Although the specific URLs provided:
-https://www.morganstanley.com/about-us/global-offices/asia-pacific/india
-https://www.morganstanley.com/india-stock-broker-dp
+Based on further validation, the outdated jQuery library (v1.12.4) is actively referenced in the page source via the shared client library path (/etc.clientlibs/...), confirming it is loaded within the in-scope application pages. This indicates it is part of a centralized CMS component (likely AEM) used across multiple pages.
 
-may not explicitly reference or utilize this library in their rendered functionality, the vulnerable file is still publicly accessible under the same domain and can be invoked independently.
+Although the library may not be directly visible in functionality, it is still executed in the client browser context, and any associated vulnerabilities (e.g., XSS, prototype pollution) remain applicable.
 
-From a security assessment perspective:
+From a security assessment perspective, the finding is valid as the vulnerable library is both accessible and actively loaded. However, due to the absence of a direct exploit path in the current implementation, the practical impact remains limited, aligning with the Low risk rating.
 
-The finding is reported because the vulnerable library is hosted and accessible within the application domain.
-However, since it is not actively used or invoked by the in-scope pages, the practical exploitability and impact are limited, which is why the risk is categorized as Low.
+We recommend upgrading to a secure version of jQuery or removing the dependency if not required.
 
-If this library is confirmed to be unused or part of a legacy/shared component, it can be:
-
-Safely removed, or
-Upgraded to a secure version (recommended), or
+Please let us know if further validation is needed.

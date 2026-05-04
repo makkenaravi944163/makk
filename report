@@ -1,30 +1,20 @@
-(function () {
-    function simulateActivity() {
-        // simulate mouse move
-        document.dispatchEvent(new MouseEvent('mousemove', {
-            clientX: Math.random() * window.innerWidth,
-            clientY: Math.random() * window.innerHeight
-        }));
+javascript:(function(){
+    function run(){
+        setInterval(()=>{
+            document.dispatchEvent(new MouseEvent('mousemove',{
+                clientX:Math.random()*window.innerWidth,
+                clientY:Math.random()*window.innerHeight
+            }));
+            window.scrollBy(0,Math.random()*50);
+        },5000);
 
-        // simulate scroll
-        window.scrollBy(0, Math.random() * 50);
-
-        // simulate click occasionally
-        if (Math.random() > 0.7) {
-            document.body.click();
-        }
-
-        console.log("Activity simulated");
+        setTimeout(()=>{
+            location.reload();
+        },30000);
     }
 
-    function refreshPage() {
-        console.log("Refreshing...");
-        location.reload();
-    }
+    run();
 
-    // run activity every 5 seconds
-    setInterval(simulateActivity, 5000);
-
-    // refresh every 30 seconds
-    setInterval(refreshPage, 30000);
+    // re-run after load
+    window.addEventListener('load', run);
 })();

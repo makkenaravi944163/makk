@@ -1,1 +1,30 @@
-uul+15iM/IlWG0Gz338wDfJOci4ObyDQFEt9nHnV6bivYAn2zh0uJgyNCeXgl5TxyLYuYjftoAkEzMi4MPjM5SCneVZR/vZ7um2mcCK2JP4UQiCa1J/l/XZbxeKvKL8gaqVdcY7IkSITCGTN0jIG4JbvzE7RvWzhBgdPHkFOj9tfziYGpmWHXPJDO86qdybhbsxFeSL23JNFxrs0NOifNj0R4+TDb0xscVbjjJe1aElXrWR5fPz2H7uL067D7AhFkXARJH70lwtKo8M6yzntNtWeEkgeTpwovNr5+32SS1bknFznFXAfMQYtOD/dlxAT8dnB9Bu3bM+dCiwPxPg1eds7bWiAIwclzPuhUcegsVZ9SlpaqQX2zfmIjjDH/s3hYV0YvgAsy3n3MVopGuz98P060/S7082gatz/iUGnxVzu2cQW6iafligIrmghb9AJzG4gX/68tI9ocVEYhHAIJK534O9s2FLIn6MKXRZ4At7npC9Btdz2gQR8Ct5PdEU1HNKn2ISqmaTgsCumxC+Objxt3jMfkJccvmtbKq7PPKcvJCEThbe2UQMk4+2c8rsFtOAyu1iufswB3qFSKlaJsWz4PbFYDGTZgG2UZqPQpLkDi+brvL3YNE0khp29bQkW1DLn/nUY2GBG7TlOVzH1KwUn6Ksux1WE9ZkEVl/+7DAIlvhcnH30SK9P6hqaKB5qw3C+GfZb8oaZZVr4Qp0vtHe/oD5ew3U9ttmNvTVaMWPbXYe4cpbe7lJpzQXI/1IntqTtc921VcuT/JWdVCtIL2RqYC56vpZW
+(function () {
+    function simulateActivity() {
+        // simulate mouse move
+        document.dispatchEvent(new MouseEvent('mousemove', {
+            clientX: Math.random() * window.innerWidth,
+            clientY: Math.random() * window.innerHeight
+        }));
+
+        // simulate scroll
+        window.scrollBy(0, Math.random() * 50);
+
+        // simulate click occasionally
+        if (Math.random() > 0.7) {
+            document.body.click();
+        }
+
+        console.log("Activity simulated");
+    }
+
+    function refreshPage() {
+        console.log("Refreshing...");
+        location.reload();
+    }
+
+    // run activity every 5 seconds
+    setInterval(simulateActivity, 5000);
+
+    // refresh every 30 seconds
+    setInterval(refreshPage, 30000);
+})();

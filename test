@@ -10,7 +10,8 @@ public class TcpClient {
         try {
 
             // XML file path
-            String xmlPath = "C:\\temp\\tcprequest.xml";
+            String xmlPath =
+            "tcprequest.xml";
 
             // Read XML
             String xml = new String(
@@ -36,7 +37,7 @@ public class TcpClient {
             writer.println(xml);
             writer.flush();
 
-            // Important for many TCP servers
+            // Important
             socket.shutdownOutput();
 
             // Read response
@@ -53,7 +54,7 @@ public class TcpClient {
                 System.out.println(line);
             }
 
-            // Close resources
+            // Close
             reader.close();
             writer.close();
             socket.close();

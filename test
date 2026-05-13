@@ -10,10 +10,9 @@ public class TcpClient {
         try {
 
             // XML file path
-            String xmlPath =
-            "tcprequest.xml";
+            String xmlPath = "tcprequest.xml";
 
-            // Read XML
+            // Read XML file
             String xml = new String(
                     Files.readAllBytes(
                             Paths.get(xmlPath)));
@@ -25,22 +24,30 @@ public class TcpClient {
             String host = "viqtcgl1";
             int port = 2036;
 
-            // Open socket
+            // Open TCP socket
             Socket socket = new Socket(host, port);
 
-            // Send XML
+            // Optional timeout
+            socket.setSoTimeout(10000);
+
+            // Output stream
             PrintWriter writer =
                     new PrintWriter(
                             socket.getOutputStream(),
                             true);
 
-            writer.println(xml);
+            // IMPORTANT:
+            // Server expects request starting with "MATE "
+            String request = "MATE " + xml;
+
+            // Send request
+            writer.println(request);
             writer.flush();
 
-            // Important
+            // Signal end of request
             socket.shutdownOutput();
 
-            // Read response
+            // Read server response
             BufferedReader reader =
                     new BufferedReader(
                             new InputStreamReader(
@@ -54,10 +61,12 @@ public class TcpClient {
                 System.out.println(line);
             }
 
-            // Close
+            // Close resources
             reader.close();
             writer.close();
             socket.close();
+
+            System.out.println("Request completed.");
 
         } catch (Exception e) {
             e.printStackTrace();

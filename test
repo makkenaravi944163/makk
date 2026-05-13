@@ -9,16 +9,10 @@ public class TcpClient {
 
         try {
 
-            // XML file
-            String xmlPath = "tcprequest.xml";
-
-            // Read XML
+            // Read XML file
             String xml = new String(
                     Files.readAllBytes(
-                            Paths.get(xmlPath)));
-
-            System.out.println("Sending XML:");
-            System.out.println(xml);
+                            Paths.get("tcprequest.xml")));
 
             // Server details
             String host = "viqtcgl1";
@@ -29,33 +23,55 @@ public class TcpClient {
 
             socket.setSoTimeout(10000);
 
-            // Writer
-            PrintWriter writer =
-                    new PrintWriter(
-                            socket.getOutputStream(),
-                            true);
-
-            // Updated protocol format
-            String request = "MATE SELECT " + xml;
-
-            // Send request
-            writer.println(request);
-            writer.flush();
-
-            socket.shutdownOutput();
-
-            // Read response
             BufferedReader reader =
                     new BufferedReader(
                             new InputStreamReader(
                                     socket.getInputStream()));
 
-            String line;
+            PrintWriter writer =
+                    new PrintWriter(
+                            socket.getOutputStream(),
+                            true);
 
-            System.out.println("Server Response:");
+            // STEP 1
+            // Send protocol handshake
+            String handshake = "MATE SELECT 1.0";
 
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line);
+            System.out.println("Sending:");
+            System.out.println(handshake);
+
+            writer.println(handshake);
+            writer.flush();
+
+            // Read handshake response
+            String response;
+
+            System.out.println("Handshake Response:");
+
+            while ((response = reader.readLine()) != null) {
+
+                System.out.println(response);
+
+                // Stop after ACCEPT
+                if (response.contains("ACCEPT")) {
+                    break;
+                }
+            }
+
+            // STEP 2
+            // Send XML payload
+            System.out.println("Sending XML:");
+
+            writer.println(xml);
+            writer.flush();
+
+            socket.shutdownOutput();
+
+            // Read final response
+            System.out.println("Server Final Response:");
+
+            while ((response = reader.readLine()) != null) {
+                System.out.println(response);
             }
 
             // Close

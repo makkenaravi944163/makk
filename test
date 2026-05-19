@@ -1,1 +1,46 @@
- ;=cmd|' /C calc'!A5
+Hi Team,
+
+Good day!
+
+Please find the daily status update below.
+
+Progress:
+
+Testing is in progress for the FC3 (6364) application. Today, we completed testing on the following modules and functionalities:
+
+Search functionality testing
+Create functionality testing
+Postal Client Suppression module testing
+Injection testing across identified input fields and parameters
+Validation of request/response handling and application behavior during injection attempts
+Initial review of security misconfigurations and application input handling mechanisms
+
+Activities Completed Today:
+
+Verified the Search module functionality with different input combinations and user flows.
+Tested the Create functionality to validate data handling, input validation, and application responses.
+Performed injection testing on the Postal Client Suppression module to identify potential vulnerabilities.
+Conducted parameter manipulation and input validation checks on accessible fields.
+Reviewed application responses for improper error handling and security-related observations.
+
+Observations:
+
+Injection testing is currently in progress.
+No critical blockers identified during today’s testing activities.
+Further validation is required on additional workflows and delivery-related functionalities.
+
+Planned for Tomorrow:
+
+Continue injection and misconfiguration testing for FC3 (6364).
+Cover the “Confirms Delivery” functionality and related workflows.
+Perform additional validation on access controls and input handling.
+Continue security assessment of remaining application modules.
+
+Issues/Concerns: NA
+Questions: NA
+Upcoming Holidays: NA
+
+Please keep me posted if anything is required from my end.
+
+Regards,
+Ravi Makkena

@@ -6,35 +6,36 @@ Please find the daily status update below.
 
 Progress:
 
-Testing is in progress for the FC3 (6364) application. Today, we completed testing on the following modules and functionalities:
+Testing is in progress for the FC3 (6364) application. Today, we covered the following areas as part of the security assessment and functionality validation activities:
 
-Search functionality testing
-Create functionality testing
-Postal Client Suppression module testing
-Injection testing across identified input fields and parameters
-Validation of request/response handling and application behavior during injection attempts
-Initial review of security misconfigurations and application input handling mechanisms
+Document module testing
+CTM Delivery Type functionality testing
+Injection testing
+Broken Access Control testing
+Validation of user access and authorization mechanisms
+Security review of accessible workflows and request handling
 
 Activities Completed Today:
 
-Verified the Search module functionality with different input combinations and user flows.
-Tested the Create functionality to validate data handling, input validation, and application responses.
-Performed injection testing on the Postal Client Suppression module to identify potential vulnerabilities.
-Conducted parameter manipulation and input validation checks on accessible fields.
-Reviewed application responses for improper error handling and security-related observations.
+Tested the Document module functionality and validated request/response handling.
+Performed testing on the CTM Delivery Type workflows and associated input parameters.
+Conducted injection testing on identified input fields and application parameters.
+Performed Broken Access Control testing to verify authorization checks across functionalities and direct URL access scenarios.
+Reviewed application behavior for unauthorized access attempts and privilege validation.
+Continued security assessment for input validation and access restriction mechanisms.
 
 Observations:
 
-Injection testing is currently in progress.
-No critical blockers identified during today’s testing activities.
-Further validation is required on additional workflows and delivery-related functionalities.
+Injection and access control testing are currently in progress.
+Further validation is required for additional business workflows and role-based access scenarios.
+No major testing blockers identified during today’s activities.
 
 Planned for Tomorrow:
 
-Continue injection and misconfiguration testing for FC3 (6364).
-Cover the “Confirms Delivery” functionality and related workflows.
-Perform additional validation on access controls and input handling.
-Continue security assessment of remaining application modules.
+Continue injection and Broken Access Control testing for remaining modules.
+Validate additional user roles and entitlement-based access restrictions.
+Continue assessment of business workflows and security misconfigurations.
+Perform further testing on pending functionalities within FC3 (6364).
 
 Issues/Concerns: NA
 Questions: NA

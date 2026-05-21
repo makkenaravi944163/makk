@@ -6,36 +6,45 @@ Please find the daily status update below.
 
 Progress:
 
-Testing is in progress for the FC3 (6364) application. Today, we covered the following areas as part of the security assessment and functionality validation activities:
+Testing is in progress for the FC3 (6364) application. Today, we covered multiple delivery type workflows and continued security validation across the application modules.
 
-Document module testing
-CTM Delivery Type functionality testing
-Injection testing
+The following areas were tested today:
+
+Delivery Type functionalities
+Swift
+File Current – Delivery Mechanism Polling a File
+Document
+Summary Confirm
+Exclude
+Hold
 Broken Access Control testing
-Validation of user access and authorization mechanisms
-Security review of accessible workflows and request handling
+Sensitive Data Exposure testing
+Injection testing
+Authorization and privilege validation checks
+Business workflow validation and parameter manipulation testing
 
 Activities Completed Today:
 
-Tested the Document module functionality and validated request/response handling.
-Performed testing on the CTM Delivery Type workflows and associated input parameters.
-Conducted injection testing on identified input fields and application parameters.
-Performed Broken Access Control testing to verify authorization checks across functionalities and direct URL access scenarios.
-Reviewed application behavior for unauthorized access attempts and privilege validation.
-Continued security assessment for input validation and access restriction mechanisms.
+Tested multiple Delivery Type workflows and validated functionality behavior for different configurations.
+Performed Broken Access Control testing to verify authorization enforcement across user roles and direct URL access attempts.
+Conducted Sensitive Data Exposure testing to identify exposure of internal information, sensitive responses, and restricted business data.
+Continued injection testing on input fields, request parameters, and workflow actions.
+Validated application responses for improper access handling, security misconfigurations, and error disclosures.
+Performed additional business logic and workflow validation checks on delivery-related modules.
+Reviewed request and response handling for potential security weaknesses and unauthorized data exposure scenarios.
 
 Observations:
 
-Injection and access control testing are currently in progress.
-Further validation is required for additional business workflows and role-based access scenarios.
-No major testing blockers identified during today’s activities.
+Access control and injection testing are currently in progress.
+Additional validation is required for remaining delivery workflows and entitlement-based access scenarios.
+No major testing blockers identified during today’s assessment activities.
 
 Planned for Tomorrow:
 
-Continue injection and Broken Access Control testing for remaining modules.
-Validate additional user roles and entitlement-based access restrictions.
-Continue assessment of business workflows and security misconfigurations.
-Perform further testing on pending functionalities within FC3 (6364).
+Continue Broken Access Control and injection testing for remaining modules.
+Perform additional Sensitive Data Exposure validation across workflows and APIs.
+Continue testing of pending delivery-related functionalities and business logic scenarios.
+Validate remaining authorization and entitlement-based access restrictions.
 
 Issues/Concerns: NA
 Questions: NA
@@ -45,3 +54,13 @@ Please keep me posted if anything is required from my end.
 
 Regards,
 Ravi Makkena
+
+Planned code review tomorrow
+
+Planned for Tomorrow:
+
+Perform code review activities for identified modules and workflows.
+Continue Broken Access Control and injection testing for remaining functionalities.
+Validate sensitive data handling and authorization mechanisms during code review.
+Continue assessment of delivery-related workflows and business logic validations.
+Review application code for security misconfigurations, improper validations, and potential vulnerabilities.

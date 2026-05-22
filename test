@@ -1,66 +1,281 @@
-Hi Team,
+High Value Keywords for Secure Code Review
+1. Hardcoded Secrets / Sensitive Data
 
-Good day!
+Search:
 
-Please find the daily status update below.
+password
+passwd
+secret
+apikey
+api_key
+token
+bearer
+authorization
+auth
+privatekey
+clientsecret
+accesskey
+jwt
+credential
+username
+pwd
 
-Progress:
+Look for:
 
-Testing is in progress for the FC3 (6364) application. Today, we covered multiple delivery type workflows and continued security validation across the application modules.
+hardcoded credentials
+API tokens
+JWT secrets
+AWS keys
 
-The following areas were tested today:
+Example vulnerable code:
 
-Delivery Type functionalities
-Swift
-File Current – Delivery Mechanism Polling a File
-Document
-Summary Confirm
-Exclude
-Hold
-Broken Access Control testing
-Sensitive Data Exposure testing
-Injection testing
-Authorization and privilege validation checks
-Business workflow validation and parameter manipulation testing
+String password = "admin123";
+2. SQL Injection
 
-Activities Completed Today:
+Search:
 
-Tested multiple Delivery Type workflows and validated functionality behavior for different configurations.
-Performed Broken Access Control testing to verify authorization enforcement across user roles and direct URL access attempts.
-Conducted Sensitive Data Exposure testing to identify exposure of internal information, sensitive responses, and restricted business data.
-Continued injection testing on input fields, request parameters, and workflow actions.
-Validated application responses for improper access handling, security misconfigurations, and error disclosures.
-Performed additional business logic and workflow validation checks on delivery-related modules.
-Reviewed request and response handling for potential security weaknesses and unauthorized data exposure scenarios.
+executeQuery
+execute
+createQuery
+prepareStatement
+Statement
+nativeQuery
+SELECT
+INSERT
+UPDATE
+DELETE
+jdbcTemplate
+EntityManager
 
-Observations:
+Dangerous pattern:
 
-Access control and injection testing are currently in progress.
-Additional validation is required for remaining delivery workflows and entitlement-based access scenarios.
-No major testing blockers identified during today’s assessment activities.
+"SELECT * FROM users WHERE id=" + userInput
 
-Planned for Tomorrow:
+Safe:
 
-Continue Broken Access Control and injection testing for remaining modules.
-Perform additional Sensitive Data Exposure validation across workflows and APIs.
-Continue testing of pending delivery-related functionalities and business logic scenarios.
-Validate remaining authorization and entitlement-based access restrictions.
+PreparedStatement
+parameterized queries
+3. Command Injection
 
-Issues/Concerns: NA
-Questions: NA
-Upcoming Holidays: NA
+Search:
 
-Please keep me posted if anything is required from my end.
+Runtime.getRuntime
+ProcessBuilder
+exec(
+bash
+cmd.exe
+powershell
+sh -
 
-Regards,
-Ravi Makkena
+Dangerous:
 
-Planned code review tomorrow
+Runtime.getRuntime().exec(userInput);
+4. Path Traversal / File Read
 
-Planned for Tomorrow:
+Search:
 
-Perform code review activities for identified modules and workflows.
-Continue Broken Access Control and injection testing for remaining functionalities.
-Validate sensitive data handling and authorization mechanisms during code review.
-Continue assessment of delivery-related workflows and business logic validations.
-Review application code for security misconfigurations, improper validations, and potential vulnerabilities.
+File
+FileInputStream
+Paths.get
+getCanonicalPath
+MultipartFile
+upload
+download
+readAllBytes
+new File(
+
+Dangerous:
+
+new File("/uploads/" + filename)
+5. SSRF (Server Side Request Forgery)
+
+Search:
+
+URL(
+HttpURLConnection
+RestTemplate
+WebClient
+OkHttpClient
+openConnection
+http://
+https://
+
+Dangerous:
+
+new URL(userInput)
+6. XSS (Cross Site Scripting)
+
+Search:
+
+innerHTML
+response.getWriter
+print(
+println(
+th:text
+th:utext
+model.addAttribute
+setAttribute
+
+Dangerous:
+
+response.getWriter().print(userInput);
+7. Authentication / Authorization Issues
+
+Search:
+
+isAdmin
+hasRole
+hasAuthority
+permitAll
+authenticated
+authorize
+securityConfig
+@PreAuthorize
+@RolesAllowed
+
+Dangerous:
+
+missing authorization checks
+permitAll() on sensitive APIs
+8. JWT / Session Weaknesses
+
+Search:
+
+JWT
+jwt
+signWith
+setSigningKey
+HS256
+session
+cookie
+JSESSIONID
+rememberMe
+
+Check:
+
+weak secrets
+no expiration
+insecure cookies
+9. Debug / Sensitive Logging
+
+Search:
+
+log.info
+log.debug
+System.out.println
+printStackTrace
+Exception
+logger.error
+
+Dangerous:
+
+log.info("Password: " + password);
+10. Deserialization Vulnerabilities
+
+Search:
+
+ObjectInputStream
+readObject
+deserialize
+SerializationUtils
+XMLDecoder
+Yaml.load
+SnakeYAML
+
+High risk if user-controlled input exists.
+
+11. XML Vulnerabilities (XXE)
+
+Search:
+
+DocumentBuilderFactory
+SAXParserFactory
+XMLInputFactory
+Unmarshaller
+TransformerFactory
+
+Check if secure processing enabled.
+
+Dangerous if missing:
+
+factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+12. Cryptography Weaknesses
+
+Search:
+
+MD5
+SHA1
+DES
+ECB
+SecureRandom
+Cipher.getInstance
+Base64
+encrypt
+decrypt
+
+Weak examples:
+
+MD5
+SHA1
+DES
+AES/ECB
+13. Open Redirect
+
+Search:
+
+sendRedirect
+redirect:
+location.href
+window.location
+
+Dangerous:
+
+response.sendRedirect(url);
+14. CORS Misconfiguration
+
+Search:
+
+@CrossOrigin
+Access-Control-Allow-Origin
+CorsConfiguration
+allowedOrigins
+
+Dangerous:
+
+allowedOrigins("*")
+15. File Upload Vulnerabilities
+
+Search:
+
+MultipartFile
+upload
+transferTo
+getOriginalFilename
+contentType
+
+Check:
+
+extension validation
+MIME validation
+path traversal
+16. Insecure Randomness
+
+Search:
+
+Random()
+Math.random
+UUID.randomUUID
+
+For security tokens:
+
+use SecureRandom
+17. Sensitive Endpoints
+
+Search:
+
+/admin
+/internal
+/debug
+/test
+/swagger
+/actuator

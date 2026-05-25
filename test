@@ -1,5 +1,97 @@
 Vulnerability Title
 
+Improper Server-Side Validation of Confirmation Timeout Interval Parameter
+
+Vulnerability Category
+Business Logic Vulnerability
+Input Validation Failure
+Parameter Tampering
+OWASP Category (OWASP Top 10 - 2021/2025 Mapping)
+A01:2021 – Broken Access Control (if restriction bypass impacts workflow/security controls)
+A04:2021 – Insecure Design
+A05:2021 – Security Misconfiguration (secondary mapping)
+CVSS v3.1 Score
+CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L
+Base Score: 7.1 (High)
+CVSS Vector Breakdown
+AV:N – Exploitable over network
+AC:L – Low attack complexity
+PR:L – Requires authenticated user access
+UI:N – No victim interaction required
+S:U – Scope unchanged
+C:L – Limited confidentiality impact
+I:H – High integrity impact due to manipulation of workflow rules
+A:L – Minor availability/process impact
+Description
+
+The application provides predefined selectable interval values for the Confirmation Agreed Timeout Interval field through the UI dropdown, such as 15, 30, 45, 60, 90, and 120 minutes.
+
+However, during testing it was identified that the application does not enforce proper server-side validation for this parameter. By intercepting the request using Burp Suite and modifying the interval value from an allowed value (e.g., 15) to an unauthorized value such as 500, the application successfully accepts and processes the modified request.
+
+This indicates that validation is enforced only at the client-side/UI level and can be bypassed through parameter tampering.
+
+Steps to Reproduce
+Login to the application with valid credentials.
+Navigate to the confirmation configuration section.
+Observe that the interval dropdown only allows predefined values:
+15 Minutes
+30 Minutes
+45 Minutes
+60 Minutes
+90 Minutes
+120 Minutes
+Intercept the request using Burp Suite.
+
+Modify the interval parameter value from:
+
+interval=15
+
+to:
+
+interval=500
+Forward the request to the server.
+Observe that the application accepts and stores/processes the unauthorized interval value.
+Impact
+
+Successful exploitation may allow attackers or unauthorized users to manipulate business workflow timing controls beyond intended limits. This could result in:
+
+Bypass of business rules and operational restrictions
+Delayed confirmations or timeout enforcement
+Abuse of application workflows
+Potential denial of operational processes
+Inconsistent system behavior and audit inaccuracies
+Risk of downstream processing failures if dependent systems expect only predefined values
+
+If timeout intervals are security-sensitive, attackers may intentionally prolong transaction validity windows or bypass expected expiration controls.
+
+Mitigation
+
+Implement strict server-side validation for the interval parameter.
+
+Recommended controls:
+
+Validate incoming interval values against an allowlist:
+
+[15, 30, 45, 60, 90, 120]
+Reject any value outside approved limits with proper error handling.
+Do not rely solely on client-side dropdown restrictions.
+Implement centralized input validation for all business-critical parameters.
+Log and monitor parameter tampering attempts.
+Apply schema validation/API contract enforcement at backend services.
+
+Example:
+
+if (!allowedIntervals.contains(interval)) {
+    throw new ValidationException("Invalid interval value");
+}
+Security References
+OWASP Input Validation Cheat Sheet
+OWASP Parameter Tampering
+OWASP Top 10 2021 - Insecure Design
+CWE-20 Improper Input Validation
+CWE-472 External Control of Assumed-Immutable Web Parameter
+Vulnerability Title
+
 Server-Side Input Validation Bypass via Parameter Tampering in Confirmation Interval Configuration
 
 Vulnerability Category
@@ -119,6 +211,3 @@ if (!email.toLowerCase().endsWith("@morganstanley.com")) {
 Security References
 OWASP Input Validation Cheat Sheet
 OWASP Business Logic Security Cheat Sheet
-OWASP Top 10 – Insecure Design
-CWE-20 Improper Input Validation
-CWE-840 Business Logic Errors

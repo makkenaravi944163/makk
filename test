@@ -1,14 +1,124 @@
-Hi Team,
+Vulnerability Title
 
-Today, I performed a security code review on the application source code. Reviewed multiple modules and analyzed the codebase for potential security vulnerabilities and insecure coding practices.
+Server-Side Input Validation Bypass via Parameter Tampering in Confirmation Interval Configuration
 
-Activities completed:
+Vulnerability Category
+Input Validation Vulnerability
+Business Logic Bypass
+Parameter Tampering
+OWASP Top 10 Category (2021/2025 Mapping)
+A04:2021 – Insecure Design
+A01:2021 – Broken Access Control (Business restriction bypass)
+CVSS v3.1 Score
+7.1 – High
+CVSS Vector
+CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L
+Description
 
-Reviewed authentication and authorization-related code
-Checked input validation and user-controlled parameters
-Analyzed database query handling for SQL Injection risks
-Reviewed file handling and API request processing
-Searched for hardcoded secrets, tokens, and sensitive information exposure
-Checked logging and exception handling mechanisms
-Reviewed configuration and Gradle-related files for insecure settings
-Performed keyword-based secure code review across the source code repository
+The application restricts the Confirmation Agreed Timeout Interval field through a dropdown list in the user interface, allowing only predefined values such as:
+
+15 Minutes
+30 Minutes
+45 Minutes
+60 Minutes
+90 Minutes
+120 Minutes
+
+However, during security testing it was identified that the application fails to enforce server-side validation for this parameter.
+
+An authenticated user can intercept the HTTP request using Burp Suite and modify the interval parameter from an allowed value (e.g., 15) to an unauthorized value such as 500. The backend server accepts and processes the manipulated value successfully.
+
+This demonstrates that validation is implemented only at the client-side level and can be bypassed through parameter tampering.
+
+Steps to Reproduce
+Login to the application.
+Navigate to the confirmation configuration section.
+Select a valid interval value such as 15 Minutes.
+Intercept the request using
+write a vulnerability heading , cvss 3.1 , vulnerability category , owasp category 2025 , description , impact and mitigation and reference link for my application should only accept the @morganstanley.com in email address field in coverage details but accept any domain name 
+Vulnerability Title
+
+Improper Email Domain Validation Allows Unauthorized Domains in Coverage Details
+
+Vulnerability Category
+Input Validation Vulnerability
+Business Logic Validation Failure
+Improper Access Restriction
+OWASP Top 10 Category (2021/2025 Mapping)
+A04:2021 – Insecure Design
+A05:2021 – Security Misconfiguration
+CVSS v3.1 Score
+6.5 – Medium
+CVSS Vector
+CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:N
+Description
+
+The application is intended to restrict email addresses entered in the Coverage Details email field to only authorized corporate domains such as:
+
+@morganstanley.com
+
+However, during testing it was identified that the application accepts email addresses from arbitrary external domains instead of enforcing the intended domain restriction.
+
+For example, the application accepts email addresses such as:
+
+test@gmail.com
+user@yahoo.com
+attacker@evil.com
+
+This indicates insufficient server-side validation of allowed email domains.
+
+Steps to Reproduce
+Navigate to the Coverage Details section.
+Locate the email address input field.
+
+Enter an unauthorized email address such as:
+
+attacker@gmail.com
+Submit/save the form.
+
+Observe that the application accepts the external domain email successfully instead of restricting it to:
+
+@morganstanley.com
+Impact
+
+Successful exploitation may result in:
+
+Unauthorized external users being added to workflows
+Leakage of sensitive business communications
+Unauthorized notification delivery
+Exposure of confidential transaction or operational data
+Violation of internal security policies and compliance requirements
+Increased phishing/social engineering risk through external recipients
+
+If this field is used for notifications, approvals, confirmations, or document delivery, sensitive corporate information may be sent outside the organization.
+
+Mitigation
+
+Implement strict server-side validation to ensure only approved corporate domains are accepted.
+
+Recommended Controls
+
+Validate email addresses against an allowlist:
+
+@morganstanley.com
+Reject all unauthorized external domains.
+Perform validation on both client-side and server-side.
+Normalize email input before validation:
+Trim spaces
+Convert to lowercase
+
+Use regex/domain validation such as:
+
+^[A-Za-z0-9._%+-]+@morganstanley\.com$
+Log attempts to use unauthorized domains.
+Implement centralized validation for all email fields across the application.
+Example Validation Logic
+if (!email.toLowerCase().endsWith("@morganstanley.com")) {
+    throw new ValidationException("Only Morgan Stanley email addresses are allowed");
+}
+Security References
+OWASP Input Validation Cheat Sheet
+OWASP Business Logic Security Cheat Sheet
+OWASP Top 10 – Insecure Design
+CWE-20 Improper Input Validation
+CWE-840 Business Logic Errors

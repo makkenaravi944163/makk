@@ -1,213 +1,81 @@
 Vulnerability Title
 
-Improper Server-Side Validation of Confirmation Timeout Interval Parameter
+Verbose Error Message and Stack Trace Disclosure
 
 Vulnerability Category
-Business Logic Vulnerability
-Input Validation Failure
-Parameter Tampering
-OWASP Category (OWASP Top 10 - 2021/2025 Mapping)
-A01:2021 – Broken Access Control (if restriction bypass impacts workflow/security controls)
-A04:2021 – Insecure Design
-A05:2021 – Security Misconfiguration (secondary mapping)
-CVSS v3.1 Score
-CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L
-Base Score: 7.1 (High)
-CVSS Vector Breakdown
-AV:N – Exploitable over network
-AC:L – Low attack complexity
-PR:L – Requires authenticated user access
-UI:N – No victim interaction required
-S:U – Scope unchanged
-C:L – Limited confidentiality impact
-I:H – High integrity impact due to manipulation of workflow rules
-A:L – Minor availability/process impact
-Description
-
-The application provides predefined selectable interval values for the Confirmation Agreed Timeout Interval field through the UI dropdown, such as 15, 30, 45, 60, 90, and 120 minutes.
-
-However, during testing it was identified that the application does not enforce proper server-side validation for this parameter. By intercepting the request using Burp Suite and modifying the interval value from an allowed value (e.g., 15) to an unauthorized value such as 500, the application successfully accepts and processes the modified request.
-
-This indicates that validation is enforced only at the client-side/UI level and can be bypassed through parameter tampering.
-
-Steps to Reproduce
-Login to the application with valid credentials.
-Navigate to the confirmation configuration section.
-Observe that the interval dropdown only allows predefined values:
-15 Minutes
-30 Minutes
-45 Minutes
-60 Minutes
-90 Minutes
-120 Minutes
-Intercept the request using Burp Suite.
-
-Modify the interval parameter value from:
-
-interval=15
-
-to:
-
-interval=500
-Forward the request to the server.
-Observe that the application accepts and stores/processes the unauthorized interval value.
-Impact
-
-Successful exploitation may allow attackers or unauthorized users to manipulate business workflow timing controls beyond intended limits. This could result in:
-
-Bypass of business rules and operational restrictions
-Delayed confirmations or timeout enforcement
-Abuse of application workflows
-Potential denial of operational processes
-Inconsistent system behavior and audit inaccuracies
-Risk of downstream processing failures if dependent systems expect only predefined values
-
-If timeout intervals are security-sensitive, attackers may intentionally prolong transaction validity windows or bypass expected expiration controls.
-
-Mitigation
-
-Implement strict server-side validation for the interval parameter.
-
-Recommended controls:
-
-Validate incoming interval values against an allowlist:
-
-[15, 30, 45, 60, 90, 120]
-Reject any value outside approved limits with proper error handling.
-Do not rely solely on client-side dropdown restrictions.
-Implement centralized input validation for all business-critical parameters.
-Log and monitor parameter tampering attempts.
-Apply schema validation/API contract enforcement at backend services.
-
-Example:
-
-if (!allowedIntervals.contains(interval)) {
-    throw new ValidationException("Invalid interval value");
-}
-Security References
-OWASP Input Validation Cheat Sheet
-OWASP Parameter Tampering
-OWASP Top 10 2021 - Insecure Design
-CWE-20 Improper Input Validation
-CWE-472 External Control of Assumed-Immutable Web Parameter
-Vulnerability Title
-
-Server-Side Input Validation Bypass via Parameter Tampering in Confirmation Interval Configuration
-
-Vulnerability Category
-Input Validation Vulnerability
-Business Logic Bypass
-Parameter Tampering
+Information Disclosure
+Improper Error Handling
+Sensitive Information Exposure
 OWASP Top 10 Category (2021/2025 Mapping)
-A04:2021 – Insecure Design
-A01:2021 – Broken Access Control (Business restriction bypass)
-CVSS v3.1 Score
-7.1 – High
-CVSS Vector
-CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L
-Description
-
-The application restricts the Confirmation Agreed Timeout Interval field through a dropdown list in the user interface, allowing only predefined values such as:
-
-15 Minutes
-30 Minutes
-45 Minutes
-60 Minutes
-90 Minutes
-120 Minutes
-
-However, during security testing it was identified that the application fails to enforce server-side validation for this parameter.
-
-An authenticated user can intercept the HTTP request using Burp Suite and modify the interval parameter from an allowed value (e.g., 15) to an unauthorized value such as 500. The backend server accepts and processes the manipulated value successfully.
-
-This demonstrates that validation is implemented only at the client-side level and can be bypassed through parameter tampering.
-
-Steps to Reproduce
-Login to the application.
-Navigate to the confirmation configuration section.
-Select a valid interval value such as 15 Minutes.
-Intercept the request using
-write a vulnerability heading , cvss 3.1 , vulnerability category , owasp category 2025 , description , impact and mitigation and reference link for my application should only accept the @morganstanley.com in email address field in coverage details but accept any domain name 
-Vulnerability Title
-
-Improper Email Domain Validation Allows Unauthorized Domains in Coverage Details
-
-Vulnerability Category
-Input Validation Vulnerability
-Business Logic Validation Failure
-Improper Access Restriction
-OWASP Top 10 Category (2021/2025 Mapping)
-A04:2021 – Insecure Design
 A05:2021 – Security Misconfiguration
+A09:2021 – Security Logging and Monitoring Failures (secondary mapping)
 CVSS v3.1 Score
-6.5 – Medium
+5.3 – Medium
 CVSS Vector
-CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:N
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
 Description
 
-The application is intended to restrict email addresses entered in the Coverage Details email field to only authorized corporate domains such as:
+The application exposes detailed internal exception information and full stack traces in HTTP responses when an error occurs.
 
-@morganstanley.com
+During testing, the application disclosed sensitive backend implementation details including:
 
-However, during testing it was identified that the application accepts email addresses from arbitrary external domains instead of enforcing the intended domain restriction.
+Java class names
+Package structure
+Internal method names
+Line numbers
+Framework details
+Database technology references
+JDBC implementation details
+Internal service architecture
 
-For example, the application accepts email addresses such as:
+Example exposed components observed:
 
-test@gmail.com
-user@yahoo.com
-attacker@evil.com
+ReferenceDataHandler.java
+SoapReferenceDataService
+JdbcTemplate
+SybPreparedStatement
+Apache CXF
+Spring Framework
+Sybase JDBC
 
-This indicates insufficient server-side validation of allowed email domains.
+The application returned raw exception data directly to the client instead of a generic error response.
 
-Steps to Reproduce
-Navigate to the Coverage Details section.
-Locate the email address input field.
-
-Enter an unauthorized email address such as:
-
-attacker@gmail.com
-Submit/save the form.
-
-Observe that the application accepts the external domain email successfully instead of restricting it to:
-
-@morganstanley.com
 Impact
 
-Successful exploitation may result in:
+Verbose error messages may help attackers perform targeted attacks by revealing sensitive internal information such as:
 
-Unauthorized external users being added to workflows
-Leakage of sensitive business communications
-Unauthorized notification delivery
-Exposure of confidential transaction or operational data
-Violation of internal security policies and compliance requirements
-Increased phishing/social engineering risk through external recipients
+Backend technologies in use
+Application architecture
+Internal API/service flow
+Database technologies
+Source code structure
+File names and line numbers
+Framework versions/components
 
-If this field is used for notifications, approvals, confirmations, or document delivery, sensitive corporate information may be sent outside the organization.
+This information can significantly aid attackers in:
 
+Reconnaissance
+Vulnerability research
+Crafting targeted exploits
+Identifying attack surfaces
+Technology fingerprinting
 Mitigation
 
-Implement strict server-side validation to ensure only approved corporate domains are accepted.
+Implement secure exception handling and avoid exposing internal errors to end users.
 
 Recommended Controls
 
-Validate email addresses against an allowlist:
+Return generic user-friendly error messages:
 
-@morganstanley.com
-Reject all unauthorized external domains.
-Perform validation on both client-side and server-side.
-Normalize email input before validation:
-Trim spaces
-Convert to lowercase
-
-Use regex/domain validation such as:
-
-^[A-Za-z0-9._%+-]+@morganstanley\.com$
-Log attempts to use unauthorized domains.
-Implement centralized validation for all email fields across the application.
-Example Validation Logic
-if (!email.toLowerCase().endsWith("@morganstanley.com")) {
-    throw new ValidationException("Only Morgan Stanley email addresses are allowed");
-}
-Security References
-OWASP Input Validation Cheat Sheet
-OWASP Business Logic Security Cheat Sheet
+“An unexpected error occurred.”
+Disable stack trace exposure in production environments.
+Configure centralized exception handling.
+Log detailed errors only on the server-side.
+Remove:
+File paths
+Line numbers
+SQL errors
+Framework details
+Stack traces
+Implement custom error pages/API responses.
+Review application debug configurations before deployment.

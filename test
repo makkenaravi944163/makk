@@ -1,26 +1,8 @@
-select name from sysobjects where type='U' order by name
-Before Raising It
-
-Perform these checks:
-
-Test 1
 select top 20 *
-from sysusers
+from sysprotects
 go
-
-Can you see:
-
-DBA accounts?
-Service accounts?
-Application accounts?
-Test 2
-select top 20 *
-from sysobjects
+sp_helprotect
 go
-
-Can you enumerate all database objects?
-
-Test 3
 select top 20 *
-from syscolumns
+from syslogins
 go

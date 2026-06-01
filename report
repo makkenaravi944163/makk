@@ -1,22 +1,48 @@
-select top 10 socialSecurity
-from TAPSCustomerDesiStreetAcctV2
+Next Step
 
-select top 10 *
-from TAPSCustomerDesiStreetAcctV2
+Find the actual owner:
 
-
-select o.name table_name,
-       c.name column_name
-from sysobjects o,
-     syscolumns c
-where o.id=c.id
-and (
-c.name like '%social%'
-or c.name like '%ssn%'
-or c.name like '%tax%'
-or c.name like '%employee%'
-or c.name like '%address%'
-or c.name like '%passport%'
-)
+select uid,name
+from sysusers
+order by name
 go
 
+Then:
+
+select user_name(uid), name
+from sysobjects
+where name like '%StreetAcct%'
+go
+
+or
+
+select user_name(uid), name
+from sysobjects
+where name like '%TAPS%'
+go
+
+If that works you'll get something like:
+
+dbo      TAPSCustomerDesiStreetAcctV2
+owner1   TAPSCustomerDesiStreetAcctV2
+
+Then try:
+
+select top 1 *
+from dbo.TAPSCustomerDesiStreetAcctV2
+go
+Enumerate All Referenced Tables
+
+Since you have source code access, search for all tables:
+
+select name
+from sysobjects
+where type='U'
+and (
+      name like '%Account%'
+   or name like '%Party%'
+   or name like '%Customer%'
+   or name like '%Address%'
+)
+order by name
+go

@@ -1,9 +1,96 @@
-Implement parameterized queries/prepared statements and validate all user-supplied input before processing database queries.
-Apply proper output encoding and sanitize user-controlled input before rendering it in HTML responses.
-Enforce robust server-side authorization checks for every sensitive request and resource access.
-Configure generic error handling in production and prevent disclosure of stack traces or internal system details to users.
-Replace dynamic SQL string concatenation with secure parameterized queries and prepared statements.
-Implement strict server-side whitelist-based input validation for all user inputs and parameters.
-Configure recommended HTTP security headers such as CSP, HSTS, X-Frame-Options, and X-Content-Type-Options.
-Disable weak SSL/TLS protocols and ciphers and enforce the use of strong, modern TLS configurations.
-Enforce HTTPS across the application and securely encrypt all sensitive data transmitted over the network.
+Next High-Value Tests
+
+Since versioning is not likely a finding, focus on areas that typically generate findings in A2 Query databases.
+
+1. Check Current User
+select suser_name()
+go
+
+select user_name()
+go
+2. Check Roles
+sp_displayroles
+go
+
+or
+
+select name,suid,uid
+from sysusers
+go
+
+We need to determine if your account has excessive privileges.
+
+3. Enumerate Tables
+
+Run:
+
+select name
+from sysobjects
+where type='U'
+order by name
+go
+
+This is the most important next step.
+
+4. Enumerate Views
+select name
+from sysobjects
+where type='V'
+order by name
+go
+
+Views often expose sensitive reporting data.
+
+5. Enumerate Procedures
+select name
+from sysobjects
+where type='P'
+order by name
+go
+
+Stored procedures frequently contain:
+
+hardcoded credentials
+internal URLs
+service accounts
+export functionality
+6. Check Metadata Access
+select top 20 *
+from sysobjects
+go
+
+If successful, document:
+
+Can ordinary reporting users enumerate schemas?
+Can they discover all tables and procedures?
+
+Potential finding:
+
+Excessive Metadata Disclosure
+
+7. Verify SSL Finding
+
+Your screenshot earlier showed:
+
+SSL Encryption = No
+
+Ask DBA:
+
+Is TLS disabled?
+Is encryption provided elsewhere?
+
+This is currently one of the strongest potential findings.
+
+What I Need Next
+
+Run these three queries in a2query:
+
+select suser_name()
+go
+sp_displayroles
+go
+select name
+from sysobjects
+where type='U'
+order by name
+go

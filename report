@@ -1,96 +1,22 @@
-Next High-Value Tests
+select top 10 socialSecurity
+from TAPSCustomerDesiStreetAcctV2
 
-Since versioning is not likely a finding, focus on areas that typically generate findings in A2 Query databases.
+select top 10 *
+from TAPSCustomerDesiStreetAcctV2
 
-1. Check Current User
-select suser_name()
+
+select o.name table_name,
+       c.name column_name
+from sysobjects o,
+     syscolumns c
+where o.id=c.id
+and (
+c.name like '%social%'
+or c.name like '%ssn%'
+or c.name like '%tax%'
+or c.name like '%employee%'
+or c.name like '%address%'
+or c.name like '%passport%'
+)
 go
 
-select user_name()
-go
-2. Check Roles
-sp_displayroles
-go
-
-or
-
-select name,suid,uid
-from sysusers
-go
-
-We need to determine if your account has excessive privileges.
-
-3. Enumerate Tables
-
-Run:
-
-select name
-from sysobjects
-where type='U'
-order by name
-go
-
-This is the most important next step.
-
-4. Enumerate Views
-select name
-from sysobjects
-where type='V'
-order by name
-go
-
-Views often expose sensitive reporting data.
-
-5. Enumerate Procedures
-select name
-from sysobjects
-where type='P'
-order by name
-go
-
-Stored procedures frequently contain:
-
-hardcoded credentials
-internal URLs
-service accounts
-export functionality
-6. Check Metadata Access
-select top 20 *
-from sysobjects
-go
-
-If successful, document:
-
-Can ordinary reporting users enumerate schemas?
-Can they discover all tables and procedures?
-
-Potential finding:
-
-Excessive Metadata Disclosure
-
-7. Verify SSL Finding
-
-Your screenshot earlier showed:
-
-SSL Encryption = No
-
-Ask DBA:
-
-Is TLS disabled?
-Is encryption provided elsewhere?
-
-This is currently one of the strongest potential findings.
-
-What I Need Next
-
-Run these three queries in a2query:
-
-select suser_name()
-go
-sp_displayroles
-go
-select name
-from sysobjects
-where type='U'
-order by name
-go

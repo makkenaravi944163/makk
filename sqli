@@ -1,45 +1,55 @@
-Recommendation: Merge 1, 2 and 4
-Vulnerability Title
+Stored Procedure Source Code Disclosure
 
-Excessive Database Metadata and Security Information Disclosure
+This one is stronger.
 
-Severity
+You demonstrated:
 
-Medium
+sp_helptext getEQSDataforAccountNumber_70
 
-Description
+and obtained:
 
-The database account can enumerate internal database metadata including:
+Source code
+Business logic
+Internal repository paths
+Sensitive table names
+SSN handling
+Customer data processing logic
 
-User accounts
-Roles
-Groups
-Permission assignments
-Database objects
-Table names
-Stored procedure names
-Authorization structures
+This is usually considered a legitimate finding because most production users should not be able to read application source code stored in procedures.
 
-The information is exposed through system catalog tables and administrative procedures.
+Even Better Finding (Potential High Severity)
 
-Evidence
-select name,suid,uid
-from sysusers
-select top 20 *
-from sysprotects
-sp_helprotect
-select name
-from sysobjects
-where type='U'
-Impact
+Looking at your screenshots, the biggest opportunity is actually this:
 
-An attacker obtaining database access can:
+Read_Highly_Restricted = Yes
+TAM_read_highly_restricted
 
-Enumerate privileged accounts
-Map authorization structures
-Identify sensitive objects
-Discover attack paths
-Facilitate privilege escalation attempts
-Severity
+and procedures referencing:
 
-Medium
+PartyPassportNO
+PartyTaxID
+PartyGlobalIdentifier
+socialSecurity
+employeeNumber
+
+If you can prove that your account can read:
+
+PartyPassportNO
+PartyTaxID
+PartyGlobalIdentifier
+
+or any table containing:
+
+Passport numbers
+Tax IDs
+SSNs
+National IDs
+Customer PII
+
+then you can raise:
+
+Excessive Access to Highly Restricted Customer Data
+
+Severity: High / Critical
+
+This finding is far stronger than metadata disclosure.

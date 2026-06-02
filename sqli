@@ -1,25 +1,26 @@
-Hi Team,
+What to test next
 
-Today, I performed a security assessment of the Sybase ASE database environment within the approved scope (a2query and a2query_history).
+Since CREATE is blocked, try validating other controls:
 
-Activities completed:
+Check if UPDATE is blocked
+begin tran
 
-Verified database version and configuration information.
-Reviewed database users, roles, and group memberships.
-Assessed access to system catalog tables and security metadata.
-Evaluated database permission structures using system procedures.
-Reviewed stored procedure source code exposure through metadata functions.
-Enumerated database objects, including tables related to customer, account, party, address, and identity data.
-Identified tables containing potentially sensitive information such as passport, tax, and customer identifier data.
-Performed access validation against selected sensitive database objects and reviewed associated metadata.
+update PartyTaxID
+set partyTaxID = 'TEST'
+where 1 = 0
 
-Observations identified:
+rollback tran
+Check if DELETE is blocked
+begin tran
 
-Database metadata and security information are accessible to the assigned account.
-Stored procedure source code is accessible through database metadata functions.
-Sensitive data repositories containing customer identity information were identified and are undergoing further validation to determine actual data access permissions.
+delete from PartyTaxID
+where 1 = 0
 
-Next Steps:
+rollback tran
+Check if EXECUTE is allowed
 
-Continue validation of access controls for highly restricted datasets.
-Verify whether sensitive customer information (PII) is accessible to the assigned user account.
+Pick a procedure and run:
+
+exec dbo.getA2DataForOEMD_Additional_3
+
+or open its parameters and try executing with dummy values.

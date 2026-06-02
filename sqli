@@ -1,26 +1,16 @@
-What to test next
+Activities performed:
 
-Since CREATE is blocked, try validating other controls:
+Reviewed database permissions and role assignments.
+Validated access to database metadata, users, roles, and security-related objects.
+Enumerated accessible databases and schemas.
+Assessed access to highly restricted data objects.
+Verified access to sensitive customer information tables containing Tax IDs, Passport Numbers, and Global Entity Identifiers.
+Reviewed stored procedures and object permissions for potential excessive data exposure.
 
-Check if UPDATE is blocked
-begin tran
+Observations:
 
-update PartyTaxID
-set partyTaxID = 'TEST'
-where 1 = 0
+Sensitive customer information was accessible through authorized database roles (TAM_read_highly_restricted).
+Additional validation is in progress to determine whether any excessive privileges or unauthorized data exposure conditions exist.
+No critical vulnerabilities were identified during today's testing activities.
 
-rollback tran
-Check if DELETE is blocked
-begin tran
-
-delete from PartyTaxID
-where 1 = 0
-
-rollback tran
-Check if EXECUTE is allowed
-
-Pick a procedure and run:
-
-exec dbo.getA2DataForOEMD_Additional_3
-
-or open its parameters and try executing with dummy values.
+The assessment is ongoing, and further testing will focus on authorization controls, privilege boundaries, cross-database access validation, and sensitive data exposure scenarios.

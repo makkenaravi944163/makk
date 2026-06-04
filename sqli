@@ -121,3 +121,5 @@ where name like '%AML%'
 select name
 from sysobjects
 where name like '%KYC%'
+
+National Identification Numbers Stored and Accessible in Clear Text

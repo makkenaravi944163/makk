@@ -1,69 +1,111 @@
-3. Excessive Access to Stored Procedures
-Check
+1. Stored Procedure Source Code Disclosure
+Objective
+
+Check whether application/business logic can be viewed.
+
+Query
 select name
 from sysobjects
 where type='P'
+and (
+      name like '%Party%'
+   or name like '%Account%'
+)
 
-Then test:
+Then:
 
-exec proc_name
+sp_helptext <procedure_name>
+Finding
 
-or
+Stored Procedure Source Code Disclosure
 
-sp_helptext proc_name
-Vulnerable If
+Impact
 
-You can execute procedures intended for administrators.
+Business logic, SQL queries, and sensitive table references become visible to non-administrative users.
 
+2. Cross-Database Authorization Review
+Objective
+
+Determine whether your access extends beyond the intended database.
+
+Query
+use admin
+go
+select top 10 name from sysobjects
+use cdaccess
+go
+select top 10 name from sysobjects
+use d2query
+go
+select top 10 name from sysobjects
+Finding
+
+Excessive Cross-Database Read Permissions
+
+Impact
+
+A compromise of one account could expose data from multiple databases.
+
+3. Sensitive Data Discovery Beyond Approved Scope
+Query
+select name
+from sysobjects
+where name like '%Employee%'
+select name
+from sysobjects
+where name like '%Salary%'
+select name
+from sysobjects
+where name like '%Compensation%'
+select name
+from sysobjects
+where name like '%HR%'
+Finding
+
+Access to Additional Sensitive Data Repositories
+
+Impact
+
+Access may exceed business requirements.
+
+4. Privilege Escalation Through Procedure Execution
+Query
+
+Find procedures:
+
+select name
+from sysobjects
+where type='P'
+and (
+      name like '%Admin%'
+   or name like '%User%'
+   or name like '%Role%'
+)
+
+Check:
+
+sp_help <proc_name>
+
+Try execution if safe:
+
+exec <proc_name>
 Finding
 
 Excessive Stored Procedure Execution Permissions
 
-4. Access to System Databases
+Impact
 
-Check access to:
+May allow unauthorized access to privileged functionality.
 
-use master
-go
+5. Confidential / Highly Restricted Data Enumeration
 
-select top 10 * from syslogins
-select top 10 * from sysprocesses
-select top 10 * from sysdatabases
-Finding
+Since you have:
 
-Unauthorized Access to System Database Information
+TAM_read_confidential
+TAM_read_highly_restricted
 
-5. Cross-Database Access Review
+Search for additional high-risk objects:
 
-You already have visibility to 38 databases.
-
-Test:
-
-use cdaccess
-go
-
-select top 10 name
-from sysobjects
-use admin
-go
-
-select top 10 name
-from sysobjects
-Vulnerable If
-
-You can read business data outside your approved database.
-
-Finding
-
-Cross-Database Authorization Weakness
-
-6. Sensitive Data Discovery
-
-Search for:
-
-select name
-from sysobjects
-where name like '%SSN%'
 select name
 from sysobjects
 where name like '%Passport%'
@@ -72,88 +114,10 @@ from sysobjects
 where name like '%Tax%'
 select name
 from sysobjects
-where name like '%Credit%'
+where name like '%Identifier%'
 select name
 from sysobjects
-where name like '%Account%'
-Goal
-
-Find additional sensitive tables beyond:
-
-PartyPassportNO
-PartyTaxID
-PartyGlobalIdentifier
-7. Check for Write Permissions
-
-Very important.
-
-Run:
-
-begin tran
-
-update PartyTaxID
-set updaterUserID='TEST'
-
-rollback tran
-Expected
-
-Permission denied.
-
-Finding If Update Succeeds
-
-Excessive Data Modification Privileges
-
-Severity: High
-
-8. Check Procedure Source Code Disclosure
-
-Try:
-
-sp_helptext procedure_name
-Vulnerable If
-
-Procedure source code is exposed.
-
-Finding
-
-Stored Procedure Source Code Disclosure
-
-9. Check Role Membership
-sp_displaylogin 'makenna'
-
-Review:
-
-Configured Authorization
-Roles
-Finding
-
-If privileged roles are granted unnecessarily:
-
-Excessive Database Role Assignment
-
-10. Check for Confidential / Highly Restricted Data Access
-
-Since you have:
-
-TAM_read_confidential
-TAM_read_highly_restricted
-
-Search:
-
+where name like '%AML%'
 select name
 from sysobjects
-where name like '%salary%'
-select name
-from sysobjects
-where name like '%employee%'
-select name
-from sysobjects
-where name like '%social%'
-select name
-from sysobjects
-where name like '%ssn%'
-select name
-from sysobjects
-where name like '%national%'
-
-If data is returned, verify whether access is expected under the approved scope.
+where name like '%KYC%'

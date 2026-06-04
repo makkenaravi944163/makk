@@ -1,73 +1,34 @@
-Temporary Table Abuse / Data Leakage
-Find procedures using temp tables
-sp_helptext getEntitledAccountsForUser
+Reviewed database security configuration and authentication settings.
+Validated Kerberos-based authentication implementation.
+Assessed password policy configuration, including password expiration and failed login settings.
+Verified database auditing configuration and collected evidence for audit settings.
+Performed stored procedure enumeration and source code review using sp_helptext.
+Identified procedures related to user roles, account entitlements, and authorization logic.
+Validated access to highly restricted data repositories based on assigned TAM roles.
+Reviewed and verified access to the following sensitive data tables:
+PartyPassportNO
+PartyTaxID
+PartyNationalID
+PartyGlobalIdentifier
+Confirmed that passport numbers, tax identifiers, and national identification numbers are retrievable in readable format through authorized access.
 
-Look for:
+Observations Identified:
 
-#create table
-##global_temp
-Finding
+Database Auditing Disabled.
+Password Expiration Policy Disabled (Informational).
+Stored Procedure Source Code Disclosure.
+Sensitive National Identification Numbers Accessible in Clear Text (Informational).
 
-Sensitive Data Stored in Temporary Tables
+Ongoing Activities:
 
-Impact
+Cross-database access review.
+Authorization and privilege validation.
+Review of role-based stored procedures and entitlement mappings.
+Sensitive data exposure assessment.
 
-Other users may access data if global temp tables are used.
+Plan for Next Session:
 
-2. Dynamic SQL Injection in Stored Procedures
-
-Search procedures for:
-
-exec(@sql)
-execute(@sql)
-
-or
-
-varchar(4000)
-@sqltext
-
-You already found:
-
-declare @sqltext varchar(1940)
-
-inside a procedure.
-
-Finding
-
-Potential Dynamic SQL Injection Risk
-
-Impact
-
-Improper parameter handling may allow query manipulation.
-
-3. Hardcoded Sensitive Information in Procedures
-
-Search procedure source for:
-
-sp_helptext <proc_name>
-
-Look for:
-
-password
-pwd
-secret
-token
-apikey
-credential
-Finding
-
-Hardcoded Credentials in Database Objects
-
-Impact
-
-Credential disclosure.
-
-4. Excessive Access to Audit Information
-
-Check:
-
-select * from sysprocesses
-select * from syslocks
-select * from master..syslogins
-
-(if accessible)
+Complete authorization testing across accessible databases.
+Review additional security hardening configurations.
+Validate access controls for restricted business data.
+Finalize observations and supporting evidence.

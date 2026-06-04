@@ -1,125 +1,73 @@
-1. Stored Procedure Source Code Disclosure
-Objective
+Temporary Table Abuse / Data Leakage
+Find procedures using temp tables
+sp_helptext getEntitledAccountsForUser
 
-Check whether application/business logic can be viewed.
+Look for:
 
-Query
-select name
-from sysobjects
-where type='P'
-and (
-      name like '%Party%'
-   or name like '%Account%'
-)
-
-Then:
-
-sp_helptext <procedure_name>
+#create table
+##global_temp
 Finding
 
-Stored Procedure Source Code Disclosure
+Sensitive Data Stored in Temporary Tables
 
 Impact
 
-Business logic, SQL queries, and sensitive table references become visible to non-administrative users.
+Other users may access data if global temp tables are used.
 
-2. Cross-Database Authorization Review
-Objective
+2. Dynamic SQL Injection in Stored Procedures
 
-Determine whether your access extends beyond the intended database.
+Search procedures for:
 
-Query
-use admin
-go
-select top 10 name from sysobjects
-use cdaccess
-go
-select top 10 name from sysobjects
-use d2query
-go
-select top 10 name from sysobjects
+exec(@sql)
+execute(@sql)
+
+or
+
+varchar(4000)
+@sqltext
+
+You already found:
+
+declare @sqltext varchar(1940)
+
+inside a procedure.
+
 Finding
 
-Excessive Cross-Database Read Permissions
+Potential Dynamic SQL Injection Risk
 
 Impact
 
-A compromise of one account could expose data from multiple databases.
+Improper parameter handling may allow query manipulation.
 
-3. Sensitive Data Discovery Beyond Approved Scope
-Query
-select name
-from sysobjects
-where name like '%Employee%'
-select name
-from sysobjects
-where name like '%Salary%'
-select name
-from sysobjects
-where name like '%Compensation%'
-select name
-from sysobjects
-where name like '%HR%'
+3. Hardcoded Sensitive Information in Procedures
+
+Search procedure source for:
+
+sp_helptext <proc_name>
+
+Look for:
+
+password
+pwd
+secret
+token
+apikey
+credential
 Finding
 
-Access to Additional Sensitive Data Repositories
+Hardcoded Credentials in Database Objects
 
 Impact
 
-Access may exceed business requirements.
+Credential disclosure.
 
-4. Privilege Escalation Through Procedure Execution
-Query
-
-Find procedures:
-
-select name
-from sysobjects
-where type='P'
-and (
-      name like '%Admin%'
-   or name like '%User%'
-   or name like '%Role%'
-)
+4. Excessive Access to Audit Information
 
 Check:
 
-sp_help <proc_name>
+select * from sysprocesses
+select * from syslocks
+select * from master..syslogins
 
-Try execution if safe:
-
-exec <proc_name>
-Finding
-
-Excessive Stored Procedure Execution Permissions
-
-Impact
-
-May allow unauthorized access to privileged functionality.
-
-5. Confidential / Highly Restricted Data Enumeration
-
-Since you have:
-
-TAM_read_confidential
-TAM_read_highly_restricted
-
-Search for additional high-risk objects:
-
-select name
-from sysobjects
-where name like '%Passport%'
-select name
-from sysobjects
-where name like '%Tax%'
-select name
-from sysobjects
-where name like '%Identifier%'
-select name
-from sysobjects
-where name like '%AML%'
-select name
-from sysobjects
-where name like '%KYC%'
-
-National Identification Numbers Stored and Accessible in Clear Text
+(if accessible)

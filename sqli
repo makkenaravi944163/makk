@@ -1,34 +1,453 @@
-Reviewed database security configuration and authentication settings.
-Validated Kerberos-based authentication implementation.
-Assessed password policy configuration, including password expiration and failed login settings.
-Verified database auditing configuration and collected evidence for audit settings.
-Performed stored procedure enumeration and source code review using sp_helptext.
-Identified procedures related to user roles, account entitlements, and authorization logic.
-Validated access to highly restricted data repositories based on assigned TAM roles.
-Reviewed and verified access to the following sensitive data tables:
-PartyPassportNO
-PartyTaxID
-PartyNationalID
-PartyGlobalIdentifier
-Confirmed that passport numbers, tax identifiers, and national identification numbers are retrievable in readable format through authorized access.
+1. Allow Remote Access is Enabled
+Check
+sp_helpserver
 
-Observations Identified:
+or
 
-Database Auditing Disabled.
-Password Expiration Policy Disabled (Informational).
-Stored Procedure Source Code Disclosure.
-Sensitive National Identification Numbers Accessible in Clear Text (Informational).
+select * from master..sysservers
+Evidence
 
-Ongoing Activities:
+Look for:
 
-Cross-database access review.
-Authorization and privilege validation.
-Review of role-based stored procedures and entitlement mappings.
-Sensitive data exposure assessment.
+Remote servers configured
+RPCServer
+writable
+enable login redirection
 
-Plan for Next Session:
+If remote servers are configured and accessible, the previous finding may still be valid.
 
-Complete authorization testing across accessible databases.
-Review additional security hardening configurations.
-Validate access controls for restricted business data.
-Finalize observations and supporting evidence.
+2. Auditing Is Disabled
+Check
+sp_configure "auditing"
+Evidence
+
+Current value:
+
+Run Value = 0
+
+From your screenshot:
+
+auditing = 0
+
+This finding still appears valid.
+
+3. System-wide Password Expiration is Disabled
+Check
+sp_configure "password"
+Evidence
+
+Look for:
+
+systemwide password expiration = 0
+
+Your screenshot already shows:
+
+systemwide password expiration 0
+
+Finding likely still valid.
+
+4. Network Password Encryption is Disabled
+Check
+sp_configure "password"
+Evidence
+
+Look for:
+
+net password encryption reqd = 0
+
+Your screenshot shows:
+
+net password encryption reqd 0
+
+Previous finding appears valid.
+
+5. Database Object Text in syscomments Is Not Protected
+Check whether you can read stored procedure source code:
+sp_helptext getRdePartyMostRecentPassNO
+
+or
+
+sp_helptext getRdePartyMostRecentOtherGovtID
+Evidence
+
+If procedure source code is displayed:
+
+create procedure ...
+
+then object definitions are exposed.
+
+You already demonstrated this in today's testing.
+
+6. Log All Successful Logins Is Disabled
+Check
+sp_configure "auditing"
+
+Then ask DBA:
+
+sp_displayaudit
+
+(if permitted)
+
+Evidence
+
+If successful login auditing is not enabled, finding remains valid.
+
+You may need DBA confirmation.
+
+7. SSH Weak MAC Algorithms Enabled
+
+This is OS-level testing, not database testing.
+
+Verify
+
+From a Linux system:
+
+ssh -Q mac
+
+or
+
+nmap --script ssh2-enum-algos <server>
+
+Look for:
+
+hmac-md5
+hmac-sha1
+8. SSH Server CBC Mode Ciphers Enabled
+Verify
+nmap --script ssh2-enum-algos <server>
+
+Look for:
+
+aes128-cbc
+aes192-cbc
+aes256-cbc
+3des-cbc
+9. SSL Encryption Is Disabled
+Check
+sp_configure "security"
+Evidence
+
+Review:
+
+use security services
+
+and server SSL settings.
+
+You may need DBA confirmation because SSL is often configured outside the database.
+
+Findings You Already Confirmed Today
+
+Based on your screenshots:
+
+Finding	Status
+Auditing Is Disabled	✅ Confirmed
+System-wide Password Expiration Disabled	✅ Confirmed
+Network Password Encryption Disabled	✅ Confirmed
+Database Object Text Exposed via sp_helptext	✅ Confirmed
+Remote Server Configuration Present	⚠️ Partially Confirmed
+Log Successful Logins Disabled	Need DBA Verification
+SSH Weak MAC	Need OS Scan
+SSH CBC Ciphers	Need OS Scan
+SSL Disabled	Need DBA / Infrastructure Verification
+
+These first four are the easiest candidates to reproduce and compare against last year's report.
+
+for this vulnerabilities need to prepare report write vulnerability description  cvss score and owasp categiry  and vulnerability catagity ,impact , mitigation and poc steps and reerence link discription start with it was observed that and mitigation start with it is recommended to impliment
+
+Below is report-ready content for each finding.
+
+1. Database Auditing Disabled
+
+Severity: Informational
+
+CVSS v3.1: 3.7 (AV:L/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N)
+
+OWASP Category: A09 – Security Logging and Monitoring Failures
+
+Vulnerability Category: Security Monitoring
+
+Description
+
+It was observed that database auditing was disabled on the assessed Sybase database instance. As a result, security-relevant activities such as data access, administrative actions, and privilege changes may not be adequately logged for monitoring and forensic purposes.
+
+Impact
+Reduced visibility into database activities.
+Delayed detection of unauthorized access.
+Limited forensic investigation capabilities.
+Difficulty meeting compliance requirements.
+Mitigation
+
+It is recommended to implement database auditing for security-relevant events including authentication attempts, privileged operations, data access, and configuration changes.
+
+Proof of Concept
+Connect to the database.
+Execute:
+sp_configure "auditing"
+Observe that the Run Value is set to 0.
+Reference
+https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/
+https://infocenter.sybase.com
+2. Excessive Database Metadata and Security Information Disclosure
+
+Severity: Low
+
+CVSS v3.1: 4.3
+
+OWASP Category: A01 – Broken Access Control
+
+Vulnerability Category: Information Disclosure
+
+Description
+
+It was observed that the testing account could access database metadata and security-related information, including user accounts, database objects, role information, and configuration details. Such information may assist attackers during reconnaissance activities.
+
+Impact
+Disclosure of internal database structure.
+Exposure of user and role information.
+Facilitation of targeted attacks.
+Increased likelihood of privilege escalation attempts.
+Mitigation
+
+It is recommended to implement the principle of least privilege and restrict access to metadata repositories and security-related catalog objects to authorized administrators only.
+
+Proof of Concept
+Connect to the database.
+Execute:
+select * from master..sysusers
+Observe user accounts and role information returned.
+Reference
+https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+3. National Identification Numbers Stored and Accessible in Clear Text
+
+Severity: Informational
+
+CVSS v3.1: 3.9
+
+OWASP Category: A02 – Cryptographic Failures
+
+Vulnerability Category: Sensitive Data Exposure
+
+Description
+
+It was observed that sensitive customer identifiers, including passport numbers, tax identifiers, and national identification numbers, were stored and retrievable in clear text format from database tables.
+
+Impact
+Increased exposure of Personally Identifiable Information (PII).
+Higher risk in the event of account compromise.
+Potential regulatory and compliance concerns.
+Increased insider threat exposure.
+Mitigation
+
+It is recommended to implement data masking, tokenization, or field-level encryption for sensitive customer identifiers and restrict access to authorized personnel only.
+
+Proof of Concept
+Connect to the database.
+Execute:
+select top 100 * from PartyPassportNO
+Execute:
+select top 100 * from PartyTaxID
+Observe passport and tax identification numbers returned in clear text.
+Reference
+https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
+https://csrc.nist.gov/publications
+4. Password Expiration Policy Disabled
+
+Severity: Informational
+
+CVSS v3.1: 3.7
+
+OWASP Category: A07 – Identification and Authentication Failures
+
+Vulnerability Category: Authentication Weakness
+
+Description
+
+It was observed that the system-wide password expiration policy was disabled, allowing passwords to remain valid indefinitely unless manually changed.
+
+Impact
+Increased risk of long-term credential compromise.
+Reduced effectiveness of credential rotation.
+Greater exposure from stolen passwords.
+Mitigation
+
+It is recommended to implement a password expiration policy aligned with organizational security requirements and periodically review privileged account credentials.
+
+Proof of Concept
+Execute:
+sp_configure "password"
+Observe:
+systemwide password expiration = 0
+Reference
+https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/
+5. Remote Server Configuration Disclosure
+
+Severity: Informational
+
+CVSS v3.1: 3.1
+
+OWASP Category: A05 – Security Misconfiguration
+
+Vulnerability Category: Information Disclosure
+
+Description
+
+It was observed that remote server configuration details were accessible to the testing account. The disclosed information included remote server names, network identifiers, and communication settings.
+
+Impact
+Exposure of internal infrastructure details.
+Increased reconnaissance opportunities.
+Facilitation of lateral movement planning.
+Mitigation
+
+It is recommended to implement access restrictions on remote server configuration information and ensure that such details are only accessible to authorized administrators.
+
+Proof of Concept
+Execute:
+sp_helpserver
+Observe remote server configuration information returned.
+Reference
+https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+6. Stored Procedure Source Code Disclosure
+
+Severity: Informational
+
+CVSS v3.1: 3.8
+
+OWASP Category: A05 – Security Misconfiguration
+
+Vulnerability Category: Source Code Disclosure
+
+Description
+
+It was observed that the testing account could retrieve stored procedure source code definitions using database metadata functions. The disclosed source code contained business logic and database implementation details.
+
+Impact
+Exposure of internal business logic.
+Facilitation of attack path discovery.
+Increased likelihood of targeted attacks.
+Mitigation
+
+It is recommended to implement access controls restricting stored procedure source code visibility to authorized developers and database administrators only.
+
+Proof of Concept
+Execute:
+sp_helptext getRdePartyMostRecentOtherGovtID
+Observe full stored procedure source code returned.
+Reference
+https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+7. Weak Account Lockout Configuration
+
+Severity: Low
+
+CVSS v3.1: 5.3
+
+OWASP Category: A07 – Identification and Authentication Failures
+
+Vulnerability Category: Authentication Weakness
+
+Description
+
+It was observed that the account lockout threshold was configured with a very high value (32767 failed login attempts), effectively disabling account lockout protections against password guessing attacks.
+
+Impact
+Increased susceptibility to brute-force attacks.
+Increased risk of credential stuffing attacks.
+Reduced protection against password guessing.
+Mitigation
+
+It is recommended to implement an account lockout policy with an appropriate threshold, lockout duration, and monitoring mechanism to mitigate brute-force attacks.
+
+Proof of Concept
+Execute:
+sp_configure "maximum failed logins"
+Observe:
+maximum failed logins = 32767
+Verify user configuration:
+sp_displaylogin makkena
+Observe account lockout threshold configured to 32767.
+Reference
+https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/
+https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
+
+This Nmap result gives you a few additional observations, but not all are necessarily reportable vulnerabilities.
+
+Observations from Scan
+Port	Service	Observation
+22/tcp	SSH	SSH service exposed
+111/tcp	rpcbind	RPC service exposed
+1556/tcp	Veritas PBX	Backup management service exposed
+2049/tcp	NFS	NFS service exposed
+13782/tcp	NetBackup	Backup service exposed
+Potential Finding 1
+Title
+
+RPC Service Exposure
+
+Severity: Informational / Low
+
+Description
+
+It was observed that the RPCBind service (TCP/111) was accessible over the network. RPC services can provide information about available RPC programs and internal services, increasing the attack surface.
+
+Impact
+Service enumeration
+Internal information disclosure
+Potential exploitation of RPC-related vulnerabilities
+Verification
+nmap -sV -p 111 <target>
+
+or
+
+rpcinfo -p <target>
+Potential Finding 2
+Title
+
+NFS Service Exposure
+
+Severity: Informational / Low
+
+Description
+
+It was observed that the NFS service (TCP/2049) was exposed. Improper NFS export configuration may allow unauthorized access to shared file systems.
+
+Impact
+Unauthorized file access
+Data disclosure
+Potential privilege escalation
+Verification
+showmount -e <target>
+
+If exports are accessible, severity may increase.
+
+Potential Finding 3
+Title
+
+Backup Services Exposed to Network
+
+Severity: Informational
+
+Description
+
+It was observed that Veritas PBX (1556/TCP) and NetBackup (13782/TCP) services were accessible over the network.
+
+Impact
+Increased attack surface
+Information disclosure regarding backup infrastructure
+Potential exploitation of outdated backup software
+Verification
+nmap -sV -p 1556,13782 <target>
+Additional SSH Checks You Should Perform
+
+Run:
+
+nmap --script ssh2-enum-algos -p 22 vi20db1855.sybvi.ms.com
+
+and
+
+nmap --script ssh-auth-methods -p 22 vi20db1855.sybvi.ms.com
+
+These can help validate last year's findings:
+
+SSH Weak MAC Algorithms Enabled
+SSH CBC Mode Ciphers Enabled
+Weak SSH Authentication Configuration

@@ -1,98 +1,99 @@
 Vulnerability Heading
 
-Improper XML Input Handling Leading to Internal Path Disclosure
+Improper Input Validation Allows Unauthorized Modification of User Profile Metadata
 
 Severity
 
-Medium
+Low
 
 CVSS v3.1
 
-CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:L
+CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:N
 
-Base Score: 5.3 (Medium)
+Base Score: 4.3 (Medium-Low)
 
 Vulnerability Category
 
-Information Disclosure / Improper Input Validation
+Improper Input Validation / Integrity Issue
 
-OWASP Top 10 (2021)
+OWASP Top 10 (2025)
 
-A05:2021 – Security Misconfiguration
-
-OWASP Top 10 (2025 Draft)
-
-Security Misconfiguration
+A04:2025 – Insecure Design
 
 CWE
-CWE-209 – Generation of Error Message Containing Sensitive Information
-CWE-200 – Exposure of Sensitive Information to an Unauthorized Actor
-CWE-755 – Improper Handling of Exceptional Conditions
+CWE-20 – Improper Input Validation
+CWE-915 – Improperly Controlled Modification of Dynamically-Determined Object Attributes
+CWE-472 – External Control of Assumed-Immutable Web Parameter
 Description
 
-During security assessment, the application was observed returning verbose error messages when malformed XML input was supplied to the search functionality. The application disclosed internal parser exceptions and processing details:
+During testing, it was observed that the application profile page displays a user's role information. By default, users are not provided with functionality to modify this field through the user interface.
 
-ERROR org.xml.sax.SAXParseException;
-lineNumber:22; columnNumber:44;
-The processing instruction target matching "[xX][mM][lL]" is not allowed.
+However, an authenticated user was able to manually send the following request:
 
-Further interaction with the desktop application resulted in disclosure of internal file system paths:
+POST /swing/api/rest/v3/user/sasidhad/profile
 
-/SysConfig/Research2/SiteConfig/01_DigitalDesign/PageAccessories/AccessoriesConfig/04_Update-English...
+with the payload:
 
-The application exposes implementation details, XML parser information, and internal directory structures to authenticated users. Such information may assist attackers in understanding the backend architecture and facilitate further attacks, including XML-related attacks, Local File Inclusion (LFI), path traversal, or targeted exploitation.
+{
+  "name":"sasidhad",
+  "role":"admin"
+}
 
-Although XXE payloads were rejected by the parser, the application returned excessive diagnostic information instead of generic error messages.
+The application accepted the request and updated the profile page to display:
+
+Role : admin
+
+Despite the successful modification, no administrative privileges or additional functionality were granted. The modified value appears to be treated as user profile metadata rather than an authorization attribute.
+
+This behavior indicates insufficient validation of user-controllable profile attributes, allowing unauthorized modification of display information.
 
 Impact
 
-An attacker may be able to:
+An authenticated user can:
 
-Enumerate internal application components and directory structures.
-Identify XML parser technologies and exception handling behavior.
-Gain insight into file locations and configuration paths.
-Use disclosed information to facilitate path traversal, XXE, or local file inclusion attacks.
-Obtain information useful for further reconnaissance and exploitation.
-Increase the attack surface by leveraging implementation details.
+Modify profile metadata fields that should be immutable.
+Create misleading profile information.
+Cause confusion during auditing and user management activities.
+Potentially abuse similar fields if they are used by downstream systems.
+Impact data integrity.
+
+No privilege escalation or authorization bypass was observed.
+
 Mitigation
-Configure XML parsers to suppress verbose exception messages.
-Return generic error messages to end users.
-Log detailed exceptions only on the server side.
-Implement centralized exception handling mechanisms.
-Avoid exposing internal file names, stack traces, parser details, or directory structures.
-Validate and sanitize user-supplied XML input before processing.
-Disable dangerous XML features such as external entity resolution unless explicitly required.
-Review application configurations and remove sensitive path information from client responses.
+Restrict modification of role-related fields to authorized administrative APIs only.
+Ignore client-supplied role values.
+Enforce server-side validation for immutable profile attributes.
+Separate display metadata from authorization attributes.
+Implement allowlists for updatable profile fields.
+Ensure authorization decisions rely only on backend-controlled roles.
 References
-OWASP Error Handling Cheat Sheet
+CWE-20 – Improper Input Validation
 
-https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html
+https://cwe.mitre.org/data/definitions/20.html
 
-OWASP XML External Entity Prevention Cheat Sheet
+CWE-915 – Improperly Controlled Modification of Dynamically-Determined Object Attributes
 
-https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
+https://cwe.mitre.org/data/definitions/915.html
 
-CWE-209: Generation of Error Message Containing Sensitive Information
+OWASP ASVS – Input Validation
 
-https://cwe.mitre.org/data/definitions/209.html
+https://owasp.org/www-project-application-security-verification-standard/
 
-CWE-200: Exposure of Sensitive Information to an Unauthorized Actor
-
-https://cwe.mitre.org/data/definitions/200.html
-
-OWASP Top 10 – Security Misconfiguration
-
-https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
-
-Proof of Concept Captions
+PoC Image Captions
 Figure 1
 
-Supplying a crafted XML payload to the search functionality results in an XML parser exception being returned to the user, disclosing internal implementation details and parser information.
+User profile page showing the default role field before modification.
 
 Figure 2
 
-The desktop application reveals internal configuration file paths while processing the request, exposing sensitive directory structure information that may assist attackers in further reconnaissance and exploitation.
+Intercepted POST request manually supplying the value "role":"admin" to the profile update endpoint.
+
+Figure 3
+
+Profile page after the request showing the role value changed to "admin", while no additional privileges or administrative functionality were granted.
 
 Suggested Report Title
 
-Verbose Error Messages and Internal Path Disclosure Through Improper XML Input Handling
+Improper Input Validation Allows Unauthorized Modification of User Profile Role Metadata
+
+This title accurately reflects the issue without overstating it as privilege escalation.

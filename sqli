@@ -1,262 +1,6 @@
 Vulnerability Heading
 
-Broken Access Control Leading to Unauthorized Exposure and Download of Internal Configuration Repository Files
-
-Severity
-
-High
-
-CVSS v3.1
-
-CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:L/A:N
-
-Base Score: 7.4 (High)
-
-(If downloaded files contain sensitive configuration or credentials, severity may be increased to 8.1 High.)
-
-Vulnerability Category
-
-Broken Access Control / Improper Authorization
-
-OWASP Top 10 (2025)
-
-A01:2025 – Broken Access Control
-
-CWE
-CWE-285 – Improper Authorization
-CWE-639 – Authorization Bypass Through User-Controlled Key
-CWE-200 – Exposure of Sensitive Information to an Unauthorized Actor
-Description
-
-During the security assessment, it was observed that an authenticated user with the Analyst role could access internal repository locations by directly manipulating the client-side URL and navigating to:
-
-#explore/SysConfig
-
-This exposed the internal FileSystemRoot and multiple configuration directories containing XML and DTD files intended for administrative use.
-
-Although the application correctly displayed the message:
-
-"The current user does not have the privilege to download files."
-
-when the Analyst user attempted to download files, it was observed that the download permission was controlled by a client-side attribute. By intercepting the response and modifying the download permission value from:
-
-data-download="false"
-
-to
-
-data-download="true"
-
-the download icon became enabled and restricted files such as:
-
-dwp.dtd
-asset.dtd
-user.xml
-pubStories.xml
-
-could be downloaded successfully.
-
-This indicates that authorization checks are enforced on the client side, while the backend fails to perform proper server-side authorization validation before granting access to sensitive configuration files.
-
-Steps to Reproduce
-Authenticate as an Analyst user.
-Manually browse to:
-https://<host>/swing/app/swing.html#explore/SysConfig
-Observe that internal configuration repositories are accessible.
-Navigate to:
-SysConfig → Metadata
-Attempt to download any file and observe the following message:
-The current user does not have the privilege to download files.
-Intercept the response using Burp Suite.
-Modify the client-side permission value:
-data-download="false"
-
-to:
-
-data-download="true"
-Forward the response.
-Click the download icon.
-Observe that restricted files are downloaded successfully.
-Impact
-
-A low-privileged authenticated user can:
-
-Enumerate internal repository structures.
-Access administrative configuration directories.
-Download XML and DTD files intended for privileged users.
-Obtain information regarding internal application structure and metadata.
-Facilitate further attacks by leveraging disclosed information.
-Potentially expose sensitive configurations if such information is present within downloadable files.
-
-The vulnerability demonstrates insufficient server-side authorization enforcement and reliance on client-side controls to restrict access to sensitive resources.
-
-Mitigation
-Enforce authorization checks on the server side for all repository access and file download operations.
-Do not rely on client-side attributes or UI controls to determine permissions.
-Return HTTP 403 Forbidden when unauthorized users request restricted resources.
-Restrict access to SysConfig and FileSystemRoot repositories to privileged roles only.
-Implement centralized RBAC validation for repository browsing and download functionality.
-Review all APIs associated with repository management to ensure consistent access control enforcement.
-Log and monitor unauthorized access attempts to sensitive resources.
-References
-OWASP Top 10 – Broken Access Control
-
-https://owasp.org/Top10/A01_2021-Broken_Access_Control/
-
-OWASP ASVS – Access Control Verification
-
-https://owasp.org/www-project-application-security-verification-standard/
-
-CWE-285 – Improper Authorization
-
-https://cwe.mitre.org/data/definitions/285.html
-
-CWE-639 – Authorization Bypass Through User-Controlled Key
-
-https://cwe.mitre.org/data/definitions/639.html
-
-CWE-200 – Exposure of Sensitive Information
-
-https://cwe.mitre.org/data/definitions/200.html
-
-Recommended Title for Report
-
-Broken Access Control Leading to Unauthorized Enumeration and Download of Internal Configuration Repository Files
-
-
-
-Vulnerability Heading
-
-Broken Object-Level Authorization Leading to Unauthorized Team Enumeration and Cross-Team Article Creation
-
-Severity
-
-High
-
-CVSS v3.1
-
-CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N
-
-Base Score: 8.1 (High)
-
-Vulnerability Category
-
-Broken Access Control / Broken Object-Level Authorization (BOLA)
-
-OWASP Top 10 (2025)
-
-A01:2025 – Broken Access Control
-
-CWE
-CWE-639 – Authorization Bypass Through User-Controlled Key
-CWE-285 – Improper Authorization
-CWE-862 – Missing Authorization
-Description
-
-During the security assessment, it was observed that an authenticated user (Ravi) was authorized to create articles only within three assigned teams.
-
-However, the application relied on a user-controlled parameter (krbId) while fetching the list of accessible teams:
-
-GET /services/film/teams/teamList?krbId=poojaz&articleLangId=eng
-
-By modifying the krbId parameter from the authenticated user to another valid user, the application returned the list of teams associated with that user without performing proper server-side authorization validation.
-
-Subsequently, the attacker was able to select those unauthorized teams and successfully create articles belonging to teams for which they were not authorized. The created articles were marked as:
-
-External Team – You are a collaborator
-
-This demonstrates that authorization decisions are based on user-supplied identifiers rather than the authenticated session context, resulting in unauthorized access to business objects across team boundaries.
-
-Steps to Reproduce
-1. Login using a low-privileged Analyst account.
-
-Only three teams are available during article creation.
-
-Figure 1: Authorized teams available to the authenticated Analyst user.
-
-2. Intercept the request used to retrieve team information.
-
-Original request:
-
-GET /services/film/teams/teamList?krbId=<authenticated_user>&articleLangId=eng
-
-Modify:
-
-krbId=poojaz
-
-The response contains teams belonging to another user.
-
-Figure 2: Manipulating the krbId parameter returns teams associated with another user.
-
-3. Use one of the returned team names while creating a new article.
-
-The unauthorized teams are displayed in the article creation interface.
-
-Figure 3: Unauthorized teams become available for article creation.
-
-4. Create an article using the unauthorized team.
-
-The article is successfully created and visible under:
-
-External Team – You are a collaborator
-
-Figure 4: Successful cross-team article creation using unauthorized team membership.
-
-Impact
-
-Successful exploitation allows an authenticated low-privileged user to:
-
-Enumerate teams belonging to other users.
-Create articles under unauthorized teams.
-Bypass team-based segregation controls.
-Access or manipulate research content associated with other business units.
-Violate confidentiality and integrity of research workflows.
-Potentially interfere with article approval and publication processes.
-Compromise tenant and organizational boundary isolation.
-Mitigation
-Do not rely on client-supplied identifiers (krbId) for authorization decisions.
-Derive user identity exclusively from the authenticated session or Kerberos principal.
-Enforce server-side authorization checks before returning team information.
-Verify that the requesting user is a member of the requested team before permitting article creation.
-Implement object-level access control validation on all team-related APIs.
-Log and monitor cross-user resource access attempts.
-Perform periodic access-control reviews to ensure proper team segregation.
-References
-OWASP Top 10 – Broken Access Control
-
-https://owasp.org/Top10/A01_2021-Broken_Access_Control/
-
-OWASP API Security Top 10 – API1:2023 Broken Object Level Authorization
-
-https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/
-
-OWASP ASVS – Access Control Verification
-
-https://owasp.org/www-project-application-security-verification-standard/
-
-CWE-639 – Authorization Bypass Through User-Controlled Key
-
-https://cwe.mitre.org/data/definitions/639.html
-
-CWE-285 – Improper Authorization
-
-https://cwe.mitre.org/data/definitions/285.html
-
-CWE-862 – Missing Authorization
-
-https://cwe.mitre.org/data/definitions/862.html
-
-PoC Image Captions
-
-Figure 1: Authenticated Analyst user is authorized to create articles only under three assigned teams.
-
-Figure 2: Modifying the krbId parameter returns team information associated with another user, demonstrating unauthorized team enumeration.
-
-Figure 3: Teams belonging to another user become available in the article creation workflow.
-
-Figure 4: Successful creation of an article under an unauthorized external team, confirming broken object-level authorization.
-
-
-Absence of Rate Limiting Allows Message Flooding Through Automated Requests
+Improper XML Input Handling Leading to Internal Path Disclosure
 
 Severity
 
@@ -264,360 +8,91 @@ Medium
 
 CVSS v3.1
 
-CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:L/A:H
+CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:L
 
-Base Score: 6.5 (Medium)
-
-Vulnerability Category
-
-Improper Rate Limiting / Resource Consumption
-
-OWASP Top 10 (2025)
-A04:2025 – Insecure Design
-CWE
-CWE-770 – Allocation of Resources Without Limits or Throttling
-CWE-799 – Improper Control of Interaction Frequency
-CWE-400 – Uncontrolled Resource Consumption
-Description
-
-During the assessment, it was observed that the internal messaging functionality lacked sufficient rate-limiting controls. After intercepting the message sending request, the request was replayed automatically using Burp Suite Intruder.
-
-More than 300 consecutive requests were successfully processed by the application without any restriction, CAPTCHA, throttling, account lockout, or response delays. As a result, hundreds of messages were delivered to the recipient mailbox.
-
-The application failed to enforce controls to limit the number of messages that can be sent within a specific time period, allowing attackers to abuse the functionality for message flooding and denial-of-service against users.
-
-Impact
-
-Successful exploitation could allow an authenticated attacker to:
-
-Flood user inboxes with thousands of unwanted messages.
-Cause denial of service against the messaging system.
-Exhaust application resources.
-Disrupt normal user operations.
-Conduct spam campaigns using the internal messaging platform.
-Increase storage and database utilization.
-Affect overall application performance.
-Steps to Reproduce
-Navigate to the Messages section.
-Create a new message and send it to a valid recipient.
-Capture the message sending request using Burp Suite.
-Send the request to Burp Intruder.
-Configure automated requests.
-Execute more than 300 requests.
-Observe that all requests return:
-{
-    "result":"ok"
-}
-Verify that hundreds of messages are successfully delivered to the recipient inbox.
-Impact
-
-An attacker can abuse the messaging functionality to:
-
-Spam users.
-Generate excessive notifications.
-Consume storage resources.
-Degrade service availability.
-Launch application-layer denial-of-service attacks.
-Mitigation
-Implement server-side rate limiting for message APIs.
-Restrict the number of messages allowed per user per minute/hour.
-Introduce throttling mechanisms after excessive requests.
-Apply CAPTCHA or additional verification for abnormal activity.
-Monitor and alert on suspicious messaging behavior.
-Implement anti-spam controls and quotas.
-Return HTTP 429 (Too Many Requests) when thresholds are exceeded.
-Consider user reputation or adaptive rate limiting mechanisms.
-References
-OWASP Denial of Service Cheat Sheet
-
-https://cheatsheetseries.owasp.org/cheatsheets/Denial_of_Service_Cheat_Sheet.html
-
-OWASP Top 10 – Insecure Design
-
-https://owasp.org/Top10/A04_2021-Insecure_Design/
-
-CWE-799 – Improper Control of Interaction Frequency
-
-https://cwe.mitre.org/data/definitions/799.html
-
-CWE-770 – Allocation of Resources Without Limits or Throttling
-
-https://cwe.mitre.org/data/definitions/770.html
-
-PoC Image Captions
-
-Figure 1: Authenticated user sending a message through the internal messaging functionality.
-
-Figure 2: By replaying the captured request over 300 times using Burp Suite Intruder, hundreds of messages were successfully delivered, demonstrating the absence of rate-limiting controls.
-
-
-Vulnerability Heading
-
-Use of Vulnerable and Outdated jQuery Library (Version 2.2.4)
-
-Severity
-
-Medium
-
-CVSS v3.1
-
-CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N
-
-Base Score: 6.1 (Medium)
+Base Score: 5.3 (Medium)
 
 Vulnerability Category
 
-Vulnerable Components / Third-Party Component Risk
+Information Disclosure / Improper Input Validation
 
 OWASP Top 10 (2021)
-
-A06:2021 – Vulnerable and Outdated Components
-
-OWASP Top 10 2025 (Draft)
-
-A06 – Vulnerable Components
-
-CWE
-CWE-1104 – Use of Unmaintained Third-Party Components
-CWE-937 – Using Components with Known Vulnerabilities
-Description
-
-During the assessment, it was observed that the application uses jQuery version 2.2.4, as disclosed within the client-side JavaScript resources.
-
-The identified version is outdated and no longer maintained. Several security issues affecting jQuery 2.x versions have been publicly disclosed, including Cross-Site Scripting (XSS) vulnerabilities and improper HTML parsing behavior.
-
-Applications relying on outdated JavaScript libraries may inherit known vulnerabilities that can be leveraged by attackers depending on how the affected APIs are used within the application.
-
-Impact
-
-Successful exploitation may allow an attacker to:
-
-Execute arbitrary JavaScript in users' browsers.
-Perform DOM-based Cross-Site Scripting attacks.
-Manipulate page content.
-Steal session tokens or sensitive information.
-Compromise user accounts through client-side attacks.
-
-The actual impact depends on whether vulnerable jQuery APIs are used by the application.
-
-Mitigation
-Upgrade jQuery to the latest supported version (3.7.x or later).
-Remove deprecated APIs and test application compatibility.
-Maintain an inventory of third-party components and regularly update dependencies.
-Implement Software Composition Analysis (SCA) to identify vulnerable libraries.
-Review application code for unsafe uses of:
-.html()
-.append()
-.prepend()
-.before()
-.after()
-References
-jQuery Upgrade Guide
-
-https://jquery.com/upgrade-guide/
-
-jQuery 3.7.1
-
-https://jquery.com/
-
-CVE-2020-11022
-
-https://nvd.nist.gov/vuln/detail/CVE-2020-11022
-
-CVE-2020-11023
-
-https://nvd.nist.gov/vuln/detail/CVE-2020-11023
-
-CWE-1104
-
-https://cwe.mitre.org/data/definitions/1104.html
-
-OWASP Vulnerable Components
-
-https://owasp.org/Top10/A06_2021-Vulnerable_and_Outdated_Components/
-
-PoC Image Caption
-
-Figure 1: Inspection of the application's JavaScript resources reveals the use of jQuery version 2.2.4, an outdated and unsupported library affected by publicly disclosed vulnerabilities.
-
-
-Internal Configuration Path Disclosure in Thick Client Application
-
-Severity
-
-Low
-
-CVSS v3.1
-
-CVSS:3.1/AV:L/AC:L/PR:L/UI:R/S:U/C:L/I:N/A:N
-
-Base Score: 3.1 (Low)
-
-Vulnerability Category
-
-Information Disclosure
-
-OWASP Category
-OWASP Top 10 2021
 
 A05:2021 – Security Misconfiguration
 
-OWASP Desktop Application Security
+OWASP Top 10 (2025 Draft)
 
-Configuration and Error Handling Weakness
+Security Misconfiguration
 
 CWE
-CWE-209 – Information Exposure Through an Error Message
-CWE-497 – Exposure of System Data to an Unauthorized Control Sphere
+CWE-209 – Generation of Error Message Containing Sensitive Information
+CWE-200 – Exposure of Sensitive Information to an Unauthorized Actor
+CWE-755 – Improper Handling of Exceptional Conditions
 Description
 
-During testing of the thick client application, an error message was observed that disclosed internal application configuration paths. When a file loading operation failed, the application displayed the complete internal path structure:
+During security assessment, the application was observed returning verbose error messages when malformed XML input was supplied to the search functionality. The application disclosed internal parser exceptions and processing details:
 
-/SysConfig/Research2/SiteConfig/01_DigitalDesign/PageAccessories/AccessoriesConfig/...
+ERROR org.xml.sax.SAXParseException;
+lineNumber:22; columnNumber:44;
+The processing instruction target matching "[xX][mM][lL]" is not allowed.
 
-This information reveals the application's internal directory hierarchy and configuration naming conventions to authenticated users. Such disclosures provide valuable information that may aid attackers in understanding the application architecture and conducting further targeted attacks.
+Further interaction with the desktop application resulted in disclosure of internal file system paths:
+
+/SysConfig/Research2/SiteConfig/01_DigitalDesign/PageAccessories/AccessoriesConfig/04_Update-English...
+
+The application exposes implementation details, XML parser information, and internal directory structures to authenticated users. Such information may assist attackers in understanding the backend architecture and facilitate further attacks, including XML-related attacks, Local File Inclusion (LFI), path traversal, or targeted exploitation.
+
+Although XXE payloads were rejected by the parser, the application returned excessive diagnostic information instead of generic error messages.
 
 Impact
 
-An attacker may leverage the disclosed information to:
+An attacker may be able to:
 
-Enumerate internal directory structures.
-Identify configuration repositories and resource locations.
-Facilitate path traversal or file inclusion attacks.
-Gain insight into the application's architecture.
-Improve the effectiveness of subsequent attacks.
-
-Although no direct exploitation was identified, exposing internal implementation details increases the attack surface and violates the principle of least information disclosure.
-
+Enumerate internal application components and directory structures.
+Identify XML parser technologies and exception handling behavior.
+Gain insight into file locations and configuration paths.
+Use disclosed information to facilitate path traversal, XXE, or local file inclusion attacks.
+Obtain information useful for further reconnaissance and exploitation.
+Increase the attack surface by leveraging implementation details.
 Mitigation
-Avoid exposing internal paths and system details in user-facing error messages.
-Return generic error messages such as:
-Unable to load the requested resource.
-Please contact the administrator.
-Log detailed errors only on the server side.
-Implement centralized exception handling.
-Sanitize error responses before presenting them to users.
-Disable verbose debugging information in production environments.
+Configure XML parsers to suppress verbose exception messages.
+Return generic error messages to end users.
+Log detailed exceptions only on the server side.
+Implement centralized exception handling mechanisms.
+Avoid exposing internal file names, stack traces, parser details, or directory structures.
+Validate and sanitize user-supplied XML input before processing.
+Disable dangerous XML features such as external entity resolution unless explicitly required.
+Review application configurations and remove sensitive path information from client responses.
 References
 OWASP Error Handling Cheat Sheet
+
 https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html
-CWE-209: Information Exposure Through an Error Message
+
+OWASP XML External Entity Prevention Cheat Sheet
+
+https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
+
+CWE-209: Generation of Error Message Containing Sensitive Information
+
 https://cwe.mitre.org/data/definitions/209.html
-CWE-497: Exposure of System Data to an Unauthorized Control Sphere
-https://cwe.mitre.org/data/definitions/497.html
-OWASP Top 10 – Security Misconfiguration
-https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
-PoC Image Caption
-
-Figure 1: The thick client application discloses internal configuration and directory paths through an error message when a file-loading operation fails, exposing implementation details under the /SysConfig/Research2/SiteConfig/ hierarchy.
-
-
-
-Session Token Exposure in URL Parameters
-
-Severity
-
-Medium
-
-CVSS v3.1
-
-CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:L/A:N
-
-Base Score: 6.5 (Medium)
-
-Vulnerability Category
-
-Sensitive Information Exposure / Session Management Weakness
-
-OWASP Top 10 (2021)
-
-A07:2021 – Identification and Authentication Failures
-
-OWASP Top 10 2025 (Draft)
-
-Broken Authentication
-
-CWE
-CWE-598 – Use of GET Request Method With Sensitive Query Strings
-CWE-200 – Exposure of Sensitive Information to an Unauthorized Actor
-CWE-384 – Session Fixation
-Description
-
-During the assessment, it was observed that the application transmits the user's session token within the URL query string. The following request contains an authentication token as a GET parameter:
-
-GET /swing/api/rest/conf/channel/list?token=71348d8a-ca01-446c-a846-ec7130a476f2&application=swing&showCompound=true&showCalendar=true&databaseId=33 HTTP/1.1
-
-Sensitive tokens embedded in URLs may be exposed through:
-
-Browser history.
-Web server access logs.
-Reverse proxies and load balancers.
-Referrer headers sent to third-party websites.
-Browser bookmarks.
-Monitoring and analytics tools.
-Shared screenshots and clipboard operations.
-
-An attacker obtaining the token may potentially replay requests and gain unauthorized access until the token expires or is invalidated.
-
-Impact
-
-Successful exploitation may allow an attacker to:
-
-Hijack active user sessions.
-Replay authenticated requests.
-Access sensitive resources without credentials.
-Bypass authentication mechanisms.
-Leak tokens through logs, browser history, and third-party services.
-Compromise confidentiality and integrity of application data.
-Mitigation
-Avoid transmitting session identifiers or authentication tokens in URL parameters.
-Store session tokens in:
-Secure, HttpOnly cookies; or
-Authorization headers (Bearer tokens).
-Ensure tokens are:
-Short-lived.
-Randomly generated.
-Invalidated after logout.
-Rotated periodically.
-Configure applications to prevent sensitive information from being written to logs.
-
-Implement:
-
-Secure
-HttpOnly
-SameSite
-
-cookie attributes where applicable.
-
-References
-OWASP Session Management Cheat Sheet
-
-https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
-
-OWASP Authentication Cheat Sheet
-
-https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
-
-CWE-598: Use of GET Request Method With Sensitive Query Strings
-
-https://cwe.mitre.org/data/definitions/598.html
 
 CWE-200: Exposure of Sensitive Information to an Unauthorized Actor
 
 https://cwe.mitre.org/data/definitions/200.html
 
-CWE-384: Session Fixation
+OWASP Top 10 – Security Misconfiguration
 
-https://cwe.mitre.org/data/definitions/384.html
+https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
 
-OWASP Top 10 – Identification and Authentication Failures
+Proof of Concept Captions
+Figure 1
 
-https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/
+Supplying a crafted XML payload to the search functionality results in an XML parser exception being returned to the user, disclosing internal implementation details and parser information.
 
-PoC Image Caption
+Figure 2
 
-Figure 1: The application transmits the session token as a URL query parameter in authenticated requests. The token value is visible within the request URI, increasing the risk of exposure through browser history, server logs, referrer headers, and other intermediary systems.
+The desktop application reveals internal configuration file paths while processing the request, exposing sensitive directory structure information that may assist attackers in further reconnaissance and exploitation.
 
+Suggested Report Title
 
-
-
+Verbose Error Messages and Internal Path Disclosure Through Improper XML Input Handling

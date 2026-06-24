@@ -1,47 +1,88 @@
-Yes. You can run a comprehensive Nmap scan in a single command, but be careful because it can take a long time and generate significant traffic.
+Terminal 1 – Full Port Discovery
+nmap -Pn -p- -sT -T4 --min-rate 5000 iapp192644.croydon.ms.com -oA ports
 
-Comprehensive TCP Scan
-sudo nmap -Pn -p- -sS -sV -sC -O --script=vuln -T4 <hostname> -oA fullscan
+Purpose:
 
-This performs:
+Find all TCP ports
+Fastest initial scan
+No Npcap required
+Terminal 2 – Service Enumeration
+nmap -Pn -sT -sV -sC -T4 iapp192644.croydon.ms.com -oA services
 
--Pn → Skip host discovery
--p- → Scan all 65,535 TCP ports
--sS → SYN scan
--sV → Service version detection
--sC → Default NSE scripts
--O → OS detection
---script=vuln → Vulnerability scripts
--T4 → Faster timing
--oA → Save output in all formats
-Include UDP Scan
-sudo nmap -Pn -p- -sS -sV -sC -O --script=vuln -sU --top-ports 100 -T4 <hostname> -oA fullscan
+Purpose:
 
-UDP scanning is usually slow and may add hours to the scan.
+Service versions
+Default NSE scripts
+Banner grabbing
+Terminal 3 – Web Enumeration
+nmap -Pn -sT \
+--script=http-title,http-headers,http-methods,http-enum,http-server-header,http-security-headers,http-robots.txt \
+-p80,443,8080,8443 iapp192644.croydon.ms.com -oA web
 
-Web-Focused Assessment
+Purpose:
 
-If the host is primarily a web server:
+Headers
+Methods
+Interesting directories
+Security headers
+Technology fingerprinting
+Terminal 4 – SSL/TLS Assessment
+nmap -Pn -sT \
+--script=ssl-cert,ssl-enum-ciphers \
+-p443,8443 iapp192644.croydon.ms.com -oA ssl
 
-sudo nmap -Pn -sV -sC \
---script=http-title,http-headers,http-methods,http-enum,ssl-cert,ssl-enum-ciphers,vuln \
--p 80,443,8080,8443 <hostname> -oA webscan
-Recommended VAPT Workflow
+Purpose:
 
-Instead of one huge scan, I typically use:
+TLS versions
+Weak ciphers
+Certificate details
+Terminal 5 – Vulnerability Scripts
+nmap -Pn -sT \
+--script=vuln \
+-p80,443,8080,8443 iapp192644.croydon.ms.com -oA vuln
 
-1. Discover all ports
+Purpose:
 
-nmap -Pn -p- --min-rate 5000 <hostname> -oA ports
+Common CVE checks
+Misconfigurations
+Known service vulnerabilities
+Everything in One Command
 
-2. Enumerate only open ports
+If you want maximum coverage in one shot:
 
-nmap -Pn -sV -sC -O -p <open_ports> <hostname> -oA enum
+nmap -Pn -p- -sT -sV -sC -T4 \
+--script=vuln,http-title,http-headers,http-methods,http-enum,http-security-headers,http-robots.txt,ssl-cert,ssl-enum-ciphers \
+iapp192644.croydon.ms.com -oA fullscan
 
-3. Run targeted vulnerability scripts
+Note: This may run for several hours because:
 
-nmap --script vuln -p <open_ports> <hostname> -oA vuln
+All 65535 ports
+Version detection
+Default scripts
+Vulnerability scripts
+HTTP enumeration
+SSL checks
+Useful Extra NSE Scripts for Web VAPT
+--script=http-auth-finder
+--script=http-config-backup
+--script=http-default-accounts
+--script=http-git
+--script=http-iis-short-name-brute
+--script=http-passwd
+--script=http-vhosts
+--script=http-waf-detect
+--script=http-cookie-flags
 
-This is usually faster and produces cleaner results than running every check at once.
+Example:
 
-For bug bounty or web application VAPT, I can also give you a "single command cheat sheet" that covers HTTP, HTTPS, SSL, DNS, FTP, SSH, SMB, and common CVE checks in one scan profile.
+nmap -Pn -sT \
+--script=http-cookie-flags,http-waf-detect,http-auth-finder,http-vhosts \
+-p80,443 iapp192644.croydon.ms.com
+
+For a web application assessment, after Nmap I would also run:
+
+whatweb
+httpx
+nuclei
+ffuf
+Burp Suite

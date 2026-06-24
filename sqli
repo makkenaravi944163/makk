@@ -1,99 +1,47 @@
-Vulnerability Heading
+Yes. You can run a comprehensive Nmap scan in a single command, but be careful because it can take a long time and generate significant traffic.
 
-Improper Input Validation Allows Unauthorized Modification of User Profile Metadata
+Comprehensive TCP Scan
+sudo nmap -Pn -p- -sS -sV -sC -O --script=vuln -T4 <hostname> -oA fullscan
 
-Severity
+This performs:
 
-Low
+-Pn → Skip host discovery
+-p- → Scan all 65,535 TCP ports
+-sS → SYN scan
+-sV → Service version detection
+-sC → Default NSE scripts
+-O → OS detection
+--script=vuln → Vulnerability scripts
+-T4 → Faster timing
+-oA → Save output in all formats
+Include UDP Scan
+sudo nmap -Pn -p- -sS -sV -sC -O --script=vuln -sU --top-ports 100 -T4 <hostname> -oA fullscan
 
-CVSS v3.1
+UDP scanning is usually slow and may add hours to the scan.
 
-CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:N
+Web-Focused Assessment
 
-Base Score: 4.3 (Medium-Low)
+If the host is primarily a web server:
 
-Vulnerability Category
+sudo nmap -Pn -sV -sC \
+--script=http-title,http-headers,http-methods,http-enum,ssl-cert,ssl-enum-ciphers,vuln \
+-p 80,443,8080,8443 <hostname> -oA webscan
+Recommended VAPT Workflow
 
-Improper Input Validation / Integrity Issue
+Instead of one huge scan, I typically use:
 
-OWASP Top 10 (2025)
+1. Discover all ports
 
-A04:2025 – Insecure Design
+nmap -Pn -p- --min-rate 5000 <hostname> -oA ports
 
-CWE
-CWE-20 – Improper Input Validation
-CWE-915 – Improperly Controlled Modification of Dynamically-Determined Object Attributes
-CWE-472 – External Control of Assumed-Immutable Web Parameter
-Description
+2. Enumerate only open ports
 
-During testing, it was observed that the application profile page displays a user's role information. By default, users are not provided with functionality to modify this field through the user interface.
+nmap -Pn -sV -sC -O -p <open_ports> <hostname> -oA enum
 
-However, an authenticated user was able to manually send the following request:
+3. Run targeted vulnerability scripts
 
-POST /swing/api/rest/v3/user/sasidhad/profile
+nmap --script vuln -p <open_ports> <hostname> -oA vuln
 
-with the payload:
+This is usually faster and produces cleaner results than running every check at once.
 
-{
-  "name":"sasidhad",
-  "role":"admin"
-}
-
-The application accepted the request and updated the profile page to display:
-
-Role : admin
-
-Despite the successful modification, no administrative privileges or additional functionality were granted. The modified value appears to be treated as user profile metadata rather than an authorization attribute.
-
-This behavior indicates insufficient validation of user-controllable profile attributes, allowing unauthorized modification of display information.
-
-Impact
-
-An authenticated user can:
-
-Modify profile metadata fields that should be immutable.
-Create misleading profile information.
-Cause confusion during auditing and user management activities.
-Potentially abuse similar fields if they are used by downstream systems.
-Impact data integrity.
-
-No privilege escalation or authorization bypass was observed.
-
-Mitigation
-Restrict modification of role-related fields to authorized administrative APIs only.
-Ignore client-supplied role values.
-Enforce server-side validation for immutable profile attributes.
-Separate display metadata from authorization attributes.
-Implement allowlists for updatable profile fields.
-Ensure authorization decisions rely only on backend-controlled roles.
-References
-CWE-20 – Improper Input Validation
-
-https://cwe.mitre.org/data/definitions/20.html
-
-CWE-915 – Improperly Controlled Modification of Dynamically-Determined Object Attributes
-
-https://cwe.mitre.org/data/definitions/915.html
-
-OWASP ASVS – Input Validation
-
-https://owasp.org/www-project-application-security-verification-standard/
-
-PoC Image Captions
-Figure 1
-
-User profile page showing the default role field before modification.
-
-Figure 2
-
-Intercepted POST request manually supplying the value "role":"admin" to the profile update endpoint.
-
-Figure 3
-
-Profile page after the request showing the role value changed to "admin", while no additional privileges or administrative functionality were granted.
-
-Suggested Report Title
-
-Improper Input Validation Allows Unauthorized Modification of User Profile Role Metadata
-
-This title accurately reflects the issue without overstating it as privilege escalation.
+For bug bounty or web application VAPT, I can also give you a "single command cheat sheet" that covers HTTP, HTTPS, SSL, DNS, FTP, SSH, SMB, and common CVE checks in one scan profile.

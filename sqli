@@ -1,88 +1,34 @@
-Terminal 1 – Full Port Discovery
-nmap -Pn -p- -sT -T4 --min-rate 5000 iapp192644.croydon.ms.com -oA ports
+1. Basic Port Discovery
+nmap -Pn -p- -sT iapp192644.croydon.ms.com
+2. Fast Port Discovery
+nmap -Pn -p- -sT -T4 --min-rate 2000 iapp192644.croydon.ms.com
+3. Service Enumeration
+nmap -Pn -sT -sV iapp192644.croydon.ms.com
+4. Default Scripts
+nmap -Pn -sT -sV -sC iapp192644.croydon.ms.com
+5. HTTP/HTTPS Information
+nmap -Pn -sT --script=http-title,http-headers,http-server-header -p 80,443,8080,8443 iapp192644.croydon.ms.com
+6. Web Enumeration
+nmap -Pn -sT --script=http-enum,http-methods,http-robots.txt -p 80,443,8080,8443 iapp192644.croydon.ms.com
+7. SSL/TLS Enumeration
+nmap -Pn -sT --script=ssl-cert,ssl-enum-ciphers -p 443,8443 iapp192644.croydon.ms.com
+8. Vulnerability Scripts
+nmap -Pn -sT --script=vuln -p 80,443,8080,8443 iapp192644.croydon.ms.com
+9. WAF and Security Headers
+nmap -Pn -sT --script=http-waf-detect,http-cookie-flags,http-security-headers -p 80,443 iapp192644.croydon.ms.com
+If Nmap Still Fails
 
-Purpose:
+Run:
 
-Find all TCP ports
-Fastest initial scan
-No Npcap required
-Terminal 2 – Service Enumeration
-nmap -Pn -sT -sV -sC -T4 iapp192644.croydon.ms.com -oA services
+nmap scanme.nmap.org
 
-Purpose:
+and
 
-Service versions
-Default NSE scripts
-Banner grabbing
-Terminal 3 – Web Enumeration
-nmap -Pn -sT \
---script=http-title,http-headers,http-methods,http-enum,http-server-header,http-security-headers,http-robots.txt \
--p80,443,8080,8443 iapp192644.croydon.ms.com -oA web
+nmap --version
 
-Purpose:
+If even those fail, the Nmap installation itself is broken and you may need to use alternative tools such as:
 
-Headers
-Methods
-Interesting directories
-Security headers
-Technology fingerprinting
-Terminal 4 – SSL/TLS Assessment
-nmap -Pn -sT \
---script=ssl-cert,ssl-enum-ciphers \
--p443,8443 iapp192644.croydon.ms.com -oA ssl
+nslookup iapp192644.croydon.ms.com
+curl -I https://iapp192644.croydon.ms.com
 
-Purpose:
-
-TLS versions
-Weak ciphers
-Certificate details
-Terminal 5 – Vulnerability Scripts
-nmap -Pn -sT \
---script=vuln \
--p80,443,8080,8443 iapp192644.croydon.ms.com -oA vuln
-
-Purpose:
-
-Common CVE checks
-Misconfigurations
-Known service vulnerabilities
-Everything in One Command
-
-If you want maximum coverage in one shot:
-
-nmap -Pn -p- -sT -sV -sC -T4 \
---script=vuln,http-title,http-headers,http-methods,http-enum,http-security-headers,http-robots.txt,ssl-cert,ssl-enum-ciphers \
-iapp192644.croydon.ms.com -oA fullscan
-
-Note: This may run for several hours because:
-
-All 65535 ports
-Version detection
-Default scripts
-Vulnerability scripts
-HTTP enumeration
-SSL checks
-Useful Extra NSE Scripts for Web VAPT
---script=http-auth-finder
---script=http-config-backup
---script=http-default-accounts
---script=http-git
---script=http-iis-short-name-brute
---script=http-passwd
---script=http-vhosts
---script=http-waf-detect
---script=http-cookie-flags
-
-Example:
-
-nmap -Pn -sT \
---script=http-cookie-flags,http-waf-detect,http-auth-finder,http-vhosts \
--p80,443 iapp192644.croydon.ms.com
-
-For a web application assessment, after Nmap I would also run:
-
-whatweb
-httpx
-nuclei
-ffuf
-Burp Suite
+or browser-based reconnaissance until Nmap is fixed.

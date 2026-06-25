@@ -1,34 +1,94 @@
-1. Basic Port Discovery
-nmap -Pn -p- -sT iapp192644.croydon.ms.com
-2. Fast Port Discovery
-nmap -Pn -p- -sT -T4 --min-rate 2000 iapp192644.croydon.ms.com
-3. Service Enumeration
-nmap -Pn -sT -sV iapp192644.croydon.ms.com
-4. Default Scripts
-nmap -Pn -sT -sV -sC iapp192644.croydon.ms.com
-5. HTTP/HTTPS Information
-nmap -Pn -sT --script=http-title,http-headers,http-server-header -p 80,443,8080,8443 iapp192644.croydon.ms.com
-6. Web Enumeration
-nmap -Pn -sT --script=http-enum,http-methods,http-robots.txt -p 80,443,8080,8443 iapp192644.croydon.ms.com
-7. SSL/TLS Enumeration
-nmap -Pn -sT --script=ssl-cert,ssl-enum-ciphers -p 443,8443 iapp192644.croydon.ms.com
-8. Vulnerability Scripts
-nmap -Pn -sT --script=vuln -p 80,443,8080,8443 iapp192644.croydon.ms.com
-9. WAF and Security Headers
-nmap -Pn -sT --script=http-waf-detect,http-cookie-flags,http-security-headers -p 80,443 iapp192644.croydon.ms.com
-If Nmap Still Fails
+Run the following commands to further enumerate the exposed services and identify potential vulnerabilities:
 
-Run:
+### 1. Check SSH Configuration
 
-nmap scanme.nmap.org
+```bash
+nmap --script ssh-auth-methods -p22 <host>
+nmap --script ssh2-enum-algos -p22 <host>
+nmap --script ssh-hostkey -p22 <host>
+```
 
-and
+### 2. Enumerate RPC Services
 
-nmap --version
+```bash
+rpcinfo -p <host>
+```
 
-If even those fail, the Nmap installation itself is broken and you may need to use alternative tools such as:
+or
 
-nslookup iapp192644.croydon.ms.com
-curl -I https://iapp192644.croydon.ms.com
+```bash
+nmap --script rpcinfo -p111 <host>
+```
 
-or browser-based reconnaissance until Nmap is fixed.
+### 3. Enumerate NFS Shares
+
+```bash
+showmount -e <host>
+```
+
+If NFS exports are available:
+
+```bash
+sudo mount -t nfs <host>:/<share_name> /mnt/test
+```
+
+### 4. Enumerate NFS Using NSE Scripts
+
+```bash
+nmap --script nfs-showmount,nfs-ls,nfs-statfs -p2049 <host>
+```
+
+### 5. Check Docker Remote API
+
+```bash
+curl -k https://<host>:2376/version
+```
+
+or
+
+```bash
+docker -H tcp://<host>:2376 version
+```
+
+### 6. Perform Detailed Version Detection
+
+```bash
+nmap -sV --version-all <host>
+```
+
+### 7. Run Nmap Vulnerability Scripts
+
+```bash
+nmap --script vuln <host>
+```
+
+or
+
+```bash
+nmap --script "safe and vuln" <host>
+```
+
+### 8. Search for Known Vulnerabilities
+
+```bash
+searchsploit openssh 7.4
+searchsploit nfs
+searchsploit rpcbind
+```
+
+or
+
+```bash
+nmap --script vulners --script-args mincvss=5.0 <host>
+```
+
+### Assessment Notes
+
+* **OpenSSH 7.4**: Verify supported authentication methods, enabled ciphers, and check for known CVEs. Do not report solely based on version.
+* **RPCBind (111/tcp)**: Confirm whether the service is intentionally exposed and identify accessible RPC programs.
+* **NFS (2049/tcp)**: Verify exported shares and determine whether anonymous or unauthorized access is possible.
+* **Docker API (2376/tcp)**: Confirm whether mutual TLS/client certificate authentication is enforced. Unauthenticated access would be a critical finding.
+* **mountd (20048/tcp)**: Investigate together with NFS exports.
+* **Filtered HTTP/HTTPS Ports**: No finding can be concluded without access to the services.
+
+At this stage, the scan identifies the exposed attack surface rather than confirmed vulnerabilities. Additional enumeration and configuration verification are required before reporting any security findings.

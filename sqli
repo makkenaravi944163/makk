@@ -1,58 +1,41 @@
-Step 1 - Enumerate RPC Services
-nmap -sT -Pn -sV --script rpcinfo -p111 iapp192644.croydon.ms.com
+For example:
 
-If rpcinfo script is unavailable:
+ssh -v invaliduser@iapp192644.croydon.ms.com
 
-rpcinfo -p iapp192644.croydon.ms.com
-Step 2 - Enumerate NFS Shares
-nmap -sT -Pn --script nfs-showmount -p2049 iapp192644.croydon.ms.com
+or
 
-If unavailable
+ssh -vv invaliduser@iapp192644.croydon.ms.com
 
-showmount -e iapp192644.croydon.ms.com
-Step 3 - List Files in NFS
-nmap -sT -Pn --script nfs-ls -p2049 iapp192644.croydon.ms.com
-Step 4 - NFS Filesystem Information
-nmap -sT -Pn --script nfs-statfs -p2049 iapp192644.croydon.ms.com
-Step 5 - Docker Enumeration
-nmap -sT -Pn -sV -p2376 iapp192644.croydon.ms.com
+If the SSH client is installed, you'll typically see output like:
 
-Then
+OpenSSH_for_Windows_9.x
+debug1: Connecting to iapp192644.croydon.ms.com...
+debug1: Connection established.
+debug1: Remote protocol version 2.0, remote software version OpenSSH_7.4
+debug1: Authentications that can continue: publickey,password
 
-curl -k https://iapp192644.croydon.ms.com:2376/version
+or
 
-Then
+debug1: Authentications that can continue: publickey
 
-curl -k https://iapp192644.croydon.ms.com:2376/info
+This helps you determine:
 
-Then
+Supported authentication methods (password, publickey, keyboard-interactive, etc.).
+Key exchange algorithms.
+Host key algorithms.
+SSH banner details.
+If you know a valid username
 
-curl -k https://iapp192644.croydon.ms.com:2376/images/json
+You can also use a legitimate account name (without entering a password if you don't have one):
 
-If any of these return JSON without authentication, that's a serious misconfiguration.
+ssh -v username@iapp192644.croydon.ms.com
 
-Step 6 - Banner Grabbing
-nmap -sT -sV --version-all iapp192644.croydon.ms.com
-Step 7 - Scan Only Open Ports with NSE
-nmap -sT -Pn -sC -p22,111,1914,2049,2376,20048 iapp192644.croydon.ms.com
-Step 8 - Aggressive Service Detection
-nmap -sT -Pn -A -p22,111,1914,2049,2376,20048 iapp192644.croydon.ms.com
+This only attempts the authentication handshake and provides the same protocol details.
 
--A is supported with -sT; OS detection may be limited without Npcap, but version detection and NSE scripts can still run.
+One question
 
-Step 9 - Scan High RPC Ports
-nmap -sT -Pn -sV -p6165,14141,15305,19937,19997,20048,21949,25215,32623,32733,48476,48966 iapp192644.croydon.ms.com
-Step 10 - Try Default Vulnerability Scripts
-nmap -sT -Pn --script default,vuln -p22,111,2049,2376 iapp192644.croydon.ms.com
+Do you have the Windows OpenSSH client installed? Check by running:
 
-If your Nmap 7.40 doesn't include the vuln category, this may fail.
+ssh -V
 
-Step 11 - Check Docker TLS
-openssl s_client -connect iapp192644.croydon.ms.com:2376
-
-If OpenSSL is available.
-
-Step 12 - Check SSH Algorithms
-nmap -sT -Pn --script ssh2-enum-algos -p22 iapp192644.croydon.ms.com
-Step 13 - Check SSH Host Keys
-nmap -sT -Pn --script ssh-hostkey -p22 iapp192644.croydon.ms.com
+Paste the output, and I'll guide you through the next SSH checks.

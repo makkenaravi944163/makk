@@ -1,94 +1,132 @@
-Run the following commands to further enumerate the exposed services and identify potential vulnerabilities:
+# Nmap Enumeration Results – iapp192644.croydon.ms.com
 
-### 1. Check SSH Configuration
+**Target Host:** `iapp192644.croydon.ms.com`
+**Resolved IP Address:** `10.142.94.215`
+
+## Initial Scan Results
+
+| Port                                                                       | Service           | Version                    | Status |
+| -------------------------------------------------------------------------- | ----------------- | -------------------------- | ------ |
+| 22/tcp                                                                     | SSH               | OpenSSH 7.4 (Protocol 2.0) | Open   |
+| 111/tcp                                                                    | rpcbind           | RPC #100000                | Open   |
+| 1914/tcp                                                                   | amd (Automounter) | RPC #300019                | Open   |
+| 2049/tcp                                                                   | NFS               | RPC #100003                | Open   |
+| 2376/tcp                                                                   | Docker            | Detected                   | Open   |
+| 20048/tcp                                                                  | mountd            | RPC                        | Open   |
+| 6165, 14141, 15305, 19937, 19997, 21949, 25215, 32623, 32733, 48476, 48966 | Unknown Services  | -                          | Open   |
+
+---
+
+# Recommended Enumeration Commands
+
+## 1. SSH Enumeration
 
 ```bash
-nmap --script ssh-auth-methods -p22 <host>
-nmap --script ssh2-enum-algos -p22 <host>
-nmap --script ssh-hostkey -p22 <host>
+nmap --script ssh-auth-methods -p22 iapp192644.croydon.ms.com
+nmap --script ssh2-enum-algos -p22 iapp192644.croydon.ms.com
+nmap --script ssh-hostkey -p22 iapp192644.croydon.ms.com
 ```
 
-### 2. Enumerate RPC Services
+---
+
+## 2. RPC Enumeration
 
 ```bash
-rpcinfo -p <host>
-```
-
-or
-
-```bash
-nmap --script rpcinfo -p111 <host>
-```
-
-### 3. Enumerate NFS Shares
-
-```bash
-showmount -e <host>
-```
-
-If NFS exports are available:
-
-```bash
-sudo mount -t nfs <host>:/<share_name> /mnt/test
-```
-
-### 4. Enumerate NFS Using NSE Scripts
-
-```bash
-nmap --script nfs-showmount,nfs-ls,nfs-statfs -p2049 <host>
-```
-
-### 5. Check Docker Remote API
-
-```bash
-curl -k https://<host>:2376/version
+rpcinfo -p iapp192644.croydon.ms.com
 ```
 
 or
 
 ```bash
-docker -H tcp://<host>:2376 version
+nmap --script rpcinfo -p111 iapp192644.croydon.ms.com
 ```
 
-### 6. Perform Detailed Version Detection
+---
+
+## 3. NFS Enumeration
 
 ```bash
-nmap -sV --version-all <host>
+showmount -e iapp192644.croydon.ms.com
 ```
 
-### 7. Run Nmap Vulnerability Scripts
+If exports are available:
 
 ```bash
-nmap --script vuln <host>
+sudo mount -t nfs iapp192644.croydon.ms.com:/<share_name> /mnt/test
+```
+
+---
+
+## 4. NFS NSE Scripts
+
+```bash
+nmap --script nfs-showmount,nfs-ls,nfs-statfs -p2049 iapp192644.croydon.ms.com
+```
+
+---
+
+## 5. Docker Remote API Verification
+
+```bash
+curl -k https://iapp192644.croydon.ms.com:2376/version
 ```
 
 or
 
 ```bash
-nmap --script "safe and vuln" <host>
+docker -H tcp://iapp192644.croydon.ms.com:2376 version
 ```
 
-### 8. Search for Known Vulnerabilities
+---
+
+## 6. Detailed Version Detection
+
+```bash
+nmap -sV --version-all iapp192644.croydon.ms.com
+```
+
+---
+
+## 7. Nmap Vulnerability Scan
+
+```bash
+nmap --script vuln iapp192644.croydon.ms.com
+```
+
+or
+
+```bash
+nmap --script "safe and vuln" iapp192644.croydon.ms.com
+```
+
+---
+
+## 8. Search for Public Exploits
 
 ```bash
 searchsploit openssh 7.4
-searchsploit nfs
 searchsploit rpcbind
+searchsploit nfs
+searchsploit docker
 ```
 
 or
 
 ```bash
-nmap --script vulners --script-args mincvss=5.0 <host>
+nmap --script vulners --script-args mincvss=5.0 iapp192644.croydon.ms.com
 ```
 
-### Assessment Notes
+---
 
-* **OpenSSH 7.4**: Verify supported authentication methods, enabled ciphers, and check for known CVEs. Do not report solely based on version.
-* **RPCBind (111/tcp)**: Confirm whether the service is intentionally exposed and identify accessible RPC programs.
-* **NFS (2049/tcp)**: Verify exported shares and determine whether anonymous or unauthorized access is possible.
-* **Docker API (2376/tcp)**: Confirm whether mutual TLS/client certificate authentication is enforced. Unauthenticated access would be a critical finding.
-* **mountd (20048/tcp)**: Investigate together with NFS exports.
-* **Filtered HTTP/HTTPS Ports**: No finding can be concluded without access to the services.
+# Assessment Notes
 
-At this stage, the scan identifies the exposed attack surface rather than confirmed vulnerabilities. Additional enumeration and configuration verification are required before reporting any security findings.
+* **SSH (22/tcp):** Verify authentication methods, supported algorithms, weak ciphers, and check for applicable CVEs affecting OpenSSH 7.4.
+* **RPCBind (111/tcp):** Enumerate registered RPC services and determine whether unnecessary RPC services are exposed.
+* **NFS (2049/tcp):** Verify exported file systems and assess whether unauthorized or anonymous access is permitted.
+* **mountd (20048/tcp):** Enumerate mount permissions and assess together with the NFS service.
+* **Docker API (2376/tcp):** Verify whether mutual TLS (client certificate authentication) is enforced. Unauthenticated access would constitute a Critical vulnerability.
+* **Unknown High Ports:** Identify the underlying services using version detection and investigate whether they expose sensitive functionality.
+
+## Current Assessment
+
+At this stage, the scan results indicate an exposed attack surface but do not confirm any exploitable vulnerabilities. Additional enumeration and configuration validation are required before reporting any security findings.

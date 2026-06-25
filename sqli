@@ -1,132 +1,58 @@
-# Nmap Enumeration Results – iapp192644.croydon.ms.com
+Step 1 - Enumerate RPC Services
+nmap -sT -Pn -sV --script rpcinfo -p111 iapp192644.croydon.ms.com
 
-**Target Host:** `iapp192644.croydon.ms.com`
-**Resolved IP Address:** `10.142.94.215`
+If rpcinfo script is unavailable:
 
-## Initial Scan Results
-
-| Port                                                                       | Service           | Version                    | Status |
-| -------------------------------------------------------------------------- | ----------------- | -------------------------- | ------ |
-| 22/tcp                                                                     | SSH               | OpenSSH 7.4 (Protocol 2.0) | Open   |
-| 111/tcp                                                                    | rpcbind           | RPC #100000                | Open   |
-| 1914/tcp                                                                   | amd (Automounter) | RPC #300019                | Open   |
-| 2049/tcp                                                                   | NFS               | RPC #100003                | Open   |
-| 2376/tcp                                                                   | Docker            | Detected                   | Open   |
-| 20048/tcp                                                                  | mountd            | RPC                        | Open   |
-| 6165, 14141, 15305, 19937, 19997, 21949, 25215, 32623, 32733, 48476, 48966 | Unknown Services  | -                          | Open   |
-
----
-
-# Recommended Enumeration Commands
-
-## 1. SSH Enumeration
-
-```bash
-nmap --script ssh-auth-methods -p22 iapp192644.croydon.ms.com
-nmap --script ssh2-enum-algos -p22 iapp192644.croydon.ms.com
-nmap --script ssh-hostkey -p22 iapp192644.croydon.ms.com
-```
-
----
-
-## 2. RPC Enumeration
-
-```bash
 rpcinfo -p iapp192644.croydon.ms.com
-```
+Step 2 - Enumerate NFS Shares
+nmap -sT -Pn --script nfs-showmount -p2049 iapp192644.croydon.ms.com
 
-or
+If unavailable
 
-```bash
-nmap --script rpcinfo -p111 iapp192644.croydon.ms.com
-```
-
----
-
-## 3. NFS Enumeration
-
-```bash
 showmount -e iapp192644.croydon.ms.com
-```
+Step 3 - List Files in NFS
+nmap -sT -Pn --script nfs-ls -p2049 iapp192644.croydon.ms.com
+Step 4 - NFS Filesystem Information
+nmap -sT -Pn --script nfs-statfs -p2049 iapp192644.croydon.ms.com
+Step 5 - Docker Enumeration
+nmap -sT -Pn -sV -p2376 iapp192644.croydon.ms.com
 
-If exports are available:
+Then
 
-```bash
-sudo mount -t nfs iapp192644.croydon.ms.com:/<share_name> /mnt/test
-```
-
----
-
-## 4. NFS NSE Scripts
-
-```bash
-nmap --script nfs-showmount,nfs-ls,nfs-statfs -p2049 iapp192644.croydon.ms.com
-```
-
----
-
-## 5. Docker Remote API Verification
-
-```bash
 curl -k https://iapp192644.croydon.ms.com:2376/version
-```
 
-or
+Then
 
-```bash
-docker -H tcp://iapp192644.croydon.ms.com:2376 version
-```
+curl -k https://iapp192644.croydon.ms.com:2376/info
 
----
+Then
 
-## 6. Detailed Version Detection
+curl -k https://iapp192644.croydon.ms.com:2376/images/json
 
-```bash
-nmap -sV --version-all iapp192644.croydon.ms.com
-```
+If any of these return JSON without authentication, that's a serious misconfiguration.
 
----
+Step 6 - Banner Grabbing
+nmap -sT -sV --version-all iapp192644.croydon.ms.com
+Step 7 - Scan Only Open Ports with NSE
+nmap -sT -Pn -sC -p22,111,1914,2049,2376,20048 iapp192644.croydon.ms.com
+Step 8 - Aggressive Service Detection
+nmap -sT -Pn -A -p22,111,1914,2049,2376,20048 iapp192644.croydon.ms.com
 
-## 7. Nmap Vulnerability Scan
+-A is supported with -sT; OS detection may be limited without Npcap, but version detection and NSE scripts can still run.
 
-```bash
-nmap --script vuln iapp192644.croydon.ms.com
-```
+Step 9 - Scan High RPC Ports
+nmap -sT -Pn -sV -p6165,14141,15305,19937,19997,20048,21949,25215,32623,32733,48476,48966 iapp192644.croydon.ms.com
+Step 10 - Try Default Vulnerability Scripts
+nmap -sT -Pn --script default,vuln -p22,111,2049,2376 iapp192644.croydon.ms.com
 
-or
+If your Nmap 7.40 doesn't include the vuln category, this may fail.
 
-```bash
-nmap --script "safe and vuln" iapp192644.croydon.ms.com
-```
+Step 11 - Check Docker TLS
+openssl s_client -connect iapp192644.croydon.ms.com:2376
 
----
+If OpenSSL is available.
 
-## 8. Search for Public Exploits
-
-```bash
-searchsploit openssh 7.4
-searchsploit rpcbind
-searchsploit nfs
-searchsploit docker
-```
-
-or
-
-```bash
-nmap --script vulners --script-args mincvss=5.0 iapp192644.croydon.ms.com
-```
-
----
-
-# Assessment Notes
-
-* **SSH (22/tcp):** Verify authentication methods, supported algorithms, weak ciphers, and check for applicable CVEs affecting OpenSSH 7.4.
-* **RPCBind (111/tcp):** Enumerate registered RPC services and determine whether unnecessary RPC services are exposed.
-* **NFS (2049/tcp):** Verify exported file systems and assess whether unauthorized or anonymous access is permitted.
-* **mountd (20048/tcp):** Enumerate mount permissions and assess together with the NFS service.
-* **Docker API (2376/tcp):** Verify whether mutual TLS (client certificate authentication) is enforced. Unauthenticated access would constitute a Critical vulnerability.
-* **Unknown High Ports:** Identify the underlying services using version detection and investigate whether they expose sensitive functionality.
-
-## Current Assessment
-
-At this stage, the scan results indicate an exposed attack surface but do not confirm any exploitable vulnerabilities. Additional enumeration and configuration validation are required before reporting any security findings.
+Step 12 - Check SSH Algorithms
+nmap -sT -Pn --script ssh2-enum-algos -p22 iapp192644.croydon.ms.com
+Step 13 - Check SSH Host Keys
+nmap -sT -Pn --script ssh-hostkey -p22 iapp192644.croydon.ms.com

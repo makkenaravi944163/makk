@@ -1,67 +1,193 @@
-foreach ($HostName in $Hosts) {
+# ==========================================
+# Bulk Internal Host Scanner
+# ==========================================
 
-    if ([string]::IsNullOrWhiteSpace($HostName)) { continue }
+$HostsFile = ".\hosts.txt"
+$BaseOutDir = ".\ScanResults"
+
+if (!(Test-Path $HostsFile)) {
+    Write-Host "hosts.txt not found!"
+    exit
+}
+
+if (!(Test-Path $BaseOutDir)) {
+    New-Item -ItemType Directory -Path $BaseOutDir | Out-Null
+}
+
+$Hosts = Get-Content $HostsFile | Where-Object { $_.Trim() -ne "" }
+
+function Run-Nmap {
+
+    param(
+        [string]$Arguments,
+        [string]$Output
+    )
 
     Write-Host ""
-    Write-Host "===================================="
-    Write-Host "Scanning $HostName"
-    Write-Host "===================================="
+    Write-Host "[*] nmap $Arguments"
 
-    $OutDir = ".\ScanResults\$HostName"
+    & "C:\Program Files (x86)\Nmap\nmap.exe" $Arguments.Split(" ") "-oN" $Output
+
+}
+
+foreach ($HostName in $Hosts) {
+
+    Write-Host ""
+    Write-Host "======================================================"
+    Write-Host "Scanning $HostName"
+    Write-Host "======================================================"
+
+    $SafeName = $HostName.Replace(".","_")
+    $OutDir = Join-Path $BaseOutDir $SafeName
 
     if (!(Test-Path $OutDir)) {
         New-Item -ItemType Directory -Path $OutDir | Out-Null
     }
 
-    # Service Detection
+    ###############################################
+    ## 1. Service Detection
+    ###############################################
+
     Run-Nmap "-sT -sV -Pn $HostName" "$OutDir\01_services.txt"
 
-    # Aggressive Scan
+    ###############################################
+    ## 2. Aggressive Scan
+    ###############################################
+
     Run-Nmap "-A -Pn $HostName" "$OutDir\02_aggressive.txt"
 
-    # RPC Enumeration
-    Run-Nmap "-sV -Pn -p111 --script rpcinfo $HostName" "$OutDir\03_rpc.txt"
+    ###############################################
+    ## 3. Full Port Scan
+    ###############################################
 
-    # NFS Enumeration
-    Run-Nmap "-sV -Pn -p2049 --script nfs-showmount,nfs-ls,nfs-statfs $HostName" "$OutDir\04_nfs.txt"
+    Run-Nmap "-sT -Pn -p- $HostName" "$OutDir\03_allports.txt"
 
-    # SSH Algorithms
-    Run-Nmap "--script ssh2-enum-algos -p22 $HostName" "$OutDir\05_ssh_algorithms.txt"
+    ###############################################
+    ## 4. RPC Enumeration
+    ###############################################
 
-    # SSH Authentication
-    Run-Nmap "--script ssh-auth-methods -p22 $HostName" "$OutDir\06_ssh_auth.txt"
+    Run-Nmap "-sV -Pn -p111 --script rpcinfo $HostName" "$OutDir\04_rpc.txt"
 
-    # HTTP Enumeration
-    Run-Nmap "-sV -Pn -p6165 --script http-title,http-headers,http-methods,http-enum $HostName" "$OutDir\07_http.txt"
+    ###############################################
+    ## 5. NFS Enumeration
+    ###############################################
 
-    Write-Host "[*] Running HTTP checks..."
+    Run-Nmap "-sV -Pn -p2049 --script nfs-showmount,nfs-ls,nfs-statfs $HostName" "$OutDir\05_nfs.txt"
 
-    $urls = @(
-        "http://$HostName`:6165/",
-        "http://$HostName`:6165/config/",
-        "http://$HostName`:6165/state/",
-        "http://$HostName`:6165/version",
-        "http://$HostName`:6165/metrics",
-        "http://$HostName`:6165/health",
-        "http://$HostName`:6165/debug/vars",
-        "http://$HostName`:6165/debug/pprof/",
-        "http://$HostName`:6165/swagger",
+    ###############################################
+    ## 6. SSH Algorithms
+    ###############################################
+
+    Run-Nmap "--script ssh2-enum-algos -p22 $HostName" "$OutDir\06_ssh_algorithms.txt"
+
+    ###############################################
+    ## 7. SSH Authentication
+    ###############################################
+
+    Run-Nmap "--script ssh-auth-methods -p22 $HostName" "$OutDir\07_ssh_auth.txt"
+
+    ###############################################
+    ## 8. HTTP Enumeration
+    ###############################################
+
+    Run-Nmap "-sV -Pn -p6165 --script http-title,http-headers,http-methods,http-enum $HostName" "$OutDir\08_http.txt"
+
+    ###############################################
+    ## 9. HTTP Vulnerability Scan
+    ###############################################
+
+    Run-Nmap "-Pn -p6165 --script http-vuln* $HostName" "$OutDir\09_http_vuln.txt"
+
+    ###############################################
+    ## 10. Vulnerability Scan
+    ###############################################
+
+    Run-Nmap "-sV -Pn --script vuln -p22,111,2049,2376,6165 $HostName" "$OutDir\10_vuln.txt"
+
+    ###############################################
+    ## 11. SSL Scan
+    ###############################################
+
+    Run-Nmap "-Pn -sV --script ssl-cert,ssl-enum-ciphers -p2376,6165 $HostName" "$OutDir\11_ssl.txt"
+
+    ###############################################
+    ## CURL Enumeration
+    ###############################################
+
+    Write-Host ""
+    Write-Host "[*] Running HTTP Checks"
+
+    $urls=@(
+
+        "http://$HostName`:6165/"
+        "http://$HostName`:6165/config/"
+        "http://$HostName`:6165/state/"
+        "http://$HostName`:6165/version"
+        "http://$HostName`:6165/metrics"
+        "http://$HostName`:6165/health"
+        "http://$HostName`:6165/debug/vars"
+        "http://$HostName`:6165/debug/pprof/"
+        "http://$HostName`:6165/swagger"
         "http://$HostName`:6165/openapi.json"
+        "http://$HostName`:6165/config/public/"
+        "http://$HostName`:6165/config/public/usergrp.gif"
+
     )
 
-    $i = 1
+    $i=1
 
-    foreach ($url in $urls) {
+    foreach($url in $urls){
+
+        Write-Host $url
+
         curl.exe -ksv $url *> "$OutDir\curl_$i.txt"
+
         $i++
+
     }
 
-    Write-Host "[*] Docker API checks..."
+    ###############################################
+    ## Docker API Checks
+    ###############################################
+
+    Write-Host ""
+    Write-Host "[*] Docker API"
 
     curl.exe -ksv https://$HostName`:2376/version *> "$OutDir\docker_version.txt"
+
     curl.exe -ksv https://$HostName`:2376/info *> "$OutDir\docker_info.txt"
+
     curl.exe -ksv https://$HostName`:2376/images/json *> "$OutDir\docker_images.txt"
+
     curl.exe -ksv https://$HostName`:2376/containers/json *> "$OutDir\docker_containers.txt"
 
-    Write-Host "[+] Completed $HostName"
+    curl.exe -ksv https://$HostName`:2376/networks *> "$OutDir\docker_networks.txt"
+
+    curl.exe -ksv https://$HostName`:2376/volumes *> "$OutDir\docker_volumes.txt"
+
+    ###############################################
+    ## Slowloris Check
+    ###############################################
+
+    Write-Host ""
+    Write-Host "[*] Slowloris"
+
+    Run-Nmap "-Pn -p6165 --script http-slowloris-check $HostName" "$OutDir\12_slowloris.txt"
+
+    ###############################################
+    ## NSE Default Scripts
+    ###############################################
+
+    Run-Nmap "-Pn -sC $HostName" "$OutDir\13_default_scripts.txt"
+
+    Write-Host ""
+    Write-Host "Completed $HostName"
+
 }
+
+Write-Host ""
+Write-Host "========================================="
+Write-Host "ALL HOSTS SCANNED SUCCESSFULLY"
+Write-Host "Results saved in:"
+Write-Host $BaseOutDir
+Write-Host "========================================="

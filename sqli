@@ -1,48 +1,54 @@
-Problem 1
+This is actually a very interesting result, but it does not confirm a vulnerability.
 
-You ran:
+What happened?
 
-curl -I https://iapp192644.croydon.ms.com:6165
+You sent:
 
-In PowerShell, curl is an alias for Invoke-WebRequest, which prompts for the -Uri parameter if used incorrectly.
+curl.exe -vk http://iapp192644.croydon.ms.com:2376/version
 
-Use one of these instead:
+The response was:
 
-Invoke-WebRequest -Uri "https://iapp192644.croydon.ms.com:6165" -Method Head
+Received HTTP/0.9 when not allowed
 
-or
+This tells us:
 
-iwr -Uri "https://iapp192644.croydon.ms.com:6165" -Method Head
-Problem 2
+The TCP connection to 2376 succeeded.
+The service accepted the connection.
+The service did not return a normal HTTP/1.1 response.
+Therefore, the service is not a standard HTTP endpoint.
 
-Even better, use the real Windows curl executable:
+Port 2376 is commonly used for the Docker Engine Remote API over TLS. Since Nmap detected ssl/docker? and your HTTPS request produced TLS-related errors while your HTTP request produced an invalid protocol response, it is likely that this service expects TLS and possibly mutual TLS (client certificates).
 
-curl.exe -k -I https://iapp192644.croydon.ms.com:6165
+This is not a vulnerability
 
-or
+You cannot report:
 
-curl.exe http://iapp192644.croydon.ms.com:6165
-Check if the service is HTTP or HTTPS
+Docker Remote API exposed
+Unauthenticated Docker API
+Remote Code Execution
 
-Run these commands one by one:
+because you have not demonstrated access to the Docker API.
 
-HTTP
-curl.exe -v http://iapp192644.croydon.ms.com:6165
-HTTPS
-curl.exe -vk https://iapp192644.croydon.ms.com:6165
-Try Common Endpoints
-curl.exe -vk https://iapp192644.croydon.ms.com:6165/version
-curl.exe -vk https://iapp192644.croydon.ms.com:6165/health
-curl.exe -vk https://iapp192644.croydon.ms.com:6165/metrics
-curl.exe -vk https://iapp192644.croydon.ms.com:6165/debug/pprof/
-curl.exe -vk https://iapp192644.croydon.ms.com:6165/swagger
-curl.exe -vk https://iapp192644.croydon.ms.com:6165/openapi.json
-Check HTTP Methods
-curl.exe -vk -X OPTIONS https://iapp192644.croydon.ms.com:6165/
-Check the Docker API
+Next Step: Confirm TLS Requirement
 
-Since Nmap also detected Docker on port 2376, test it with the real curl.exe:
+If OpenSSL is available:
 
-curl.exe -vk https://iapp192644.croydon.ms.com:2376/version
-curl.exe -vk https://iapp192644.croydon.ms.com:2376/info
-curl.exe -vk https://iapp192644.croydon.ms.com:2376/images/json
+openssl s_client -connect iapp192644.croydon.ms.com:2376
+
+or try:
+
+curl.exe --http1.1 -vk https://iapp192644.croydon.ms.com:2376/version
+
+If the server requests a client certificate or fails the handshake because one is missing, that indicates the API is protected.
+
+Investigate Port 6165 Instead
+
+Port 6165 remains the most promising target.
+
+Run:
+
+curl.exe -v http://iapp192644.croydon.ms.com:6165/
+curl.exe -v http://iapp192644.croydon.ms.com:6165/version
+curl.exe -v http://iapp192644.croydon.ms.com:6165/metrics
+curl.exe -v http://iapp192644.croydon.ms.com:6165/debug/pprof/
+curl.exe -v http://iapp192644.croydon.ms.com:6165/health

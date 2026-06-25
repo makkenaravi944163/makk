@@ -1,1 +1,23 @@
-nmap -sT -Pn -sV --script http-title,http-headers,http-methods,http-enum -p6165 iapp192644.croydon.ms.com
+dditional checks
+
+Since /config/ is exposed, also check these endpoints—they may reveal even more sensitive information:
+
+http://iapp192644.croydon.ms.com:6165/state/
+
+http://iapp192644.croydon.ms.com:6165/config/public/
+
+http://iapp192644.croydon.ms.com:6165/config/public/usergrp.gif
+
+http://iapp192644.croydon.ms.com:6165/debug/pprof/
+
+http://iapp192644.croydon.ms.com:6165/metrics
+
+Also try requesting likely configuration files:
+
+http://iapp192644.croydon.ms.com:6165/config/laas-agent.conf
+
+http://iapp192644.croydon.ms.com:6165/config/config.json
+
+http://iapp192644.croydon.ms.com:6165/config.yaml
+
+http://iapp192644.croydon.ms.com:6165/config.yml

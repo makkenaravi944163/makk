@@ -1,41 +1,48 @@
-For example:
+Problem 1
 
-ssh -v invaliduser@iapp192644.croydon.ms.com
+You ran:
 
-or
+curl -I https://iapp192644.croydon.ms.com:6165
 
-ssh -vv invaliduser@iapp192644.croydon.ms.com
+In PowerShell, curl is an alias for Invoke-WebRequest, which prompts for the -Uri parameter if used incorrectly.
 
-If the SSH client is installed, you'll typically see output like:
+Use one of these instead:
 
-OpenSSH_for_Windows_9.x
-debug1: Connecting to iapp192644.croydon.ms.com...
-debug1: Connection established.
-debug1: Remote protocol version 2.0, remote software version OpenSSH_7.4
-debug1: Authentications that can continue: publickey,password
+Invoke-WebRequest -Uri "https://iapp192644.croydon.ms.com:6165" -Method Head
 
 or
 
-debug1: Authentications that can continue: publickey
+iwr -Uri "https://iapp192644.croydon.ms.com:6165" -Method Head
+Problem 2
 
-This helps you determine:
+Even better, use the real Windows curl executable:
 
-Supported authentication methods (password, publickey, keyboard-interactive, etc.).
-Key exchange algorithms.
-Host key algorithms.
-SSH banner details.
-If you know a valid username
+curl.exe -k -I https://iapp192644.croydon.ms.com:6165
 
-You can also use a legitimate account name (without entering a password if you don't have one):
+or
 
-ssh -v username@iapp192644.croydon.ms.com
+curl.exe http://iapp192644.croydon.ms.com:6165
+Check if the service is HTTP or HTTPS
 
-This only attempts the authentication handshake and provides the same protocol details.
+Run these commands one by one:
 
-One question
+HTTP
+curl.exe -v http://iapp192644.croydon.ms.com:6165
+HTTPS
+curl.exe -vk https://iapp192644.croydon.ms.com:6165
+Try Common Endpoints
+curl.exe -vk https://iapp192644.croydon.ms.com:6165/version
+curl.exe -vk https://iapp192644.croydon.ms.com:6165/health
+curl.exe -vk https://iapp192644.croydon.ms.com:6165/metrics
+curl.exe -vk https://iapp192644.croydon.ms.com:6165/debug/pprof/
+curl.exe -vk https://iapp192644.croydon.ms.com:6165/swagger
+curl.exe -vk https://iapp192644.croydon.ms.com:6165/openapi.json
+Check HTTP Methods
+curl.exe -vk -X OPTIONS https://iapp192644.croydon.ms.com:6165/
+Check the Docker API
 
-Do you have the Windows OpenSSH client installed? Check by running:
+Since Nmap also detected Docker on port 2376, test it with the real curl.exe:
 
-ssh -V
-
-Paste the output, and I'll guide you through the next SSH checks.
+curl.exe -vk https://iapp192644.croydon.ms.com:2376/version
+curl.exe -vk https://iapp192644.croydon.ms.com:2376/info
+curl.exe -vk https://iapp192644.croydon.ms.com:2376/images/json

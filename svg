@@ -1,13 +1,67 @@
-o run only the Slowloris NSE script (instead of the entire vuln category), use:
+foreach ($HostName in $Hosts) {
 
-nmap -Pn -sV -p 6165 --script http-slowloris-check iapp192625.heathrow.ms.com
+    if ([string]::IsNullOrWhiteSpace($HostName)) { continue }
 
-Or save the output to a file:
+    Write-Host ""
+    Write-Host "===================================="
+    Write-Host "Scanning $HostName"
+    Write-Host "===================================="
 
-nmap -Pn -sV -p 6165 --script http-slowloris-check -oN slowloris.txt iapp192625.heathrow.ms.com
-Increase verbosity (shows more details)
-nmap -Pn -sV -p 6165 --script http-slowloris-check -d iapp192625.heathrow.ms.com
+    $OutDir = ".\ScanResults\$HostName"
 
-or
+    if (!(Test-Path $OutDir)) {
+        New-Item -ItemType Directory -Path $OutDir | Out-Null
+    }
 
-nmap -Pn -sV -p 6165 --script http-slowloris-check -vv iapp192625.heathrow.ms.com
+    # Service Detection
+    Run-Nmap "-sT -sV -Pn $HostName" "$OutDir\01_services.txt"
+
+    # Aggressive Scan
+    Run-Nmap "-A -Pn $HostName" "$OutDir\02_aggressive.txt"
+
+    # RPC Enumeration
+    Run-Nmap "-sV -Pn -p111 --script rpcinfo $HostName" "$OutDir\03_rpc.txt"
+
+    # NFS Enumeration
+    Run-Nmap "-sV -Pn -p2049 --script nfs-showmount,nfs-ls,nfs-statfs $HostName" "$OutDir\04_nfs.txt"
+
+    # SSH Algorithms
+    Run-Nmap "--script ssh2-enum-algos -p22 $HostName" "$OutDir\05_ssh_algorithms.txt"
+
+    # SSH Authentication
+    Run-Nmap "--script ssh-auth-methods -p22 $HostName" "$OutDir\06_ssh_auth.txt"
+
+    # HTTP Enumeration
+    Run-Nmap "-sV -Pn -p6165 --script http-title,http-headers,http-methods,http-enum $HostName" "$OutDir\07_http.txt"
+
+    Write-Host "[*] Running HTTP checks..."
+
+    $urls = @(
+        "http://$HostName`:6165/",
+        "http://$HostName`:6165/config/",
+        "http://$HostName`:6165/state/",
+        "http://$HostName`:6165/version",
+        "http://$HostName`:6165/metrics",
+        "http://$HostName`:6165/health",
+        "http://$HostName`:6165/debug/vars",
+        "http://$HostName`:6165/debug/pprof/",
+        "http://$HostName`:6165/swagger",
+        "http://$HostName`:6165/openapi.json"
+    )
+
+    $i = 1
+
+    foreach ($url in $urls) {
+        curl.exe -ksv $url *> "$OutDir\curl_$i.txt"
+        $i++
+    }
+
+    Write-Host "[*] Docker API checks..."
+
+    curl.exe -ksv https://$HostName`:2376/version *> "$OutDir\docker_version.txt"
+    curl.exe -ksv https://$HostName`:2376/info *> "$OutDir\docker_info.txt"
+    curl.exe -ksv https://$HostName`:2376/images/json *> "$OutDir\docker_images.txt"
+    curl.exe -ksv https://$HostName`:2376/containers/json *> "$OutDir\docker_containers.txt"
+
+    Write-Host "[+] Completed $HostName"
+}

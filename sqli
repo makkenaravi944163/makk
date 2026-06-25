@@ -1,23 +1,55 @@
-dditional checks
+$host="iapp192625.heathrow.ms.com"
 
-Since /config/ is exposed, also check these endpoints—they may reveal even more sensitive information:
+New-Item -ItemType Directory -Force -Path ".\ScanResults" | Out-Null
 
-http://iapp192644.croydon.ms.com:6165/state/
+Write-Host "[*] Starting scan..."
 
-http://iapp192644.croydon.ms.com:6165/config/public/
+# Full Service Scan
+nmap -sT -sV -Pn $host -oN .\ScanResults\01_services.txt
 
-http://iapp192644.croydon.ms.com:6165/config/public/usergrp.gif
+# Aggressive Scan
+nmap -A -Pn $host -oN .\ScanResults\02_aggressive.txt
 
-http://iapp192644.croydon.ms.com:6165/debug/pprof/
+# RPC Enumeration
+nmap -sV -p111 --script rpcinfo -Pn $host -oN .\ScanResults\03_rpc.txt
 
-http://iapp192644.croydon.ms.com:6165/metrics
+# NFS Enumeration
+nmap -sV -p2049 --script nfs-showmount,nfs-ls,nfs-statfs -Pn $host -oN .\ScanResults\04_nfs.txt
 
-Also try requesting likely configuration files:
+# SSH Algorithms
+nmap --script ssh2-enum-algos -p22 $host -oN .\ScanResults\05_ssh_algos.txt
 
-http://iapp192644.croydon.ms.com:6165/config/laas-agent.conf
+# SSH Authentication Methods
+nmap --script ssh-auth-methods -p22 $host -oN .\ScanResults\06_ssh_auth.txt
 
-http://iapp192644.croydon.ms.com:6165/config/config.json
+# HTTP Enumeration
+nmap -sV -p6165 --script http-title,http-headers,http-methods,http-enum -Pn $host -oN .\ScanResults\07_http.txt
 
-http://iapp192644.croydon.ms.com:6165/config.yaml
+# NSE Vulnerability Scan
+nmap -sV --script vuln -p22,111,2049,2376,6165 $host -oN .\ScanResults\08_vuln.txt
 
-http://iapp192644.croydon.ms.com:6165/config.yml
+Write-Host "[*] HTTP Endpoint Checks..."
+
+curl.exe -v http://$host:6165/ > .\ScanResults\root.txt 2>&1
+curl.exe -v http://$host:6165/config/ > .\ScanResults\config.txt 2>&1
+curl.exe -v http://$host:6165/state/ > .\ScanResults\state.txt 2>&1
+curl.exe -v http://$host:6165/version > .\ScanResults\version.txt 2>&1
+curl.exe -v http://$host:6165/metrics > .\ScanResults\metrics.txt 2>&1
+curl.exe -v http://$host:6165/health > .\ScanResults\health.txt 2>&1
+curl.exe -v http://$host:6165/debug/vars > .\ScanResults\debug_vars.txt 2>&1
+curl.exe -v http://$host:6165/debug/pprof/ > .\ScanResults\pprof.txt 2>&1
+curl.exe -v http://$host:6165/swagger > .\ScanResults\swagger.txt 2>&1
+curl.exe -v http://$host:6165/openapi.json > .\ScanResults\openapi.txt 2>&1
+
+Write-Host "[*] Docker Checks..."
+
+curl.exe -vk https://$host:2376/version > .\ScanResults\docker_version.txt 2>&1
+curl.exe -vk https://$host:2376/info > .\ScanResults\docker_info.txt 2>&1
+curl.exe -vk https://$host:2376/images/json > .\ScanResults\docker_images.txt 2>&1
+curl.exe -vk https://$host:2376/containers/json > .\ScanResults\docker_containers.txt 2>&1
+
+Write-Host ""
+Write-Host "Completed."
+Write-Host "Results saved in ScanResults folder."
+
+powershell -ExecutionPolicy Bypass -File .\scan.ps1

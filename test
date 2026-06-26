@@ -1,4 +1,9 @@
-$Hosts = Get-Content .\hosts.txt
+# ============================================
+# Bulk HTTP Endpoint Scanner
+# Reads hosts from hosts.txt
+# ============================================
+
+$Hosts = Get-Content ".\hosts.txt" | Where-Object { $_.Trim() -ne "" }
 
 $Paths = @(
 "/",
@@ -13,15 +18,32 @@ $Paths = @(
 "/openapi.json"
 )
 
-$ResultFile = ".\HTTP_Results.csv"
+$OutputDir = ".\Responses"
+$CsvFile = ".\HTTP_Results.csv"
 
-"Host,Path,StatusCode,ContentType,Length,Interesting" | Out-File $ResultFile
+if (!(Test-Path $OutputDir)) {
+    New-Item -ItemType Directory -Path $OutputDir | Out-Null
+}
 
-foreach($Host in $Hosts)
+"Host,Path,StatusCode,ContentType,Length,Interesting" | Out-File $CsvFile
+
+foreach ($TargetHost in $Hosts)
 {
-    foreach($Path in $Paths)
+    Write-Host ""
+    Write-Host "===================================="
+    Write-Host "Scanning $TargetHost"
+    Write-Host "===================================="
+
+    $HostFolder = Join-Path $OutputDir ($TargetHost.Replace(".", "_"))
+
+    if (!(Test-Path $HostFolder))
     {
-        $Url = "http://$Host`:6165$Path"
+        New-Item -ItemType Directory -Path $HostFolder | Out-Null
+    }
+
+    foreach ($Path in $Paths)
+    {
+        $Url = "http://$($TargetHost):6165$Path"
 
         Write-Host $Url
 
@@ -30,46 +52,71 @@ foreach($Host in $Hosts)
             $Response = Invoke-WebRequest `
                 -Uri $Url `
                 -UseBasicParsing `
-                -TimeoutSec 10
+                -TimeoutSec 10 `
+                -ErrorAction Stop
 
-            $Interesting=""
+            $Status = $Response.StatusCode
+            $Type = $Response.Headers["Content-Type"]
+            $Length = $Response.RawContentLength
 
-            if($Response.StatusCode -eq 200)
+            $Interesting = ""
+
+            if($Status -eq 200)
             {
-                $Interesting="YES"
+                $Interesting = "YES"
             }
 
-            "$Host,$Path,$($Response.StatusCode),$($Response.Headers.'Content-Type'),$($Response.RawContentLength),$Interesting" |
-                Add-Content $ResultFile
+            "$TargetHost,$Path,$Status,$Type,$Length,$Interesting" |
+                Add-Content $CsvFile
 
-            $Folder=".\\Responses\\" + $Host.Replace(".","_")
+            $FileName = $Path.Replace("/","_")
 
-            if(!(Test-Path $Folder))
+            if([string]::IsNullOrWhiteSpace($FileName))
             {
-                New-Item -ItemType Directory $Folder | Out-Null
+                $FileName = "root"
             }
 
-            $Name=$Path.Replace("/","_")
+            $FileName = $FileName.Trim("_")
 
-            if($Name -eq "_")
+            if($FileName -eq "")
             {
-                $Name="root"
+                $FileName = "root"
             }
 
-            $Response.Content | Out-File "$Folder\$Name.txt"
+            $Response.Content | Out-File "$HostFolder\$FileName.txt" -Encoding utf8
 
+            Write-Host "  [+] $Status" -ForegroundColor Green
         }
         catch
         {
-            "$Host,$Path,FAILED,,," | Add-Content $ResultFile
+            $ErrorCode = ""
+
+            if ($_.Exception.Response)
+            {
+                try
+                {
+                    $ErrorCode = $_.Exception.Response.StatusCode.value__
+                }
+                catch
+                {
+                    $ErrorCode = "ERROR"
+                }
+            }
+            else
+            {
+                $ErrorCode = "FAILED"
+            }
+
+            "$TargetHost,$Path,$ErrorCode,,," | Add-Content $CsvFile
+
+            Write-Host "  [-] $ErrorCode" -ForegroundColor Red
         }
     }
 }
 
 Write-Host ""
-Write-Host "Completed."
-Write-Host "Summary: HTTP_Results.csv"
-
-
-scan-http.ps1
-powershell -ExecutionPolicy Bypass -File .\scan-http.ps1
+Write-Host "======================================"
+Write-Host "Completed!"
+Write-Host "CSV Report : $CsvFile"
+Write-Host "Responses  : $OutputDir"
+Write-Host "======================================"

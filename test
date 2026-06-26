@@ -1,37 +1,71 @@
-Hi Team,
+$Hosts = Get-Content .\hosts.txt
 
-Please find today's Database VAPT testing status update:
+$Paths = @(
+"/",
+"/config/",
+"/state/",
+"/version",
+"/metrics",
+"/health",
+"/debug/vars",
+"/debug/pprof/",
+"/swagger",
+"/openapi.json"
+)
 
-Activities Performed:
+$ResultFile = ".\HTTP_Results.csv"
 
-Reviewed database authentication configuration and verified Kerberos-based authentication mechanism.
-Assessed password policy configuration including password length, failed login threshold, and password expiration settings.
-Reviewed database auditing configuration and identified that auditing is currently disabled.
-Performed metadata enumeration and validated access to database objects, procedures, and schemas.
-Assessed access permissions associated with the assigned TAM roles and highly restricted read privileges.
-Identified and validated access to sensitive customer data tables including:
-PartyPassportNO
-PartyTaxID
-PartyGlobalIdentifier
-Verified that passport numbers and tax identifiers are retrievable in readable format using the assigned privileged access.
-Performed discovery of procedures related to passport and customer identifier information.
+"Host,Path,StatusCode,ContentType,Length,Interesting" | Out-File $ResultFile
 
-Observations Identified:
+foreach($Host in $Hosts)
+{
+    foreach($Path in $Paths)
+    {
+        $Url = "http://$Host`:6165$Path"
 
-Database Auditing Disabled.
-Password Expiration Policy Disabled (under review).
-Sensitive Passport Numbers Accessible in Clear Text (Informational observation).
+        Write-Host $Url
 
-Ongoing Activities:
+        try
+        {
+            $Response = Invoke-WebRequest `
+                -Uri $Url `
+                -UseBasicParsing `
+                -TimeoutSec 10
 
-Cross-database access validation.
-Stored procedure permission review.
-Sensitive data exposure assessment.
-Security configuration review against database hardening best practices.
+            $Interesting=""
 
-Plan for Next Working Session:
+            if($Response.StatusCode -eq 200)
+            {
+                $Interesting="YES"
+            }
 
-Complete authorization and privilege validation testing.
-Review remote server and database configuration settings.
-Validate access controls for highly restricted customer data.
-Finalize observations and collect supporting evidence.
+            "$Host,$Path,$($Response.StatusCode),$($Response.Headers.'Content-Type'),$($Response.RawContentLength),$Interesting" |
+                Add-Content $ResultFile
+
+            $Folder=".\\Responses\\" + $Host.Replace(".","_")
+
+            if(!(Test-Path $Folder))
+            {
+                New-Item -ItemType Directory $Folder | Out-Null
+            }
+
+            $Name=$Path.Replace("/","_")
+
+            if($Name -eq "_")
+            {
+                $Name="root"
+            }
+
+            $Response.Content | Out-File "$Folder\$Name.txt"
+
+        }
+        catch
+        {
+            "$Host,$Path,FAILED,,," | Add-Content $ResultFile
+        }
+    }
+}
+
+Write-Host ""
+Write-Host "Completed."
+Write-Host "Summary: HTTP_Results.csv"

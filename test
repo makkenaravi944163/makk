@@ -69,3 +69,7 @@ foreach($Host in $Hosts)
 Write-Host ""
 Write-Host "Completed."
 Write-Host "Summary: HTTP_Results.csv"
+
+
+scan-http.ps1
+powershell -ExecutionPolicy Bypass -File .\scan-http.ps1

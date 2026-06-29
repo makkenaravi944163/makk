@@ -1,116 +1,686 @@
-# ===========================
-# Host to Scan
-# ===========================
-$HostName = "iapp192625.heathrow.ms.com"
+Vulnerability Title
 
-# ===========================
-# Output Folder
-# ===========================
-$OutDir = ".\ScanResults"
+Unauthenticated Exposure of Internal Configuration and System Information
 
-if (!(Test-Path $OutDir)) {
-    New-Item -ItemType Directory -Path $OutDir | Out-Null
-}
+CVSS v3.1
 
-Write-Host ""
-Write-Host "===================================="
-Write-Host " Starting Scan"
-Write-Host " Target : $HostName"
-Write-Host "===================================="
-Write-Host ""
+Base Score: 5.3 (Medium)
 
-function Run-Nmap {
-    param(
-        [string]$Arguments,
-        [string]$Output
-    )
+Vector:
 
-    Write-Host "[*] Running: nmap $Arguments"
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
 
-    Start-Process -FilePath "nmap.exe" `
-        -ArgumentList "$Arguments -oN `"$Output`"" `
-        -NoNewWindow `
-        -Wait
-}
+If additional sensitive information such as credentials, API keys, or secrets are exposed, increase the severity accordingly.
 
-# ---------------------------------
-# Service Detection
-# ---------------------------------
-Run-Nmap "-sT -sV -Pn $HostName" "$OutDir\01_services.txt"
+Vulnerability Category
 
-# ---------------------------------
-# Aggressive Scan
-# ---------------------------------
-Run-Nmap "-A -Pn $HostName" "$OutDir\02_aggressive.txt"
+Information Disclosure
 
-# ---------------------------------
-# RPC Enumeration
-# ---------------------------------
-Run-Nmap "-sV -Pn -p111 --script rpcinfo $HostName" "$OutDir\03_rpc.txt"
+OWASP Top 10 (2021)
 
-# ---------------------------------
-# NFS Enumeration
-# ---------------------------------
-Run-Nmap "-sV -Pn -p2049 --script nfs-showmount,nfs-ls,nfs-statfs $HostName" "$OutDir\04_nfs.txt"
+A05:2021 – Security Misconfiguration
 
-# ---------------------------------
-# SSH Algorithms
-# ---------------------------------
-Run-Nmap "--script ssh2-enum-algos -p22 $HostName" "$OutDir\05_ssh_algorithms.txt"
+OWASP Top 10 (2025 Draft)
 
-# ---------------------------------
-# SSH Authentication
-# ---------------------------------
-Run-Nmap "--script ssh-auth-methods -p22 $HostName" "$OutDir\06_ssh_auth.txt"
+Security Misconfiguration
 
-# ---------------------------------
-# HTTP Enumeration
-# ---------------------------------
-Run-Nmap "-sV -Pn -p6165 --script http-title,http-headers,http-methods,http-enum $HostName" "$OutDir\07_http.txt"
+CWE
 
-# ---------------------------------
-# Vulnerability Scan
-# ---------------------------------
-Run-Nmap "-sV -Pn --script vuln -p22,111,2049,2376,6165 $HostName" "$OutDir\08_vuln.txt"
+CWE-200 – Exposure of Sensitive Information to an Unauthorized Actor
 
-Write-Host ""
-Write-Host "[*] Running Curl Checks..."
+Description
 
-$urls = @(
-    "http://$HostName:6165/",
-    "http://$HostName:6165/config/",
-    "http://$HostName:6165/state/",
-    "http://$HostName:6165/version",
-    "http://$HostName:6165/metrics",
-    "http://$HostName:6165/health",
-    "http://$HostName:6165/debug/vars",
-    "http://$HostName:6165/debug/pprof/",
-    "http://$HostName:6165/swagger",
-    "http://$HostName:6165/openapi.json"
-)
+During the security assessment, it was observed that the application exposes unauthenticated diagnostic endpoints (/config and /state) on port 6165. These endpoints disclose sensitive internal configuration and operational information without requiring authentication.
 
-$i=1
+The exposed information includes:
 
-foreach($url in $urls){
+Internal hostnames
+Kafka broker addresses
+Service principal names
+Internal file system paths
+Log file locations
+Agent version
+Application identifiers
+Environment names (QA)
+Log IDs
+Kafka topic names
+File offsets
+Configuration state
+Service startup time
 
-    Write-Host "[*] $url"
+This information should only be accessible to administrators and must not be exposed through publicly accessible endpoints.
 
-    curl.exe -ksv $url *> "$OutDir\curl_$i.txt"
+Impact
 
-    $i++
-}
+An attacker can leverage the disclosed information to:
 
-Write-Host ""
-Write-Host "[*] Docker API"
+Map the internal infrastructure.
+Identify backend services and communication endpoints.
+Discover internal hostnames and network topology.
+Obtain application deployment details.
+Facilitate targeted attacks against Kafka infrastructure.
+Assist further reconnaissance and lateral movement.
+Increase the likelihood of successful exploitation of other vulnerabilities.
 
-curl.exe -ksv https://$HostName`:2376/version *> "$OutDir\docker_version.txt"
-curl.exe -ksv https://$HostName`:2376/info *> "$OutDir\docker_info.txt"
-curl.exe -ksv https://$HostName`:2376/images/json *> "$OutDir\docker_images.txt"
-curl.exe -ksv https://$HostName`:2376/containers/json *> "$OutDir\docker_containers.txt"
+Although no credentials were observed in the response, the exposed operational information significantly reduces the effort required for an attacker to understand the application's internal architecture.
 
-Write-Host ""
-Write-Host "======================================="
-Write-Host " Scan Completed Successfully"
-Write-Host " Results saved to:"
-Write-Host " $OutDir"
-Write-Host "======================================="
+Evidence
+
+The following endpoints were accessible without authentication:
+
+http://<host>:6165/config
+
+Disclosed:
+
+Kafka broker configuration
+Internal hostnames
+Service principals
+Application configuration
+File locations
+Environment details
+http://<host>:6165/state
+
+Disclosed:
+
+Agent version
+Agent username
+Running services
+Active log files
+Kafka topics
+Log IDs
+File offsets
+System timestamps
+Mitigation
+Disable diagnostic endpoints in production environments.
+Restrict access to management endpoints using authentication and authorization.
+Bind management interfaces to localhost or an internal management network.
+Implement IP allow-listing for administrative endpoints.
+Remove sensitive configuration details from HTTP responses.
+Store secrets securely using a secret management solution instead of exposing them through configuration files.
+Periodically review exposed management interfaces as part of secure deployment practices.
+References
+OWASP – Security Misconfiguration
+https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+CWE-200 – Exposure of Sensitive Information to an Unauthorized Actor
+https://cwe.mitre.org/data/definitions/200.html
+
+
+
+
+
+Vulnerability Title
+
+Support for Weak TLS CBC Cipher Suites
+
+CVSS v3.1
+
+Base Score: 3.7 (Low)
+
+Vector:
+
+CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N
+Vulnerability Category
+
+Cryptographic Weakness
+
+OWASP Top 10 (2021)
+
+A02:2021 – Cryptographic Failures
+
+OWASP Top 10 (2025 Draft)
+
+Cryptographic Failures
+
+CWE
+
+CWE-327 – Use of a Broken or Risky Cryptographic Algorithm
+
+Description
+
+The TLS service supports legacy CBC (Cipher Block Chaining) cipher suites, including:
+
+TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+TLS_RSA_WITH_AES_128_CBC_SHA
+TLS_RSA_WITH_AES_256_CBC_SHA
+
+CBC-mode cipher suites rely on SHA-1 MACs and have historically been affected by attacks such as BEAST and Lucky13. While modern TLS implementations mitigate many of these attacks, CBC suites are no longer recommended and have largely been replaced by AEAD cipher suites such as AES-GCM and ChaCha20-Poly1305.
+
+The scan also indicates support for stronger cipher suites (AES-GCM and ChaCha20-Poly1305), making the CBC suites unnecessary for most modern clients.
+
+Impact
+
+An attacker with a privileged network position may be able to exploit weaknesses associated with CBC-mode cipher suites under specific conditions. Additionally:
+
+Increases the attack surface by supporting legacy cryptographic algorithms.
+May fail security hardening requirements or compliance standards.
+Allows older clients to negotiate less secure cipher suites.
+Reduces the overall cryptographic posture of the service.
+
+Note: Because stronger AEAD cipher suites are also supported and TLS 1.3 is enabled, the practical risk is generally Low.
+
+Mitigation
+Disable CBC-mode cipher suites on the server.
+Prefer only AEAD cipher suites, such as:
+TLS_AES_128_GCM_SHA256
+TLS_AES_256_GCM_SHA384
+TLS_CHACHA20_POLY1305_SHA256
+TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+Remove support for static RSA key exchange cipher suites (TLS_RSA_*) where possible.
+Follow current recommendations from NIST and Mozilla's TLS configuration guidelines.
+Evidence
+
+The following CBC cipher suites were identified:
+
+TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+TLS_RSA_WITH_AES_128_CBC_SHA
+TLS_RSA_WITH_AES_256_CBC_SHA
+References
+OWASP Transport Layer Security Cheat Sheet
+https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Security_Cheat_Sheet.html
+Mozilla SSL Configuration Generator
+https://ssl-config.mozilla.org/
+NIST SP 800-52 Revision 2 – Guidelines for TLS Implementations
+
+
+
+Vulnerability Title
+
+Support for Weak SSH Cryptographic Algorithms
+
+CVSS v3.1
+
+Base Score: 3.7 (Low)
+
+Vector:
+
+CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N
+Vulnerability Category
+
+Cryptographic Weakness
+
+OWASP Top 10 (2021)
+
+A02:2021 – Cryptographic Failures
+
+OWASP Top 10 (2025 Draft)
+
+Cryptographic Failures
+
+CWE
+
+CWE-327 – Use of a Broken or Risky Cryptographic Algorithm
+
+Description
+
+The SSH service was found to support legacy cryptographic algorithms, including:
+
+Key Exchange
+diffie-hellman-group14-sha1
+Encryption Ciphers
+aes128-cbc
+aes192-cbc
+aes256-cbc
+Message Authentication
+hmac-sha1
+
+While modern and secure algorithms (such as Curve25519, AES-GCM, ChaCha20-Poly1305, and HMAC-SHA2) are also supported, the presence of these legacy algorithms allows clients to negotiate weaker cryptographic options. SHA-1-based key exchange and HMAC algorithms are deprecated due to known cryptographic weaknesses, and CBC-mode ciphers have historical vulnerabilities related to padding oracle attacks.
+
+Impact
+
+Supporting weak SSH algorithms can:
+
+Allow clients to negotiate outdated cryptographic algorithms.
+Increase the attack surface for cryptographic attacks.
+Reduce the overall security posture of the SSH service.
+Lead to non-compliance with organizational hardening standards and security benchmarks.
+Increase the risk of exploitation in environments where legacy clients are used.
+
+Although exploitation generally requires a man-in-the-middle position and modern clients prefer stronger algorithms, retaining legacy algorithms is not recommended.
+
+Evidence
+
+The following weak SSH algorithms were identified:
+
+Key Exchange
+diffie-hellman-group14-sha1
+Encryption
+aes128-cbc
+aes192-cbc
+aes256-cbc
+MAC
+hmac-sha1
+Mitigation
+Disable SHA-1-based key exchange algorithms such as diffie-hellman-group14-sha1.
+Disable CBC-mode encryption ciphers (aes128-cbc, aes192-cbc, aes256-cbc).
+Disable hmac-sha1 and use SHA-2-based MAC algorithms instead.
+Configure the SSH server to allow only modern algorithms, for example:
+Key Exchange: curve25519-sha256, ecdh-sha2-nistp256
+Ciphers: chacha20-poly1305@openssh.com, aes256-gcm@openssh.com, aes128-gcm@openssh.com
+MACs: hmac-sha2-256-etm@openssh.com, hmac-sha2-512-etm@openssh.com
+Periodically review the SSH configuration against current security best practices.
+References
+OpenSSH Legacy Options
+https://www.openssh.com/legacy.html
+Mozilla OpenSSH Security Guidelines
+https://infosec.mozilla.org/guidelines/openssh
+CIS Benchmarks – SSH Server Hardening
+
+
+
+
+Vulnerability Title
+
+Exposure of RPC/NFS Services to Untrusted Networks
+
+CVSS v3.1
+
+Base Score: 5.3 (Medium)
+
+Vector:
+
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
+Vulnerability Category
+
+Security Misconfiguration
+
+OWASP Top 10 (2021)
+
+A05:2021 – Security Misconfiguration
+
+OWASP Top 10 (2025 Draft)
+
+Security Misconfiguration
+
+CWE
+
+CWE-200 – Exposure of Sensitive Information to an Unauthorized Actor
+
+CWE-284 – Improper Access Control (if exports are accessible without appropriate restrictions)
+
+Description
+
+The server exposes Remote Procedure Call (RPC) and Network File System (NFS) related services over the network, including rpcbind, nfs, mountd, and other supporting RPC services.
+
+These services reveal internal RPC program information and may allow attackers to enumerate exported file systems or interact with NFS services if access controls are not properly configured.
+
+Exposed services identified include:
+
+TCP/111 – rpcbind
+TCP/1914 – amd
+TCP/2049 – NFS
+TCP/20048 – mountd
+
+Without appropriate network restrictions and export permissions, these services increase the attack surface and facilitate reconnaissance against the underlying infrastructure.
+
+Impact
+
+If improperly configured, an attacker may be able to:
+
+Enumerate NFS exports.
+Discover internal file system structures.
+Access shared directories.
+Mount exported file systems.
+Obtain sensitive files.
+Facilitate lateral movement within the environment.
+Gather infrastructure information useful for further attacks.
+
+Even where access is denied, exposing these services provides unnecessary information to unauthenticated users.
+
+Evidence
+
+Open services identified during the assessment:
+
+Port	Service
+111/tcp	rpcbind
+1914/tcp	amd
+2049/tcp	nfs
+20048/tcp	mountd
+
+RPC programs discovered:
+
+rpcbind
+nfs
+mountd
+nlockmgr
+status
+nfs_acl
+Mitigation
+Restrict RPC/NFS services to trusted internal networks using firewall rules.
+Disable NFS services if they are not required.
+Configure NFS exports using the principle of least privilege.
+Restrict exported shares to authorized hosts only.
+Disable anonymous access.
+Enable root squashing (root_squash) where appropriate.
+Regularly review exported file systems and RPC services.
+References
+NIST SP 800-123 – Guide to General Server Security
+https://csrc.nist.gov/publications/detail/sp/800-123/final
+CIS Benchmarks – Linux Server Security
+https://www.cisecurity.org/cis-benchmarks
+Red Hat Security Guide – Securing NFS
+
+
+
+Vulnerability Title
+
+Potential Slowloris Denial-of-Service (DoS) Vulnerability
+
+CVSS v3.1
+
+Base Score: 7.5 (High)
+
+Vector:
+
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H
+Vulnerability Category
+
+Denial of Service (DoS)
+
+OWASP Top 10 (2021)
+
+A05:2021 – Security Misconfiguration
+
+OWASP Top 10 (2025 Draft)
+
+Security Misconfiguration
+
+CWE
+
+CWE-400 – Uncontrolled Resource Consumption
+
+Description
+
+During the assessment, the HTTP service running on TCP port 6165 was identified as likely vulnerable to the Slowloris Denial-of-Service (DoS) attack based on the Nmap http-slowloris-check NSE script.
+
+Slowloris is an application-layer denial-of-service attack that attempts to exhaust web server resources by opening numerous HTTP connections and keeping them active by sending partial HTTP requests at regular intervals. If the server does not enforce appropriate connection timeouts or request limits, legitimate users may be unable to establish new connections.
+
+The scan result reported the following status:
+
+State: LIKELY VULNERABLE
+CVE: CVE-2007-6750 (commonly referenced by the Nmap script)
+
+Note: The Nmap result indicates a potential vulnerability. Manual verification is recommended to confirm exploitability before assigning a final severity.
+
+Impact
+
+An attacker may be able to:
+
+Exhaust available HTTP worker threads or connection slots.
+Prevent legitimate users from accessing the application.
+Cause degradation or unavailability of the affected service.
+Impact business operations due to application downtime.
+
+The impact depends on the web server configuration, available resources, timeout settings, and any reverse proxy or load balancer protections.
+
+Evidence
+
+Affected Service
+
+Port: 6165/tcp
+Service: HTTP
+
+Nmap output:
+
+http-slowloris-check:
+
+State: LIKELY VULNERABLE
+
+Slowloris DOS attack
+Mitigation
+Configure appropriate HTTP connection and request timeouts.
+Limit the number of concurrent connections per client IP.
+Deploy a reverse proxy (e.g., Nginx, HAProxy) configured to mitigate Slowloris attacks.
+Enable web server modules that protect against slow HTTP attacks.
+Use rate limiting and connection throttling.
+Deploy a Web Application Firewall (WAF) capable of detecting and blocking Slowloris attacks.
+Regularly update the web server to the latest supported version.
+References
+OWASP Denial of Service Cheat Sheet
+https://cheatsheetseries.owasp.org/cheatsheets/Denial_of_Service_Cheat_Sheet.html
+Nmap NSE http-slowloris-check Documentation
+https://nmap.org/nsedoc/scripts/http-slowloris-check.html
+
+
+
+
+Vulnerability Title
+
+Outdated cURL Version Detected
+
+CVSS v3.1
+
+Base Score: 5.3 (Medium)
+
+Vector:
+
+CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L
+
+If a confirmed exploitable CVE is identified for this exact build, calculate the CVSS based on that specific CVE.
+
+Vulnerability Category
+
+Outdated Software / Vulnerable Component
+
+OWASP Top 10 (2021)
+
+A06:2021 – Vulnerable and Outdated Components
+
+OWASP Top 10 (2025 Draft)
+
+Vulnerable and Outdated Components
+
+CWE
+
+CWE-1104 – Use of Unmaintained Third-Party Components
+
+Description
+
+During the assessment, the server was found to be running cURL version 7.29.0, which is an outdated release.
+
+Older versions of cURL have been affected by numerous publicly disclosed security vulnerabilities, including issues related to certificate validation, protocol handling, memory safety, and HTTP request processing. While the presence of an outdated version alone does not confirm exploitability, it increases the likelihood that known vulnerabilities remain unpatched.
+
+The installed version should be reviewed against vendor security advisories and updated to a supported release.
+
+Evidence
+$ curl --version
+
+curl 7.29.0 (x86_64-redhat-linux-gnu)
+libcurl/7.29.0
+Impact
+
+Running an outdated version of cURL may:
+
+Expose the system to publicly disclosed vulnerabilities.
+Increase the risk of exploitation if vulnerable features are enabled.
+Result in non-compliance with organizational patch management requirements.
+Reduce the overall security posture of the host.
+
+The actual impact depends on the enabled protocols, compilation options, and the vendor's backported security patches.
+
+Mitigation
+Upgrade cURL to the latest vendor-supported version.
+Apply all available operating system security updates.
+Verify whether the Linux distribution has backported security fixes before determining exploitability.
+Implement a regular vulnerability and patch management process for third-party software components.
+References
+cURL Security Advisories
+https://curl.se/docs/security.html
+cURL Release Notes
+https://curl.se/ch/
+
+
+
+
+
+
+
+
+Outdated OpenSSH Version Detected
+
+CVSS v3.1
+
+3.1 (Low)
+
+CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N
+Vulnerability Category
+
+Vulnerable and Outdated Components
+
+OWASP Top 10 (2021)
+
+A06:2021 – Vulnerable and Outdated Components
+
+OWASP Top 10 (2025)
+
+Vulnerable and Outdated Components
+
+CWE
+
+CWE-1104 – Use of Unmaintained Third-Party Components
+
+Description
+
+During the assessment, the SSH service was identified as running OpenSSH 7.4, an older release that may no longer receive upstream security updates. Older OpenSSH versions have historically been affected by multiple security vulnerabilities. While the version alone does not confirm the presence of a specific vulnerability—particularly on enterprise Linux distributions that backport security fixes—it indicates that the software should be reviewed to ensure all applicable security patches have been applied.
+
+Evidence
+22/tcp open ssh OpenSSH 7.4 (protocol 2.0)
+Impact
+Increased likelihood of exposure to known vulnerabilities if unpatched.
+Potential non-compliance with organizational patch management policies.
+Reduced security posture due to reliance on legacy software.
+Mitigation
+Verify whether vendor security patches have been applied.
+Upgrade to the latest vendor-supported OpenSSH release where possible.
+Implement regular patch management for system components.
+References
+https://www.openssh.com/security.html
+https://access.redhat.com/security
+https://owasp.org/Top10/A06_2021-Vulnerable_and_Outdated_Components/
+
+
+
+
+
+
+
+Vulnerability Title
+
+End-of-Life Operating System Detected (Red Hat Enterprise Linux 7.9)
+
+Severity
+
+Medium
+
+CVSS v3.1
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L
+
+Base Score: 5.3 (Medium)
+
+Vulnerability Category
+
+Vulnerable and Outdated Components
+
+OWASP Top 10 (2021)
+
+A06:2021 – Vulnerable and Outdated Components
+
+OWASP Top 10 (2025)
+
+Vulnerable and Outdated Components
+
+CWE
+
+CWE-1104 – Use of Unmaintained Third-Party Components
+
+Description
+
+The target server is running Red Hat Enterprise Linux (RHEL) Server 7.9 (Maipo). RHEL 7 has reached the end of its standard maintenance lifecycle. Systems running unsupported operating systems may no longer receive regular security patches and bug fixes unless they are enrolled in Red Hat Extended Life Cycle Support (ELS).
+
+Running an end-of-life operating system increases the risk that newly discovered vulnerabilities will remain unpatched, potentially exposing the system to compromise.
+
+Evidence
+PRETTY_NAME="Red Hat Enterprise Linux Server 7.9 (Maipo)"
+VERSION_ID="7.9"
+Impact
+Exposure to unpatched security vulnerabilities.
+Increased likelihood of successful exploitation.
+Potential non-compliance with security and regulatory requirements.
+Reduced vendor support for security updates and bug fixes.
+Mitigation
+Upgrade the operating system to a supported version, such as Red Hat Enterprise Linux 8 or 9.
+If an immediate upgrade is not feasible, enroll the system in Red Hat Extended Life Cycle Support (ELS) and ensure all available security updates are applied.
+Maintain a documented lifecycle and patch management process for operating systems.
+References
+Red Hat Product Life Cycles
+https://access.redhat.com/support/policy/updates/errata
+Red Hat Enterprise Linux Life Cycle
+https://access.redhat.com/product-life-cycles
+OWASP Top 10 – A06: Vulnerable and Outdated Components
+https://owasp.org/Top10/A06_2021-Vulnerable_and_Outdated_Components/
+
+
+
+
+
+
+Vulnerability Title
+
+Outdated Sudo Version Detected
+
+CVSS v3.1
+
+Base Score: 5.3 (Medium)
+
+Vector:
+
+CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L
+Vulnerability Category
+
+Vulnerable and Outdated Components
+
+OWASP Top 10 (2021)
+
+A06:2021 – Vulnerable and Outdated Components
+
+OWASP Top 10 (2025)
+
+Vulnerable and Outdated Components
+
+CWE
+
+CWE-1104 – Use of Unmaintained Third-Party Components
+
+Description
+
+During the assessment, the target server was identified as running Sudo version 1.8.23, which is an older software release. Legacy versions of Sudo have historically been associated with multiple publicly disclosed vulnerabilities, including privilege escalation flaws. Although the version alone does not confirm that the installed package is vulnerable—particularly on enterprise Linux distributions that backport security fixes—it indicates that the component should be reviewed to ensure it is fully patched and supported.
+
+Evidence
+$ sudo --version
+
+Sudo version 1.8.23
+Sudoers policy plugin version 1.8.23
+Impact
+Increased risk of exposure to known vulnerabilities if security patches have not been applied.
+Potential local privilege escalation if the installed package is affected by a known vulnerability.
+Reduced security posture due to reliance on outdated software.
+Possible non-compliance with organizational patch management policies.
+Mitigation
+Verify the installed Sudo package against Red Hat security advisories.
+Apply all available security updates provided by the operating system vendor.
+Upgrade to a supported Sudo version where feasible.
+Maintain a regular vulnerability and patch management process for system components.
+References
+Sudo Security Advisories
+https://www.sudo.ws/security/
+Red Hat Security Advisories
+
+
+
+
+
+
+
+

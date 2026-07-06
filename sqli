@@ -1,20 +1,47 @@
-Your strings command failed
+Let's confirm the binding type
 
-This happened because Windows cannot find strings.exe.
+Run these commands:
 
-Instead, run it using the full path, for example:
+strings.exe SumoGUI.exe | findstr /i "NetTcpBinding"
 
-C:\Users\makenna\SysinternalsSuite\strings.exe "\\ms\dist\ird\proj\sumogui\ln.uat\common\release\SumoGUI.exe"
+Then
 
-Then search for:
+strings.exe SumoGUI.exe | findstr /i "BasicHttpBinding"
 
-C:\Users\makenna\SysinternalsSuite\strings.exe "\\ms\dist\ird\proj\sumogui\ln.uat\common\release\SumoGUI.exe" | findstr /i "System.ServiceModel"
+Then
 
-Also search for:
+strings.exe SumoGUI.exe | findstr /i "WSHttpBinding"
 
-findstr /i "soap"
-findstr /i "http"
-findstr /i "endpoint"
-findstr /i "binding"
-findstr /i "net.tcp"
-findstr /i "svc"
+Then
+
+strings.exe SumoGUI.exe | findstr /i "CustomBinding"
+
+These results will tell us exactly which WCF binding is used.
+
+Next, search the config folder
+
+Search for
+
+*.config
+
+especially
+
+App.config
+SumoGUI.exe.config
+client.config
+
+Open every config file.
+
+Search for
+
+system.serviceModel
+
+or
+
+binding
+
+or
+
+endpoint
+
+This is where Microsoft stores WCF configuration.

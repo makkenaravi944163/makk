@@ -1,47 +1,26 @@
-Let's confirm the binding type
+Hi Team,
 
-Run these commands:
+Good day.!
 
-strings.exe SumoGUI.exe | findstr /i "NetTcpBinding"
+Please find the daily status update below,
 
-Then
+Application: SUMO Thick Client (UAT)
 
-strings.exe SumoGUI.exe | findstr /i "BasicHttpBinding"
+Environment: UAT
 
-Then
+Progress:
 
-strings.exe SumoGUI.exe | findstr /i "WSHttpBinding"
+Testing is in progress for the SUMO Thick Client application. Today, we completed testing on the following test cases:
 
-Then
+Reviewed application installation and configuration files.
+Analyzed SOAP server and client configuration files.
+Performed local configuration and file permission review.
+Assessed application error handling and exception management.
+Reviewed application assemblies and loaded modules.
+Performed initial authentication and business workflow validation.
+Conducted reconnaissance of application communication architecture.
+We have identified the below vulnerability today:
+Verbose Error Message / Information Disclosure – Low
+Planned:
 
-strings.exe SumoGUI.exe | findstr /i "CustomBinding"
-
-These results will tell us exactly which WCF binding is used.
-
-Next, search the config folder
-
-Search for
-
-*.config
-
-especially
-
-App.config
-SumoGUI.exe.config
-client.config
-
-Open every config file.
-
-Search for
-
-system.serviceModel
-
-or
-
-binding
-
-or
-
-endpoint
-
-This is where Microsoft stores WCF configuration.
+Testing is in progress. The remaining thick client security test cases, including authorization, business logic, local storage, configuration tampering, input validation, and session management, will be completed. The report will be shared after completion of testing and internal review.

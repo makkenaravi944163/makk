@@ -1,144 +1,20 @@
-Step 1 - Verify if it's HTTP
+Your strings command failed
 
-Open CMD and run
+This happened because Windows cannot find strings.exe.
 
-netstat -ano | findstr 9823
+Instead, run it using the full path, for example:
 
-Then
+C:\Users\makenna\SysinternalsSuite\strings.exe "\\ms\dist\ird\proj\sumogui\ln.uat\common\release\SumoGUI.exe"
 
-telnet 198.18.5.165 9823
+Then search for:
 
-(or PowerShell)
+C:\Users\makenna\SysinternalsSuite\strings.exe "\\ms\dist\ird\proj\sumogui\ln.uat\common\release\SumoGUI.exe" | findstr /i "System.ServiceModel"
 
-Test-NetConnection 198.18.5.165 -Port 9823
-Step 2 - Check if it is .NET
+Also search for:
 
-Run
-
-sigcheck.exe SumoGUI.exe
-
-or
-
-strings SumoGUI.exe | findstr /i "System.ServiceModel"
-
-If you find
-
-System.ServiceModel
-BasicHttpBinding
-NetTcpBinding
-ChannelFactory
-
-then it's WCF.
-
-Step 3 - Find the Configuration File (Very Important)
-
-Using Process Monitor, filter:
-
-Process Name is SumoGUI.exe
-
-Watch for
-
-ReadFile
-
-Look for
-
-app.config
-SumoGUI.exe.config
-*.config
-*.xml
-
-Open the config file.
-
-You're looking for something like:
-
-<endpoint
-address="net.tcp://198.18.5.165:9823/SumoService"
-binding="netTcpBinding"/>
-
-or
-
-<endpoint
-address="http://198.18.5.165:9823/SumoService"
-binding="basicHttpBinding"/>
-
-This tells you exactly what protocol is used.
-
-Step 4 - Check the Loaded DLLs
-
-Using Process Explorer
-
-Double-click SumoGUI.exe
-
-Go to
-
-DLLs
-
-Search for
-
-System.ServiceModel.dll
-
-or
-
-System.Net.Http.dll
-
-or
-
-PresentationFramework
-
-If System.ServiceModel.dll is loaded, it's almost certainly WCF.
-
-Step 5 - Check the Connection in Wireshark (Best Method)
-
-Even if you don't have other commercial tools, Wireshark is free. If you're allowed to install it, it's extremely useful.
-
-Capture traffic on port 9823.
-
-If you see:
-
-POST
-HTTP
-SOAPAction
-
-it's HTTP/SOAP.
-
-If you see unreadable binary frames immediately after TCP establishment, it's likely net.tcp or a proprietary protocol.
-
-Step 6 - Use WinDbg
-
-Attach to the process:
-
-windbg -pn SumoGUI.exe
-
-Set breakpoints:
-
-bp ws2_32!connect
-bp ws2_32!send
-bp ws2_32!recv
-
-When a breakpoint hits:
-
-k
-
-If the stack contains
-
-System.ServiceModel
-
-or
-
-clr
-
-it's .NET/WCF.
-
-Step 7 - Capture with Burp
-
-If the application uses HTTP/SOAP, Burp can capture it.
-
-Configure Windows proxy:
-
-127.0.0.1:8080
-
-If nothing appears:
-
-It may ignore the system proxy.
-It may use net.tcp, which Burp cannot intercept.
-It may connect directly via sockets.
+findstr /i "soap"
+findstr /i "http"
+findstr /i "endpoint"
+findstr /i "binding"
+findstr /i "net.tcp"
+findstr /i "svc"

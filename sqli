@@ -1,26 +1,33 @@
-Hi Team,
+Title
 
-Good day.!
+Missing Input Size Validation in Email Functionality Leading to Potential Data Exfiltration and Client-Side Denial of Service
 
-Please find the daily status update below,
+or, more concise:
 
-Application: SUMO Thick Client (UAT)
+Unrestricted Email Message Input Leading to Potential Data Exfiltration and Application Denial of Service
 
-Environment: UAT
+Description
 
-Progress:
+The application does not enforce a maximum size limit on the email message body, allowing authenticated users to compose and send excessively large amounts of data to external email recipients. This increases the risk of unauthorized or accidental transmission of sensitive business information.
 
-Testing is in progress for the SUMO Thick Client application. Today, we completed testing on the following test cases:
+Additionally, when excessively large input is provided in the email message field, the client application becomes unresponsive ("Not Responding"), requiring the user to wait or forcibly terminate the application. This indicates insufficient input validation and improper handling of oversized input, which can negatively impact application availability.
 
-Reviewed application installation and configuration files.
-Analyzed SOAP server and client configuration files.
-Performed local configuration and file permission review.
-Assessed application error handling and exception management.
-Reviewed application assemblies and loaded modules.
-Performed initial authentication and business workflow validation.
-Conducted reconnaissance of application communication architecture.
-We have identified the below vulnerability today:
-Verbose Error Message / Information Disclosure – Low
-Planned:
+An attacker or malicious insider with legitimate access could abuse this functionality to transmit large volumes of sensitive information outside the organization and potentially disrupt normal application usage by causing the client application to hang.
 
-Testing is in progress. The remaining thick client security test cases, including authorization, business logic, local storage, configuration tampering, input validation, and session management, will be completed. The report will be shared after completion of testing and internal review.
+Impact:
+
+Potential unauthorized transmission of large volumes of sensitive information to external recipients.
+Increased risk of data exfiltration.
+Client-side Denial of Service (DoS) due to application unresponsiveness.
+Loss of user productivity and possible loss of unsaved work.
+
+Recommendation:
+
+Implement a maximum size limit for the email message body.
+Validate input size on both the client and server sides.
+Restrict or monitor outbound emails containing unusually large content.
+Display a validation message when the configured size limit is exceeded instead of processing the request.
+Process email operations asynchronously to prevent the UI from becoming unresponsive.
+Implement logging and alerting for abnormal outbound email activity to detect potential misuse.
+
+Suggested Severity: Medium (assuming external email functionality is available and can be used to transmit business data).

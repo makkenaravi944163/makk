@@ -1,33 +1,90 @@
-Title
+Improper Exception Handling Leading to Sensitive Information Disclosure
 
-Missing Input Size Validation in Email Functionality Leading to Potential Data Exfiltration and Client-Side Denial of Service
+Severity
 
-or, more concise:
+Low
 
-Unrestricted Email Message Input Leading to Potential Data Exfiltration and Application Denial of Service
+CWE
+
+CWE-209: Generation of Error Message Containing Sensitive Information
+
+OWASP
+
+OWASP ASVS V9.3 – Error Handling and Logging
 
 Description
 
-The application does not enforce a maximum size limit on the email message body, allowing authenticated users to compose and send excessively large amounts of data to external email recipients. This increases the risk of unauthorized or accidental transmission of sensitive business information.
+During security testing, the application generated an unhandled exception that displayed verbose debugging information directly to the user. Instead of presenting a generic error message, the application disclosed internal implementation details that should not be accessible to end users.
 
-Additionally, when excessively large input is provided in the email message field, the client application becomes unresponsive ("Not Responding"), requiring the user to wait or forcibly terminate the application. This indicates insufficient input validation and improper handling of oversized input, which can negatively impact application availability.
+The exception window revealed sensitive application information including:
 
-An attacker or malicious insider with legitimate access could abuse this functionality to transmit large volumes of sensitive information outside the organization and potentially disrupt normal application usage by causing the client application to hang.
+Internal namespace names
+Class names
+Method names
+Source code paths
+Line numbers
+Stack trace
+.NET framework information
+Internal project directory structure
+Module names
+ViewModel names
+Function names
+Parameter names
+Exception type (System.ArgumentNullException)
+Application architecture details
 
-Impact:
+Example information disclosed:
 
-Potential unauthorized transmission of large volumes of sensitive information to external recipients.
-Increased risk of data exfiltration.
-Client-side Denial of Service (DoS) due to application unresponsiveness.
-Loss of user productivity and possible loss of unsaved work.
+MorganStanley.Ird.HedgeSuMo.HeatMapModule.ViewModel.SubmissionViewModel
+GetCalcServiceModifiedName()
+SubmissionViewModel.cs
+Line 939
+System.Linq.Enumerable.FirstOrDefault()
+Parameter name: source
 
-Recommendation:
+The application also displayed options such as Continue, Terminate, Send Report, and Copy, allowing users to copy the entire stack trace.
 
-Implement a maximum size limit for the email message body.
-Validate input size on both the client and server sides.
-Restrict or monitor outbound emails containing unusually large content.
-Display a validation message when the configured size limit is exceeded instead of processing the request.
-Process email operations asynchronously to prevent the UI from becoming unresponsive.
-Implement logging and alerting for abnormal outbound email activity to detect potential misuse.
+Impact
 
-Suggested Severity: Medium (assuming external email functionality is available and can be used to transmit business data).
+An attacker can leverage the disclosed information to:
+
+Understand the application's internal architecture.
+Identify namespaces, classes, and methods.
+Map the source code structure.
+Identify business logic implementation.
+Discover framework and technology stack details.
+Assist in targeted exploitation of other vulnerabilities.
+Facilitate reverse engineering of the application.
+
+Although this issue does not directly allow unauthorized access, it significantly reduces the effort required for an attacker to perform further attacks.
+
+Steps to Reproduce
+Launch the Sumo thick client.
+Perform the action that triggers the application exception (e.g., click the Send Email button under the tested conditions).
+Observe that an unhandled exception dialog is displayed.
+Expand the exception details.
+Verify that the application exposes:
+Stack trace
+Source code path
+Namespace names
+Class names
+Method names
+Line numbers
+Internal implementation details
+Evidence
+
+The application displayed an unhandled exception containing:
+
+System.ArgumentNullException
+Parameter name: source
+MorganStanley.Ird.HedgeSuMo.HeatMapModule.ViewModel.SubmissionViewModel
+GetCalcServiceModifiedName()
+SubmissionViewModel.cs
+Line 939
+Recommendation
+Implement centralized exception handling for all unhandled exceptions.
+Display only a generic error message to end users (e.g., "An unexpected error occurred. Please contact support.").
+Log detailed exception information only to secure server-side or application logs.
+Remove stack traces, source code paths, namespaces, method names, and line numbers from user-facing error messages.
+Build production releases without debug information.
+Ensure detailed diagnostic information is accessible only to authorized administrators or developers.

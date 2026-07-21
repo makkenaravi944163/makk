@@ -1,90 +1,9 @@
-Improper Exception Handling Leading to Sensitive Information Disclosure
-
-Severity
-
-Low
-
-CWE
-
-CWE-209: Generation of Error Message Containing Sensitive Information
-
-OWASP
-
-OWASP ASVS V9.3 – Error Handling and Logging
-
-Description
-
-During security testing, the application generated an unhandled exception that displayed verbose debugging information directly to the user. Instead of presenting a generic error message, the application disclosed internal implementation details that should not be accessible to end users.
-
-The exception window revealed sensitive application information including:
-
-Internal namespace names
-Class names
-Method names
-Source code paths
-Line numbers
-Stack trace
-.NET framework information
-Internal project directory structure
-Module names
-ViewModel names
-Function names
-Parameter names
-Exception type (System.ArgumentNullException)
-Application architecture details
-
-Example information disclosed:
-
-MorganStanley.Ird.HedgeSuMo.HeatMapModule.ViewModel.SubmissionViewModel
-GetCalcServiceModifiedName()
-SubmissionViewModel.cs
-Line 939
-System.Linq.Enumerable.FirstOrDefault()
-Parameter name: source
-
-The application also displayed options such as Continue, Terminate, Send Report, and Copy, allowing users to copy the entire stack trace.
-
-Impact
-
-An attacker can leverage the disclosed information to:
-
-Understand the application's internal architecture.
-Identify namespaces, classes, and methods.
-Map the source code structure.
-Identify business logic implementation.
-Discover framework and technology stack details.
-Assist in targeted exploitation of other vulnerabilities.
-Facilitate reverse engineering of the application.
-
-Although this issue does not directly allow unauthorized access, it significantly reduces the effort required for an attacker to perform further attacks.
-
-Steps to Reproduce
-Launch the Sumo thick client.
-Perform the action that triggers the application exception (e.g., click the Send Email button under the tested conditions).
-Observe that an unhandled exception dialog is displayed.
-Expand the exception details.
-Verify that the application exposes:
-Stack trace
-Source code path
-Namespace names
-Class names
-Method names
-Line numbers
-Internal implementation details
-Evidence
-
-The application displayed an unhandled exception containing:
-
-System.ArgumentNullException
-Parameter name: source
-MorganStanley.Ird.HedgeSuMo.HeatMapModule.ViewModel.SubmissionViewModel
-GetCalcServiceModifiedName()
-SubmissionViewModel.cs
-Line 939
-Recommendation
-Implement centralized exception handling for all unhandled exceptions.
-Display only a generic error message to end users (e.g., "An unexpected error occurred. Please contact support.").
-Log detailed exception information only to secure server-side or application logs.
-Remove stack traces, source code paths, namespaces, method names, and line numbers from user-facing error messages.
-Build production releases without debug information.
-Ensure detailed diagnostic information is accessible only to authorized administrators or developers.
+Sanitize user-controlled input before exporting to CSV and prefix formula-triggering characters (=, +, -, @) with a single quote (').
+Implement strict server-side input validation using allowlists, length restrictions, and data type validation.
+Enforce maximum input length, attachment size, and recipient limits on both the client and server sides.
+Remove hard-coded credentials from the source code and securely retrieve secrets from a centralized secrets management solution.
+Encrypt all client-server communications using TLS 1.2 or TLS 1.3 with proper certificate validation.
+Display generic error messages to users and log detailed exception information securely without exposing internal implementation details.
+Digitally sign all executable files using a trusted code-signing certificate before deployment.
+Enable Control Flow Guard (CFG) during compilation to mitigate control-flow hijacking attacks.
+Enable compiler stack protection (e.g., /GS) to detect and prevent stack-based buffer overflow attacks.

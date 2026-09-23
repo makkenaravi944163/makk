@@ -1,1 +1,81 @@
-2mHckONFrK+QgxewOi0GFmPb26+HUYekkL/aB+JMoJevYAn2zh0uJqNpJ8FwCtFqaSVQXnjeP6Nd3uKKfu3Xc5AyhOdCMQFMCaSdq43mFqin18ryyeIrtZeGbWFSBC/VdekrIHT7VrqFJcff+Yt1SnBlyMyj1ta2JEXLdPJFTGNkk/ZWIrBC62oHe0JjqsnVomztHB8awcomvWhrEYqMMSmxvsswuEy/i0GaR6TayJ5TWl1HpCxteFU0Ptjpv5CL81acXswUAwfg10AHFtWXj77MwLDXPlaPmgye/1cVYLoe0KntUBSsNQqURjX4zIl5oqCVGgMbYFaXrRM7Am2ZygAe2Zr3/hYaTxTX2ttk9Cc+eRnzxU3ULzKY3ptPVieub0dWiXPfMHAtlckV0C8pRUWalQ8qPQG+sFkvZHLr2PYZCLI+n7mv4WS5nroXoTWvk88n6Vr9cpK2/PC6mgWXCT+tvznZyl6s3/P54HfhZK7J0CIV8LioO6+K282ZgWOLhmvj9Y9/pujVyQwMgb2PfoowFZ3XZW0ns7OSD13aSUAhHFqw8Mg9mhT8wcS73uXwmEEKlqgaAt+JsFJE/yBzHf17vZJbLf4hf3W77HPTRnUW/pljlURjTHwArfI5KDsWNqmOdTow3uoXMwhysCSdKBimNPuEQoSpOHSXZecfUEjbH1lCIuP4Dsp4y/M973mhRERH+Yrw7ay+PfWS/E/I2v/uYWIH1R8dDpWCesuQLkbdc32GPzrTPE9YzVg3UKxQYq9p9LijqIg6dJyF60iBN0KQY/0Sd034+8oXEPAWkM+htzPFqppYYKhPwHDyOZCbB5R7tLmSJAfMXmISD5Q15gfVW7jyTcXxng+n5rzN/Pe+atDQT8V1x9rn/5K7sJa4wH8XE2EqbzMX/gu+0hjI+Q==
+2. Verify the API using curl
+
+Run this command in PowerShell:
+
+curl.exe -v --ssl-no-revoke -x http://127.0.0.1:8089 https://mlogin.sit.etrade.com/login/auth/v1_4
+
+The --ssl-no-revoke option disables certificate revocation checking for this test while retaining other certificate validation.
+
+If that still fails, test:
+
+curl.exe -vk -x http://127.0.0.1:8089 https://mlogin.sit.etrade.com/login/auth/v1_4
+
+The -k option disables certificate verification and should be used only for troubleshooting.
+
+If you receive the JSON response containing:
+
+{
+  "status": "SUCCESS",
+  "reason": "STEP_COMPLETED"
+}
+
+then the API is accessible through the proxy.
+
+3. Configure Bruno to use the proxy
+
+Bruno Proxy Configuration
+
+Use these values in Bruno's proxy configuration, if supported by your installed version.
+
+Proxy type
+
+HTTP
+
+Proxy host
+
+127.0.0.1
+
+Proxy port
+
+8089
+
+Proxy URL
+
+http://127.0.0.1:8089
+
+Copy proxy URL
+
+If Bruno supports a proxy URL, enter the full URL above.
+
+Do not enter the target application's IP address as the proxy.
+
+4. If Bruno does not have proxy settings
+
+You can try launching Bruno with proxy environment variables.
+
+Close Bruno completely and run the following in PowerShell:
+
+$env:HTTP_PROXY="http://127.0.0.1:8089"
+$env:HTTPS_PROXY="http://127.0.0.1:8089"
+
+Then launch Bruno from that same PowerShell session using its executable path.
+
+For example, if installed in the default location:
+
+& "$env:LOCALAPPDATA\Programs\bruno\Bruno.exe"
+
+The exact executable location may differ. Also, whether Bruno honors these variables depends on its version and HTTP client implementation.
+
+5. If you get an SSL error in Bruno
+
+After fixing the proxy, you may encounter a certificate error.
+
+If that happens, check whether Bruno trusts your corporate CA certificate. Importing the approved corporate CA is preferable to disabling certificate validation.
+
+For an authorized SIT testing environment, you can temporarily disable SSL certificate verification in Bruno to isolate the issue, then re-enable it.
+
+Next step
+
+First, run this single command:
+
+curl.exe -v --ssl-no-revoke -x http://127.0.0.1:8089 https://mlogin.sit.etrade.com/login/auth/v1_4

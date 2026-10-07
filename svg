@@ -1,9 +1,834 @@
-Restrict access to sensitive configuration files and system information through proper access controls and secure server configuration.
-Disable legacy CBC cipher suites and enable only strong TLS 1.2/1.3 cipher suites.
-Disable weak SSH algorithms and configure the server to use only modern, secure cryptographic algorithms.
-Restrict access to infrastructure services using firewalls, network segmentation, and access control lists.
-Configure appropriate connection timeouts and request limits to mitigate Slowloris attacks.
-Upgrade cURL to the latest supported version and apply all available security patches.
-Upgrade OpenSSH to the latest supported version to address known security vulnerabilities.
-Upgrade the operating system to a vendor-supported version that receives regular security updates.
-Update the Sudo package to the latest supported version and apply vendor-recommended security patches.
+1. VERY IMPORTANT — search these first
+A. Hardcoded credentials / secrets 🔴
+Search these keywords:
+password
+passwd
+pwd
+username
+user_name
+secret
+client_secret
+api_key
+apikey
+access_key
+secret_key
+private_key
+token
+auth_token
+access_token
+refresh_token
+bearer
+authorization
+credential
+credentials
+connectionstring
+connection_string
+jdbc
+db_password
+database_password
+
+Also search common assignment patterns:
+password =
+password:
+secret =
+apiKey =
+api_key =
+clientSecret =
+client_secret =
+accessToken =
+access_token =
+privateKey =
+
+Example
+String username = "admin";
+String password = "Welcome@123";
+
+Finding: Hardcoded credentials.
+B. API keys / cloud credentials 🔴
+Search:
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+AZURE_CLIENT_ID
+AZURE_CLIENT_SECRET
+AZURE_TENANT_ID
+GOOGLE_API_KEY
+OPENAI_API_KEY
+STRIPE_SECRET_KEY
+PRIVATE_KEY
+ACCESS_KEY
+SECRET_KEY
+
+Look for patterns such as:
+AKIA
+ASIA
+-----BEGIN PRIVATE KEY-----
+-----BEGIN RSA PRIVATE KEY-----
+-----BEGIN EC PRIVATE KEY-----
+
+Example:
+AWS_ACCESS_KEY = "AKIAxxxxxxxxxxxx"AWS_SECRET_KEY = "xxxxxxxxxxxxxxxx"
+
+
+C. Database credentials / connection strings 🔴
+Search:
+jdbc:
+mongodb://
+mongodb+srv://
+mysql://
+postgresql://
+sqlserver://
+Server=
+Data Source=
+Initial Catalog=
+User ID=
+Password=
+Integrated Security
+connectionString
+connectionStringBuilder
+DB_HOST
+DB_USER
+DB_PASSWORD
+
+Example:
+jdbc:sqlserver://10.10.10.20;database=TradingDB;user=admin;password=XXXX
+
+Check whether credentials, internal hosts, ports, or database names are exposed.
+D. Private keys / certificates 🔴
+Search:
+BEGIN PRIVATE KEY
+BEGIN RSA PRIVATE KEY
+BEGIN EC PRIVATE KEY
+BEGIN OPENSSH PRIVATE KEY
+BEGIN CERTIFICATE
+.pem
+.key
+.p12
+.pfx
+.jks
+keystore
+truststore
+
+Example:
+-----BEGIN RSA PRIVATE KEY-----
+...
+-----END RSA PRIVATE KEY-----
+
+Critical finding if a production private key is committed to source.
+2. Trading-specific sensitive information 🔴
+For a trading application, this is extremely important.
+Search:
+accountNumber
+account_no
+accountNo
+clientId
+client_id
+customerId
+customer_id
+brokerId
+broker_id
+portfolio
+portfolioId
+portfolio_id
+orderId
+order_id
+tradeId
+trade_id
+position
+positionId
+holding
+holdings
+demat
+DPID
+BOID
+CUSIP
+ISIN
+ticker
+symbol
+security
+instrument
+quantity
+price
+limitPrice
+stopPrice
+orderType
+tradeType
+buy
+sell
+marketOrder
+limitOrder
+
+You are looking for logic such as:
+if (user.getRole() == "TRADER") {
+    executeOrder();
+}
+
+and especially:
+executeOrder(accountId, symbol, quantity, price);
+
+Check whether the application properly verifies that the authenticated user is actually authorized to trade that account/portfolio.
+3. Financial transaction manipulation 🔴
+Search:
+amount
+price
+quantity
+qty
+commission
+fee
+brokerage
+balance
+availableBalance
+cash
+margin
+credit
+debit
+withdraw
+deposit
+transfer
+payment
+settlement
+refund
+transaction
+transactionId
+
+Then inspect calculations.
+Example:
+order.setPrice(request.getParameter("price"));
+order.setQuantity(request.getParameter("quantity"));
+
+Ask:
+Is price/quantity trusted from the client?
+
+Another important example:
+total = quantity * price;
+
+Check for:
+- integer overflow
+- floating-point precision
+- negative quantity
+- negative price
+- extremely large quantity
+- zero quantity
+- currency manipulation
+- client-controlled commission
+- client-controlled order value
+4. Authentication 🔴
+Search:
+login
+authenticate
+authentication
+verifyPassword
+checkPassword
+validateUser
+session
+sessionId
+session_token
+rememberMe
+logout
+signin
+signIn
+passwordReset
+forgotPassword
+OTP
+otp
+MFA
+2FA
+verification
+
+Look for dangerous patterns.
+Example
+if (username.equals("admin")) {
+    isAuthenticated = true;
+}
+
+or:
+session.setAttribute("authenticated", true);
+
+without proper authentication.
+5. Authorization / access control 🔴
+This is one of the highest-value areas for a trading application.
+Search:
+role
+roles
+permission
+permissions
+isAdmin
+isAdministrator
+admin
+authorization
+authorize
+access
+allowed
+privilege
+privileges
+userId
+accountId
+ownerId
+customerId
+manager
+trader
+supervisor
+approver
+
+Look for:
+if (isAdmin)
+
+if (role.equals("ADMIN"))
+
+if (userId == requestUserId)
+
+/account/{accountId}
+/user/{userId}
+/portfolio/{portfolioId}
+/order/{orderId}
+
+Key question
+Does the backend verify:
+Authenticated User
+       ↓
+User authorized for Account
+       ↓
+User authorized for Portfolio
+       ↓
+User authorized for Order
+       ↓
+Operation allowed
+
+or does it simply trust an ID supplied by the client?
+6. SQL Injection 🔴
+Search:
+SELECT
+INSERT
+UPDATE
+DELETE
+WHERE
+FROM
+ORDER BY
+GROUP BY
+executeQuery
+executeUpdate
+createStatement
+prepareStatement
+Statement
+PreparedStatement
+query(
+rawQuery
+nativeQuery
+sql
+SQL
+
+Dangerous
+String sql = "SELECT * FROM users WHERE id=" + userId;
+
+Safer
+PreparedStatement ps =
+    connection.prepareStatement(
+        "SELECT * FROM users WHERE id=?"
+    );
+
+Also search:
+"+ 
+' + 
+String.format
+concat
+append
+format(
+
+near SQL queries.
+7. Command / OS injection 🔴
+Search:
+Runtime.getRuntime
+exec(
+ProcessBuilder
+system(
+shell_exec
+execCommand
+cmd.exe
+/bin/sh
+/bin/bash
+powershell
+os.system
+subprocess
+popen
+
+Example:
+Runtime.getRuntime().exec(
+    "ping " + request.getParameter("host")
+);
+
+Potential command injection.
+8. XSS / HTML injection 🔴
+Search:
+innerHTML
+outerHTML
+document.write
+write(
+eval(
+setTimeout(
+setInterval(
+dangerouslySetInnerHTML
+v-html
+Html.Raw
+MvcHtmlString
+Response.Write
+
+Also:
+html
+HTML
+render
+template
+comment
+description
+message
+name
+symbol
+
+Pay particular attention to:
+element.innerHTML = userInput;
+
+9. SSRF 🔴
+Search:
+URL
+URI
+HttpClient
+HttpURLConnection
+RestTemplate
+WebClient
+OkHttp
+axios
+fetch
+requests.get
+requests.post
+curl
+urlopen
+redirect
+callback
+webhook
+endpoint
+proxy
+
+Look for:
+URL url = new URL(request.getParameter("url"));
+
+Then:
+httpClient.get(url);
+
+That's a classic SSRF pattern.
+10. Deserialization 🔴
+Very important if the application is Java/.NET.
+Java
+ObjectInputStream
+readObject
+XMLDecoder
+XStream
+deserialize
+deserializeObject
+ObjectMapper
+enableDefaultTyping
+readValue
+
+.NET
+BinaryFormatter
+LosFormatter
+ObjectStateFormatter
+NetDataContractSerializer
+TypeNameHandling
+Deserialize
+
+Pay special attention to:
+ObjectInputStream.readObject()
+
+with untrusted input.
+11. JWT / OAuth / OIDC 🔴
+Search:
+JWT
+jwt
+Jwts
+JwtParser
+JwtBuilder
+Bearer
+Authorization
+access_token
+refresh_token
+id_token
+issuer
+issuer_uri
+client_id
+client_secret
+scope
+audience
+aud
+iss
+sub
+exp
+alg
+RS256
+HS256
+none
+JWK
+JWKS
+OIDC
+OAuth
+
+Check for:
+- weak signing algorithm
+- alg:none
+- hardcoded JWT secret
+- failure to validate signature
+- failure to validate iss
+- failure to validate aud
+- missing expiry validation
+- excessive token lifetime
+- refresh-token misuse
+- accepting unsigned tokens
+Example suspicious code:
+JWT.decode(token);
+
+without signature verification.
+12. Encryption / cryptography 🔴
+Search:
+MD5
+SHA1
+DES
+3DES
+RC4
+ECB
+AES/ECB
+RSA
+Cipher
+MessageDigest
+SecretKey
+encrypt
+decrypt
+Base64
+encode
+decode
+SecureRandom
+Random
+
+Red flags:
+MessageDigest.getInstance("MD5");
+
+Cipher.getInstance("AES/ECB/PKCS5Padding");
+
+new Random()
+
+for security-sensitive values.
+Also search:
+hardcoded IV
+hardcoded key
+encryptionKey
+secretKey
+salt
+
+13. Sensitive customer / PII data 🔴
+For a US trading application, search:
+SSN
+socialSecurityNumber
+DOB
+dateOfBirth
+birthDate
+taxId
+TIN
+address
+street
+city
+state
+zip
+phone
+mobile
+email
+emailAddress
+passport
+driverLicense
+DL
+bankAccount
+routingNumber
+creditCard
+cardNumber
+CVV
+PAN
+beneficiary
+customer
+
+Potential sensitive data:
+SSN
+Tax ID
+bank account
+routing number
+DOB
+address
+phone
+email
+financial account numbers
+portfolio information
+trading history
+
+Check whether these are:
+- logged
+- returned in APIs
+- stored unencrypted
+- hardcoded
+- exposed to unauthorized roles
+14. Logging sensitive information 🔴
+Search:
+log
+logger
+logging
+System.out.println
+printStackTrace
+console.log
+DEBUG
+TRACE
+INFO
+ERROR
+audit
+auditLog
+request
+response
+headers
+Authorization
+Cookie
+token
+password
+SSN
+accountNumber
+
+Example:
+logger.info("User login password: " + password);
+
+or:
+logger.debug("Authorization: " + request.getHeader("Authorization"));
+
+Potential sensitive-data exposure.
+15. File upload / download
+Search:
+upload
+download
+file
+filename
+fileName
+path
+filepath
+File
+FileInputStream
+FileOutputStream
+MultipartFile
+getOriginalFilename
+save
+write
+read
+zip
+unzip
+extract
+
+Check for:
+- unrestricted file upload
+- path traversal
+- arbitrary file read
+- arbitrary file write
+- dangerous file extensions
+- ZIP Slip
+Example:
+new File(uploadDirectory + filename);
+
+Look for:
+../
+..\ 
+normalize
+canonicalPath
+getCanonicalPath
+
+16. Path traversal 🔴
+Search:
+../
+..\
+getPath
+getCanonicalPath
+normalize
+resolve
+File
+FileInputStream
+download
+filename
+path
+directory
+
+Example:
+File file = new File("/reports/" + request.getParameter("file"));
+
+Potential:
+../../../../etc/passwd
+
+17. TLS / SSL configuration
+Search:
+SSL
+TLS
+SSLContext
+TrustManager
+HostnameVerifier
+X509TrustManager
+verify
+certificate
+cert
+trustAll
+TrustAll
+disableCertificate
+disableHostname
+verify=False
+rejectUnauthorized
+
+Very dangerous:
+checkServerTrusted(...) {
+    // do nothing
+}
+
+or:
+HostnameVerifier -> return true;
+
+18. Security controls bypass
+Search:
+bypass
+disable
+skip
+ignore
+validate
+validation
+isValid
+security
+csrf
+CSRF
+captcha
+rateLimit
+rateLimiter
+throttle
+MFA
+2FA
+authorization
+permission
+
+Look for:
+if (DEBUG) {
+    securityCheck = false;
+}
+
+or:
+skipValidation = true;
+
+19. Debug / development functionality
+Search:
+DEBUG
+debug
+DEV
+development
+test
+testing
+staging
+localhost
+127.0.0.1
+0.0.0.0
+mock
+mockUser
+testUser
+admin
+backdoor
+bypass
+TODO
+FIXME
+temporary
+temp
+
+Example:
+if (username.equals("test")) {
+    return adminUser;
+}
+
+Very high priority.
+20. API endpoints and internal infrastructure
+Search:
+http://
+https://
+localhost
+127.0.0.1
+10.
+172.16.
+192.168.
+internal
+admin
+management
+actuator
+swagger
+api-docs
+debug
+health
+metrics
+
+Look for:
+https://prod-internal-db.company.local
+http://10.x.x.x:8080
+
+This can reveal:
+- internal IPs
+- production systems
+- admin interfaces
+- database hosts
+- internal APIs
+- monitoring endpoints
+21. Trading business-logic keywords
+For your particular application, I would make a separate Notepad++ search pass for:
+order
+orders
+placeOrder
+createOrder
+cancelOrder
+modifyOrder
+executeOrder
+approveOrder
+rejectOrder
+trade
+trades
+position
+positions
+holding
+holdings
+portfolio
+portfolioValue
+market
+marketPrice
+limitPrice
+stopLoss
+stopLimit
+quantity
+leverage
+margin
+buy
+sell
+short
+long
+settlement
+clearing
+commission
+fee
+tax
+pnl
+profit
+loss
+balance
+availableFunds
+withdraw
+deposit
+transfer
+
+Then manually inspect the surrounding 20–50 lines.
+You are looking for business logic vulnerabilities, not just technical vulnerabilities.
+For example:
+if (quantity > 0) {
+    placeOrder();
+}
+
+but no maximum quantity check.
+Or:
+if (user.isTrader()) {
+    executeOrder(order);
+}
+
+but no check that the trader is authorized for the particular account.

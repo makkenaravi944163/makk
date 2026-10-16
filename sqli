@@ -1,629 +1,205 @@
-Exactly. Finding a keyword is not a vulnerability. After searching the keyword, you need to inspect the surrounding code and determine what information is exposed, whether it is production-relevant, whether it is attacker-controlled, and whether a security control is missing.
-For a trading application, use this approach:
-Search keyword → inspect surrounding code → identify sensitive value → understand where it is used → determine security impact → confirm whether it is actually vulnerable.
-
-Below is the practical version with what to look for + vulnerable sample + safe sample + what finding you can raise.
-1. Hardcoded Passwords / Credentials — 🔴 Critical
-Search
-password
-passwd
-pwd
-username
-credential
-
-When you find:
-String username = "admin";
-String password = "Welcome@123";
-
-What you should check
-Ask:
-1. Is this a real credential?
-2. Is it for production?
-3. What system does it authenticate to?
-4. Is it a database/admin/service account?
-5. Can the credential still be used?
-6. Is it committed in source control?
-7. Does it provide privileged access?
-Vulnerable
-String dbUser = "trading_admin";
-String dbPassword = "P@ssw0rd123";
-
-This is much more serious than:
-String examplePassword = "password";
-
-because the first appears to be an actual credential.
-Finding
-Hardcoded Database Credentials in Source Code
-Impact: Anyone obtaining the source code may obtain direct access to the trading database.
-2. API Keys — 🔴 Critical/High
-Search:
-apiKey
-api_key
-apikey
-accessKey
-secretKey
-clientSecret
-
-Vulnerable
-AWS_ACCESS_KEY_ID = "AKIAxxxxxxxxxxxx"AWS_SECRET_ACCESS_KEY = "xxxxxxxxxxxxxxxx"
+Vulnerability Title
+Insufficient Rate Limiting on Account Group Creation API
+Vulnerability Description
+It was observed that the application allows multiple account groups to be created by sending repeated requests to the account group creation API through Burp Suite Intruder. The server successfully processes these requests and creates numerous groups without an effective limit on repeated resource creation. This may allow an authenticated user to create an excessive number of account groups.
+Impact
+An attacker with a valid authenticated session could automate repeated group creation requests, resulting in excessive account group records, cluttered account management interfaces, increased backend resource consumption, and degraded application usability. If the behavior affects shared resources or lacks appropriate quotas, it could also contribute to resource exhaustion.
+Mitigation
+- Implement server-side rate limiting and throttling on the account group creation endpoint.
+- Enforce a reasonable maximum number of account groups per user.
+- Validate group creation requests and apply appropriate business rules.
+- Consider duplicate-name validation and idempotency controls where required.
+- Monitor repeated creation attempts and log unusual activity.
+- Return HTTP 429 Too Many Requests when request limits are exceeded.
+CVSS 3.1
+Suggested severity: Medium — 6.5 (provisional)
+Vector string: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:L/A:L
+This score assumes an authenticated user can create excessive groups, causing a meaningful impact on data integrity and availability. Reassess the score if testing confirms only harmless duplicate records with no measurable operational impact.
+Proof of Concept (PoC)
+Step 1: Log in to the application using an authorized UAT account and navigate to Settings → Account → Account Group. Create a test group and intercept the corresponding API request in Burp Suite.
+Step 2: Send the captured group creation request to Burp Suite Intruder. Configure a small number of repeated requests using unique test group names, then execute the test within the approved UAT scope.
+Step 3: Observe that multiple requests return HTTP 200 OK and the responses contain different group IDs, indicating that multiple groups were created.
+Step 4: Return to the account group settings page and refresh the interface. Verify that the newly created groups are persisted and visible in the group list.
+Step 5: Capture the Intruder results, response bodies, generated group IDs, and refreshed UI showing the multiple groups as evidence of insufficient controls on repeated resource creation.
+Reference Links
+- OWASP API Security Top 10 — Unrestricted Resource Consumption: https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/
 
 
-What you check
-Determine:
-What service?
-       ↓
-Production or test?
-       ↓
-Read-only or write?
-       ↓
-What permissions?
 
-For example, an AWS key with read-only S3 access is different from a key capable of modifying production infrastructure.
-Also check
-.env
-application.properties
-application.yml
-config.json
-web.config
-appsettings.json
 
-Finding
-Hardcoded Cloud Service Credentials
-3. Private Key — 🔴 Critical
-Search:
-BEGIN PRIVATE KEY
-BEGIN RSA PRIVATE KEY
-BEGIN EC PRIVATE KEY
 
-Extremely dangerous
------BEGIN RSA PRIVATE KEY-----
-MIIEowIBAAKCAQEA...
-...
------END RSA PRIVATE KEY-----
-
-What to determine
-Check whether it is:
-- TLS private key
-- JWT signing key
-- SSH private key
-- encryption key
-- client certificate private key
-Particularly dangerous in trading applications
-If you find:
-jwt.private.key
-
-or:
-privateKey = "-----BEGIN PRIVATE KEY-----..."
-
-check whether it signs authentication tokens.
-If yes, compromise could potentially allow token forgery.
-4. Database Connection String — 🔴 Critical/High
-Search:
-jdbc:
-connectionString
-Data Source=
-Server=
-User ID=
-Password=
-mongodb://
-postgresql://
-
-Vulnerable
-jdbc:sqlserver://10.10.10.50:1433;
-databaseName=TradingDB;
-user=trade_admin;
-password=XXXXXX
-
-Don't just report because you found:
-jdbc:sqlserver://10.10.10.50:1433
-
-An internal hostname/IP alone is generally not a critical vulnerability.
-The serious issue is:
-database + username + password
-
-Check
-- Production DB?
-- Privileged account?
-- Read/write?
-- Sensitive trading data?
-- Credentials still active?
-5. SQL Injection — 🔴 Critical/High
-Search:
-SELECT
-INSERT
-UPDATE
-DELETE
-executeQuery
-createStatement
-query
-
-Find:
-String sql =
-    "SELECT * FROM accounts WHERE accountId='" 
-    + request.getParameter("accountId") 
-    + "'";
-
-This is suspicious.
-Why?
-Because:
-request.getParameter()
-
-is attacker-controlled.
-And it is directly concatenated into SQL.
-Safer
-PreparedStatement ps =
-    connection.prepareStatement(
-        "SELECT * FROM accounts WHERE accountId=?"
-    );
-
-ps.setString(1, accountId);
-
-What to inspect
-Don't report every SQL query.
-Look for this pattern:
-User Input
-    ↓
-String concatenation
-    ↓
-SQL Query
-    ↓
-Database
-
-That's the important relationship.
-6. Authorization / IDOR — 🔴 Critical/High
-This is one of the most important areas for trading applications.
-Search:
-accountId
-customerId
-userId
-portfolioId
-orderId
-tradeId
-
-Suppose you find:
-@GetMapping("/account/{accountId}")
-public Account getAccount(
-        @PathVariable String accountId) {
-
-    return accountService.getAccount(accountId);
+Vulnerability Title
+Insufficient Server-Side Input Validation Allows Special Characters in Watchlist Names
+Vulnerability Description
+It was observed that the application prevents users from entering certain special characters in the watchlist name through the user interface. However, by intercepting and modifying the corresponding API request in Burp Suite, the input validation can be bypassed, allowing watchlist names containing special characters to be submitted and saved successfully. This indicates that the input restrictions are not consistently enforced on the server side.
+Impact
+An authenticated user may be able to store watchlist names containing unexpected or potentially dangerous characters. Depending on how these values are processed and displayed by the application, this could cause data-integrity issues, unexpected application behavior, or potential injection vulnerabilities in downstream functionality such as watchlist exports. Further impact requires separate validation; accepting special characters alone does not establish XSS or command injection.
+Mitigation
+- Enforce input validation on the server side, independently of client-side validation.
+- Define an explicit allowlist of permitted characters for watchlist names.
+- Apply consistent validation to all API endpoints that create or update watchlists.
+- Use context-appropriate output encoding wherever watchlist names are displayed.
+- Validate the input length and reject malformed or unsupported values with an appropriate error response.
+CVSS 3.1
+Suggested score: 4.3 — Medium (provisional)
+Vector string: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:L/A:N
+Scoring assumption: This score assumes an authenticated user can persist unexpected characters, causing a limited integrity impact. If no security-relevant impact can be demonstrated beyond bypassing a UI restriction, reassess whether this warrants a vulnerability finding.
+Proof of Concept (PoC)
+Step 1: Log in to the application, navigate to the Watch List functionality, and attempt to enter a watchlist name containing special characters. Observe that the UI displays the validation message: “Watch List name contains invalid characters.”
+Step 2: Intercept the watchlist creation or update request using Burp Suite and identify the watchlistName parameter in the JSON body.
+Step 3: Modify the watchlistName value to include the special characters that the UI normally rejects, using a harmless test string such as:
+{
+  "watchlistName": "VAPT_test-01"
 }
 
-Now ask:
-Where is authorization performed?
 
-If there is no check like:
-authorizationService
-checkAccess
-hasPermission
-isOwner
+Step 4: Forward the modified request and observe that the server returns a successful response, indicating that the modified value was accepted.
+Step 5: Refresh the Watch List interface and verify that the watchlist name containing the previously restricted characters is displayed or persisted.
+Step 6: Capture the UI validation message, modified request, successful response, and post-refresh result as evidence.
+Reference Links
+- OWASP Input Validation Cheat Sheet
+- CWE-20: Improper Input Validation
+- FIRST CVSS v3.1 Calculator
 
-this becomes suspicious.
-Vulnerable logic
-Account account =
-    accountRepository.findById(accountId);
 
-return account;
 
-No check that:
-Authenticated User
-       ↓
-owns / authorized for
-       ↓
-accountId
 
-Trading impact
-Attacker:
-GET /account/10001
-
-changes:
-10001 → 10002
-
-and sees another customer's:
-- portfolio
-- holdings
-- balance
-- trades
-- account information
-Potential finding:
-Broken Object Level Authorization / IDOR
-7. Order Manipulation — 🔴 Critical/High
-Search:
-orderId
-quantity
-price
-orderType
-symbol
-buy
-sell
-cancelOrder
-modifyOrder
-
-Suppose:
-orderService.modifyOrder(
-    request.getParameter("orderId"),
-    request.getParameter("quantity"),
-    request.getParameter("price")
-);
-
-What you need to check
-Does the backend verify:
-Who owns the order?
-        ↓
-Is user authorized?
-        ↓
-Is order still modifiable?
-        ↓
-Is quantity valid?
-        ↓
-Is price valid?
-        ↓
-Is instrument valid?
-        ↓
-Are trading limits satisfied?
-
-Vulnerable example
-String orderId = request.getParameter("orderId");
-
-orderRepository.cancel(orderId);
-
-No ownership/authorization validation.
-Potential:
-Broken Access Control in Order Cancellation
-8. Negative Quantity / Price — 🔴 High
-Search:
-quantity
-qty
-price
-amount
-
-Suppose:
-if (quantity != 0) {
-    placeOrder(quantity);
+Vulnerability Title
+Insufficient Server-Side Validation Allows Duplicate Account IDs in Account Group Creation
+Vulnerability Description
+It was observed that the application provides the account group creation functionality when multiple accounts are available for selection. However, when only one account is available, intercepting and modifying the API request allows the same account ID to be included multiple times in the accountIds array. The server accepts the modified request and creates an account group containing duplicate entries for the same account. After refreshing the application, the group displays the same account multiple times, indicating that the duplicate entries persist.
+Impact
+An authenticated user may be able to bypass the application's intended account group selection rules and create groups containing duplicate account references. This may lead to inconsistent account group data, duplicate account entries in the interface, and unexpected behavior in account grouping or downstream functions that rely on unique account membership.
+Mitigation
+- Enforce server-side validation to ensure that each account ID in accountIds is unique.
+- Validate that the user is authorized to access and group every submitted account.
+- Enforce the minimum account-count requirement on the server, not only in the UI.
+- Reject requests containing duplicate account IDs or invalid group membership.
+- Add automated tests for duplicate IDs, unauthorized account IDs, and insufficient account counts.
+CVSS 3.1
+Suggested score: 4.3 — Medium (provisional)
+Vector string: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:L/A:N
+This assumes a limited integrity impact from persistent manipulation of account group data. Reassess the score if the duplicate entries affect account selection, trading workflows, authorization, or other security-sensitive operations.
+Proof of Concept (PoC)
+Step 1: Log in to the application using an authorized UAT account that has only one available brokerage account. Navigate to Settings → Account → Account Group and capture the account group creation request using Burp Suite.
+Step 2: In the intercepted JSON request, identify the accountIds array and add the same available account ID multiple times. For example:
+{
+  "createAccountGroup": {
+    "accountName": "VAPT-Test-Group",
+    "accountIds": [
+      853862098,
+      853862098,
+      853862098,
+      853862098
+    ]
+  }
 }
 
-The code accepts:
-quantity = -100
 
-instead of:
-quantity > 0
+Step 3: Forward the modified request and observe that the server returns a successful response containing a group ID and the repeated account IDs.
+Step 4: Refresh the application and navigate to the account group settings. Observe that the group displays the same account multiple times, despite only one unique account being available.
+Step 5: Capture the original account availability, modified request, successful response, and refreshed UI showing duplicate account entries.
+Reference Links
+- CWE-20: Improper Input Validation
 
-Similarly:
-if (price >= 0) {
-    executeOrder(price);
-}
 
-Check boundary validation.
-Look for
-< 0
-<= 0
-> maximum
->= maximum
-Integer
-Long
-Double
-BigDecimal
 
-For financial applications, this is a business-logic review, not merely input validation.
-9. Financial Calculation Problems — 🔴 High
-Search:
-amount
-price
-quantity
-commission
-fee
-tax
-balance
-margin
 
-Example:
-double total =
-    quantity * price;
 
-Check
-- Floating-point calculations
-- Rounding
-- Currency precision
-- Negative values
-- Overflow
-- Currency conversion
-- Client-controlled totals
-Better
-BigDecimal total =
-    price.multiply(quantity);
 
-For financial applications, inappropriate floating-point arithmetic can be significant.
-10. Sensitive Customer Data — 🔴 High
-Search:
-SSN
-socialSecurity
-taxId
-DOB
-dateOfBirth
-bankAccount
-routingNumber
-accountNumber
-email
-phone
-address
 
-Suppose:
-logger.info(
-    "Customer SSN: " + customer.getSSN()
-);
+Vulnerability Title
+Missing HTTP Security Headers
+Vulnerability Description
+It was observed that the application's HTTP response from the /jsonServices/orderBookService endpoint does not include several recommended HTTP security headers, such as Content-Security-Policy, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy. The absence of these headers may reduce the browser's ability to enforce additional security restrictions and provide defense-in-depth against certain client-side attacks.
+Impact
+The absence of recommended security headers may increase the risk of browser-based attacks if other vulnerabilities are present. Depending on the application's content and rendering behavior, this could increase exposure to clickjacking, MIME-type sniffing, information leakage through referrer data, or certain script-injection scenarios. The actual impact depends on the application architecture and whether equivalent protections are implemented elsewhere.
+Mitigation
+- Configure an appropriate Content-Security-Policy to restrict permitted script, style, image, and other resource sources.
+- Set X-Content-Type-Options: nosniff to prevent MIME-type sniffing.
+- Configure Referrer-Policy to limit unnecessary referrer information disclosure.
+- Configure Permissions-Policy to disable browser features that the application does not require.
+- For HTML pages that must not be embedded by untrusted sites, implement an appropriate frame-ancestors CSP directive or X-Frame-Options.
+- Validate the headers on relevant application responses and ensure that protections are consistently applied.
+CVSS 3.1
+Suggested score: 4.3 — Medium (provisional)
+Vector string: CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:U/C:L/I:L/A:N
+Note: This score assumes a plausible browser-based security impact. Missing headers alone do not establish these impacts, so the score should be adjusted based on demonstrated exploitability and affected pages.
+Proof of Concept (PoC)
+Step 1: Access the application using an authorized UAT account and intercept a representative HTTP response from the /jsonServices/orderBookService endpoint using Burp Suite.
+Step 2: Review the response headers and observe that the following recommended headers are absent from the captured response:
+Content-Security-Policy
+X-Content-Type-Options
+Referrer-Policy
+Permissions-Policy
 
-This is a real security concern
-Because sensitive information is being written to logs.
-Another example:
-return new CustomerResponse(
-    customer.getName(),
-    customer.getSSN(),
-    customer.getBankAccount()
-);
 
-Now ask:
-Is the entire response actually required?
+Step 3: Capture the response headers as evidence and verify the relevant headers across the application's HTML pages and other applicable endpoints.
+Step 4: Document the missing headers and explain the protection each would provide. Confirm whether equivalent controls exist before finalizing the finding.
+Reference Links
+- OWASP Secure Headers Project
+- MDN: HTTP Headers
 
-If a normal user can receive another customer's SSN/bank account, that's much more serious.
-11. Sensitive Data in Logs — 🔴 High
-Search:
-logger
-log.info
-log.debug
-log.error
-System.out
-console.log
 
-Then search around these for:
-password
-token
-authorization
-cookie
-SSN
-accountNumber
-creditCard
-bankAccount
 
-Vulnerable
-logger.debug(
-    "Authorization token: " + token
-);
 
-or:
-logger.info(
-    "Customer account: " + accountNumber
-);
 
-What you determine
-Ask:
-What is being logged?
-        ↓
-Where does the log go?
-        ↓
-Who can access logs?
-        ↓
-Production or development?
+Vulnerability Title
+Insufficient Duplicate Alert Validation Leading to Duplicate Alert Generation
+Vulnerability Description
+It was observed that the application allows multiple identical stock price alert creation requests for the same stock symbol, price threshold, metric, and direction to be processed successfully. By intercepting the alert creation request in Burp Suite and resending it multiple times, multiple alerts are created for the same condition. When the stock price reaches the configured threshold, the application generates multiple notifications for the same alert condition instead of preventing duplicate alerts.
+Impact
+- Notification flooding: Users may receive repeated notifications for a single stock price event.
+- Degraded user experience: Duplicate alerts make it difficult to distinguish unique trading conditions from repeated notifications.
+- Resource consumption: Storing and processing redundant alerts can increase database usage and alert-processing workload.
+- Operational impact: Large volumes of duplicate alerts may affect notification processing and application performance.
+Mitigation
+- Implement server-side duplicate detection using a normalized combination of user ID, stock symbol/instrument ID, metric, direction, threshold value, and alert status.
+- Enforce an appropriate database uniqueness constraint or idempotency mechanism for duplicate alert creation requests.
+- Ensure repeated requests with the same idempotency key return the existing alert instead of creating a new record.
+- Apply rate limiting to alert creation endpoints to reduce automated request bursts.
+- Verify that the notification service deduplicates repeated events for the same alert condition where appropriate.
+CVSS 3.1
+Suggested severity: Medium — provisional
+CVSS score: 4.3
+Vector string: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:L/A:N
+This assumes an authenticated user can create redundant alert records that affect application data integrity. Reassess the score if the impact is limited to notification inconvenience without meaningful integrity consequences.
+Proof of Concept (PoC)
+Step 1: Log in to the application, open the Alerts feature, and create one stock price alert for a specific symbol, metric, direction, and threshold.
+Step 2: Intercept the alert creation request using Burp Suite and record the request parameters and resulting alert ID.
+Step 3: Resend the same request multiple times using Burp Suite Intruder, keeping the stock symbol, threshold, metric, direction, and user context unchanged.
+Step 4: Observe that the server returns successful responses and generates distinct alert IDs for repeated requests.
+Step 5: Open the Alerts interface and verify that multiple alerts exist with the same configuration.
+Step 6: When the configured price condition is met, observe that multiple notifications are generated for the same stock price event.
+Reference Links
+- OWASP API Security Top 10 — 2023
+- CWE-799: Improper Control of Interaction Frequency
+- FIRST CVSS v3.1 Calculator
 
-12. JWT — 🔴 High
-Search:
-JWT
-jwt
-token
-access_token
-refresh_token
-Jwts
-JwtParser
 
-Suspicious
-Claims claims = JWT.decode(token);
-
-If this only decodes the JWT without cryptographic signature verification, that's dangerous.
-Check whether code validates:
-Signature
-        +
-Issuer (iss)
-        +
-Audience (aud)
-        +
-Expiration (exp)
-        +
-Not Before (nbf)
-        +
-Algorithm
-
-Very dangerous
-if (algorithm.equals("none")) {
-    // accept token
-}
-
-or hardcoded signing secrets:
-String secret = "TradingSecret123";
-
-13. Refresh Token — 🔴 High
-Search:
-refreshToken
-refresh_token
-
-Example:
-String refreshToken =
-    request.getParameter("refresh_token");
-
-return generateAccessToken(refreshToken);
-
-Check:
-- Is refresh token signature validated?
-- Is it tied to the client?
-- Is it revocable?
-- Is expiration enforced?
-- Can another user's refresh token be used?
-- Is token rotation implemented?
-- Is old refresh token invalidated?
-14. SSRF — 🔴 High
-Search:
-URL
-URI
-HttpClient
-RestTemplate
-WebClient
-requests
-fetch
-axios
-
-Find:
-String url =
-    request.getParameter("url");
-
-httpClient.get(url);
-
-This is the important pattern:
-Attacker input
-     ↓
-URL
-     ↓
-Server makes request
-
-Then investigate whether the attacker can target:
-localhost
-127.0.0.1
-internal systems
-cloud metadata
-internal admin APIs
-
-15. Command Injection — 🔴 Critical
-Search:
-Runtime.getRuntime
-exec
-ProcessBuilder
-system
-shell_exec
-subprocess
-
-Vulnerable
-String host =
-    request.getParameter("host");
-
-Runtime.getRuntime().exec(
-    "ping " + host
-);
-
-The key thing is not simply finding exec().
-You need:
-Untrusted input
-      ↓
-Command construction
-      ↓
-OS execution
-
-16. File Read / Path Traversal — 🔴 High
-Search:
-File
-FileInputStream
-download
-filename
-path
-getPath
-
-Find:
-String filename =
-    request.getParameter("filename");
-
-File file =
-    new File("/reports/" + filename);
-
-Ask:
-Can attacker control filename?
-
-Potential:
-../../../../sensitive-file
-
-The vulnerability exists when the application fails to constrain the resolved path.
-17. Unsafe Deserialization — 🔴 Critical/High
-Search:
-ObjectInputStream
-readObject
-deserialize
-BinaryFormatter
-TypeNameHandling
-
-Example:
-ObjectInputStream in =
-    new ObjectInputStream(inputStream);
-
-Object obj = in.readObject();
-
-Ask
-Where did inputStream come from?
-If:
-HTTP request
-        ↓
-attacker-controlled data
-        ↓
-ObjectInputStream
-        ↓
-readObject()
-
-that's a major red flag.
-18. TLS Certificate Validation — 🔴 High
-Search:
-TrustManager
-X509TrustManager
-HostnameVerifier
-checkServerTrusted
-verify
-SSLContext
-
-Very dangerous
-public void checkServerTrusted(
-    X509Certificate[] certs,
-    String authType) {
-    // no validation
-}
-
-Or:
-return true;
-
-inside hostname verification.
-This can effectively disable certificate validation and expose communications to MITM attacks.
-19. Hardcoded Encryption Keys — 🔴 High
-Search:
-encryptionKey
-secretKey
-AES
-Cipher
-key
-IV
-salt
-
-Vulnerable
-String encryptionKey =
-    "1234567890123456";
-
-Then:
-Cipher cipher =
-    Cipher.getInstance("AES");
-
-The important question:
-Is the key stored securely or embedded in source?
-
-If source code contains a production encryption key, treat it seriously.
-20. Debug / Backdoor Accounts — 🔴 Critical
-Search:
-admin
-test
-debug
-bypass
-backdoor
-master
-support
-impersonate
-
-Extremely suspicious
-if (username.equals("support")) {
-    return true;
-}
-
-or:
-if (request.getParameter("debug").equals("true")) {
-    disableAuthentication();
-}
-
-This should be investigated immediately.
+Vulnerability Title
+Overly Permissive Cross-Origin Resource Sharing (CORS) Configuration for Subdomains
+Vulnerability Description
+It was observed that the chart data API accepts a request originating from https://attacker.etrade.com and returns a successful response with the Access-Control-Allow-Origin header reflecting that origin. The response also includes Access-Control-Allow-Credentials: true, indicating that cross-origin requests may be permitted with credentials. If an attacker-controlled or compromised subdomain is trusted by the application, a malicious website hosted on that subdomain could potentially access sensitive chart data belonging to an authenticated user.
+Impact
+- Unauthorized cross-origin access to authenticated chart data, if the browser sends valid session credentials.
+- Potential exposure of sensitive trading information, including historical prices, volume, and volatility data.
+- Increased risk if an attacker can control content on a trusted subdomain or exploit a subdomain takeover.
+Mitigation
+- Allow only explicitly approved, trusted origins rather than broadly trusting subdomains.
+- Avoid dynamically reflecting the Origin header without strict server-side allowlist validation.
+- Do not combine credentialed CORS access with untrusted or attacker-controlled origins.
+- Review all subdomains trusted by the API and remove unnecessary entries.
+- Validate the configuration using an actual browser-based proof of concept with an authenticated session.
+CVSS 3.1
+Suggested severity: Medium — provisional
+Score: 4.3
+Vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:N/A:N
+This score assumes an attacker can induce a victim to visit a malicious page and read limited sensitive data. Recalculate it based on the actual exploitability and sensitivity of the exposed data.
+Proof of Concept (PoC)
+Step 1: Send an authenticated request to the chart data endpoint in Burp Suite, modifying the Origin header to https://attacker.etrade.com.
+Step 2: Observe whether the response returns Access-Control-Allow-Origin: https://attacker.etrade.com together with Access-Control-Allow-Credentials: true.
+Step 3: Verify whether the specified origin is genuinely untrusted or attacker-controlled and whether a browser can read the response using the victim's authenticated session.
+Step 4: Confirm whether the returned chart data contains information that should not be accessible to that origin.
+Reference Links
+- OWASP — Testing for CORS

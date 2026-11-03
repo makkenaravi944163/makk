@@ -1,1 +1,328 @@
-Q9dfL8NTXOz4n4uQnBkiY15hUAXX7IbAUGsIrAcZF/OvYAn2zh0uJgyNCeXgl5TxlLhNBwrTHvhwjsM3558KaQ2qcxcc4DuwHla9R1L1upz0EpMFmdh/OlQUVNCyERFN/Pj1B0nbet854ZqERff2wYkY4cWpST5I0vg/QlufUQyq6v1aMhVYwfvhzxJI+/XepwEKZIAWCRWOHLmKqkI54BemAwqMbV6hQeIoJtCobjLVoY9EBjFnKBzwTE8NJ5vnb+CPVpV7pYm5Uj24PFMmNoq8Be6pTDOE/wk30mX5K40NPFxQ8i0XzVp3s4d6Jh3NercACCw68qz4MJ7uw/1Fe+0pz8biQFJWE82JzIhETa9s1MtYPkXIeguhiPMxXf7+PJL9njrCgy1souCCkVEZCNv0jcZU3gjM1JMjvMrNfSarmwj795kvnfY47BRTlL6wzOah7TEv4B/WyzPKDtb54PS01hueCTY23FkFJZskN9hY3B66DeZ0pO/rWOc+WVEa57fi7k4HxKhHH9cdQ20jekEJEj9YVdM5KoUKLeofUylEoemSkkHhtUkaWsDNn6Pci92OuHfVJpjd/mR9C1b5fJ4mMrUNqhOz83Urx0MZwcPd/4niiPab9ijxRi80RnPDDxQPIZ4b1r4WVp4areOLC0qFgaw5eRngJVmGpdDtZU69Eb+AxcOMgBajhJlOhoRaSpmpncQY89q83sMGlZ+hyDyoGZVRN83j3JMhCIJiNeXpbrnUsFOvU1cA1eijb7WVxCjtZOtGffvOdnDYenBgrDrHA/11yKf36TCKlveo6H6aBamWHm6Tkx7WWiATicIz8cnylpyOAsY4795r6NXF20HUwlokOs3g3CmLgnoxB5A=
+Vulnerability: Unauthorized Cross-Workspace Report Access
+High — conditional on confirmed unauthorized report access
+Severity: High
+OWASP category: A01:2021 – Broken Access Control
+CWE: CWE-862 – Missing Authorization; CWE-863 – Incorrect Authorization
+Vulnerability type: Insecure Direct Object Reference (IDOR) / Broken Access Control
+Simple description
+The application does not appear to properly validate whether the authenticated user is authorized to access reports in the requested Power BI workspace. A user assigned access only to the WMPT_LENDING_QA workspace can modify the workspace identifier in the report URL to reference another workspace and access reports belonging to that workspace.
+
+This indicates that workspace or report access may be controlled using client-supplied identifiers without sufficient server-side authorization validation.
+Impact
+- Users may access reports and dashboards belonging to other workspaces without the required entitlement.
+- Confidential business information and report contents may be exposed to unauthorized users.
+- If the affected reports contain sensitive customer, borrower, or financial information, this could result in unauthorized disclosure of regulated or confidential data.
+- The same weakness may affect other reports or semantic models if authorization checks are not consistently enforced.
+CVSS v3.1
+6.5 – High
+Vector:
+CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
+
+
+This score assumes an authenticated low-privileged user can access sensitive report data in another workspace, with no demonstrated ability to modify or delete data. If testing establishes access only to workspace metadata, rather than report contents, reassess the confidentiality impact and score.
+Mitigation
+1. Implement strict server-side authorization checks for every workspace, report, dashboard, and semantic model request.
+2. Validate that the authenticated user's assigned groups and workspace roles authorize access to the requested workspace and report.
+3. Do not rely on workspace IDs, report IDs, or other client-supplied identifiers as proof of authorization.
+4. Apply authorization checks consistently across direct URLs and backend API endpoints.
+5. Enforce a deny-by-default access policy and restrict cross-workspace access to explicitly authorized users.
+6. Log and monitor attempts to access workspaces or reports without the required permissions.
+Proof of Concept (POC)
+Precondition: Use a test account confirmed to have access only to WMPT_LENDING_QA. Obtain approval from the application owner before accessing another workspace's report.
+
+POC 1 – Identify the authorized workspace
+1. Log in to Power BI using the authorized test account.
+2. Navigate to the WMPT_LENDING_QA workspace.
+3. Open a report and capture its URL.
+4. Record the workspace ID from the URL.
+
+
+
+
+
+
+
+
+
+Caption 1: The authenticated test account has access to the WMPT_LENDING_QA workspace and its listed reports and semantic models.
+
+POC 2 – Modify the workspace identifier
+1. Identify a known, owner-approved report in another QA workspace.
+2. Capture the report URL and identify its workspace ID.
+3. Replace the authorized workspace ID in the URL with the other QA workspace ID.
+4. Navigate to the modified URL using the same authenticated session.
+5. Observe whether the report loads successfully.
+Caption 2: The workspace identifier in the Power BI report URL was modified to reference another QA workspace using the same authenticated user session.
+
+POC 3 – Verify report access through the application
+1. Intercept the report exploration request using Burp Suite.
+2. Identify the request to:
+GET /explore/reports/{report_id}/exploration HTTP/1.1
+
+
+3. Send the request to Repeater without changing the authenticated user's session.
+4. Observe the response status and returned report information.
+5. Verify whether the report contents or configuration are returned successfully.
+
+
+
+
+
+
+
+
+
+Caption 3: The report exploration request returned HTTP 200 OK and report information using the authenticated test account.
+
+POC 4 – Verify access to the other workspace report
+1. Open the modified report URL in the browser.
+2. Verify whether the report dashboard loads successfully.
+3. Capture the report title, workspace context, and visible report contents.
+4. Compare the workspace ID and report ID with the authorized workspace and confirm the account's assigned entitlements with the application owner.
+
+
+
+
+
+
+
+
+
+Caption 4: The report belonging to another workspace was successfully displayed using the test account without the corresponding workspace entitlement.
+Reference links
+- OWASP A01:2021 – Broken Access Control
+- CWE-862 – Missing Authorization
+- CWE-863 – Incorrect Authorization
+- FIRST – CVSS v3.1 Calculator
+Important evidence check before submitting: In the screenshots provided, the workspace GUID visible in the first and third screenshots appears to be the same (f3c84a70-16ec-428e-98fe-ce1e3b2fb1bf). The screenshots therefore do not independently demonstrate that the workspace ID was changed. Capture one screenshot showing the original authorized workspace URL and another showing the different workspace GUID in the modified URL. Also confirm the second workspace is not included in the user's other group memberships. This will make the finding defensible during the client walkthrough.
+
+Terminology: The score is called a CVSS v3.1 score, not a CVE score. A CVE identifier is not assigned simply because a vulnerability is discovered.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+as per my application scope  give me possible check list like above sample format
+
+
+
+
+
+
+
+
+
+
+
+
+
+For the Mortgage Cloud Business Intelligence Services – Power BI QA assessment, the checklist should focus on Power BI workspace authorization, report and semantic-model access, role-based permissions, data exposure, sharing/export, and QA environment isolation.
+
+Because this is an internal Power BI implementation assessment—not a traditional web application or infrastructure penetration test—I would remove irrelevant generic tests such as password reset, Google hacking, SSH, and server-side SQL injection unless a separate custom application component is identified.
+
+Below is a report-ready checklist following your sample format. I have left the testing status as Not Tested so you can update it to Pass, Fail, or NA after validation.
+7. Checklist – Power BI VAPT Assessment
+7.1 Information Gathering
+Category	Test Name	Testing Status
+Information Gathering	Identify Power BI workspaces accessible to the authenticated test account	Not Tested
+Information Gathering	Identify reports, dashboards, semantic models, and dataflows available in the authorized workspace	Not Tested
+Information Gathering	Review workspace names, IDs, report IDs, and semantic model IDs exposed through application responses	Not Tested
+Information Gathering	Review Power BI metadata responses for disclosure of unauthorized workspace information	Not Tested
+Information Gathering	Identify report-to-semantic-model relationships and workspace lineage	Not Tested
+Information Gathering	Review report titles, descriptions, metadata, and visual configurations for sensitive information disclosure	Not Tested
+Information Gathering	Identify accessible QA, DEV, and other environment workspaces	Not Tested
+Information Gathering	Identify Power BI service API endpoints used by the application through browser traffic	Not Tested
+Information Gathering	Review HTTP responses for sensitive information, internal identifiers, or configuration details	Not Tested
+
+7.2 Authentication and Session Management
+Category	Test Name	Testing Status
+Authentication Testing	Verify that unauthenticated users cannot access Power BI reports and workspace resources	Not Tested
+Authentication Testing	Verify that direct report and semantic model URLs require authentication	Not Tested
+Authentication Testing	Verify session invalidation after logout	Not Tested
+Authentication Testing	Verify that an expired session or access token cannot access protected resources	Not Tested
+Authentication Testing	Verify whether previously captured requests can be replayed after logout or session expiration	Not Tested
+Authentication Testing	Verify that revoked workspace entitlements prevent subsequent access	Not Tested
+Authentication Testing	Verify that access is denied when the required workspace entitlement is missing	Not Tested
+Authentication Testing	Verify whether users can access protected resources through another active browser session after entitlement revocation	Not Tested
+
+7.3 Authorization and Access Control Testing
+High priority for this assessment
+Category	Test Name	Testing Status
+Authorization Testing	Verify whether users can access only their assigned Power BI workspaces	Not Tested
+Authorization Testing	Test unauthorized cross-workspace access by modifying workspace IDs in application URLs	Not Tested
+Authorization Testing	Verify whether changing report IDs allows access to reports in unauthorized workspaces	Not Tested
+Authorization Testing	Verify whether changing semantic model IDs allows access to unauthorized semantic models	Not Tested
+Authorization Testing	Verify server-side authorization enforcement for report exploration API requests	Not Tested
+Authorization Testing	Verify server-side authorization enforcement for workspace metadata API requests	Not Tested
+Authorization Testing	Verify whether direct API requests bypass workspace-level access restrictions	Not Tested
+Authorization Testing	Verify whether users can access other business-unit workspaces without assigned entitlements	Not Tested
+Authorization Testing	Verify whether users can access DEV or other environment resources using QA credentials	Not Tested
+Authorization Testing	Verify whether workspace IDs or report IDs can be manipulated to access another user's resources	Not Tested
+Authorization Testing	Verify whether unauthorized users can view report metadata even when report content access is denied	Not Tested
+Authorization Testing	Verify whether access restrictions are consistently enforced across reports, dashboards, and semantic models	Not Tested
+
+7.4 Role-Based Access Control (RBAC)
+Category	Test Name	Testing Status
+RBAC Testing	Verify that Viewer users have only the permissions defined in the approved access matrix	Not Tested
+RBAC Testing	Verify that Viewer users cannot create reports or dashboards	Not Tested
+RBAC Testing	Verify that Viewer users cannot edit existing reports or dashboards	Not Tested
+RBAC Testing	Verify that Viewer users cannot delete reports, dashboards, or semantic models	Not Tested
+RBAC Testing	Verify that Viewer users cannot create or modify semantic models	Not Tested
+RBAC Testing	Verify that Viewer users cannot manage workspace access or permissions	Not Tested
+RBAC Testing	Verify that Viewer users cannot share or reshare reports unless explicitly authorized	Not Tested
+RBAC Testing	Verify that Power Users can perform only the operations permitted by their assigned workspace role	Not Tested
+RBAC Testing	Verify that Power Users cannot assign unauthorized workspace roles or add unauthorized users	Not Tested
+RBAC Testing	Verify that Power Users cannot modify or delete the base semantic model when they have read-only access to it	Not Tested
+RBAC Testing	Verify that users cannot escalate their permissions by manipulating API requests or role-related parameters	Not Tested
+RBAC Testing	Verify that workspace administrators and Power Users cannot perform unauthorized operations outside their assigned workspaces	Not Tested
+
+7.5 Report and Dashboard Security Testing
+Category	Test Name	Testing Status
+Report Security Testing	Verify that reports are accessible only to authorized workspace users	Not Tested
+Report Security Testing	Verify whether reports can be accessed using direct URLs without the required workspace entitlement	Not Tested
+Report Security Testing	Verify whether report IDs can be manipulated to access other reports	Not Tested
+Report Security Testing	Verify whether hidden report pages can be accessed through direct navigation or report parameters	Not Tested
+Report Security Testing	Verify whether report filters can be manipulated to reveal restricted information	Not Tested
+Report Security Testing	Verify whether drill-through functionality exposes information outside the user's authorization scope	Not Tested
+Report Security Testing	Verify whether report visuals expose sensitive information through tooltips or underlying data	Not Tested
+Report Security Testing	Verify whether report configuration or exploration responses expose sensitive data or internal metadata	Not Tested
+Report Security Testing	Verify whether report content remains inaccessible after workspace access is revoked	Not Tested
+
+7.6 Data Security and Semantic Model Testing
+Category	Test Name	Testing Status
+Data Security Testing	Verify whether Row-Level Security (RLS) is configured and enforced, where applicable	Not Tested
+Data Security Testing	Verify whether users can access records belonging to other business units or authorized data segments	Not Tested
+Data Security Testing	Verify whether report filters or query parameters can bypass configured data restrictions	Not Tested
+Data Security Testing	Verify whether semantic model access is restricted to authorized users	Not Tested
+Data Security Testing	Verify whether users can access data through the base semantic model without the required permissions	Not Tested
+Data Security Testing	Verify whether composite models expose data from unauthorized source models	Not Tested
+Data Security Testing	Verify whether sensitive columns or fields are exposed through report visuals or semantic model metadata	Not Tested
+Data Security Testing	Verify whether hidden columns or tables can be accessed through supported user operations	Not Tested
+Data Security Testing	Verify whether underlying data is exposed through report interactions or supported data-access features	Not Tested
+Data Security Testing	Verify whether cached or imported report data remains accessible after relevant access permissions are revoked	Not Tested
+
+7.7 Sharing, Export and Download Testing
+Category	Test Name	Testing Status
+Sharing and Export Testing	Verify whether unauthorized users can share reports or dashboards	Not Tested
+Sharing and Export Testing	Verify whether users can generate sharing links for reports outside their assigned workspace	Not Tested
+Sharing and Export Testing	Verify whether report links can be accessed by users who do not have the required permissions	Not Tested
+Sharing and Export Testing	Verify whether users can reshare reports or grant access to other users without authorization	Not Tested
+Sharing and Export Testing	Verify whether report export functionality is restricted according to assigned permissions	Not Tested
+Sharing and Export Testing	Verify whether export to Excel, CSV, or PDF exposes restricted report information	Not Tested
+Sharing and Export Testing	Verify whether export of underlying data is permitted only for authorized users	Not Tested
+Sharing and Export Testing	Verify whether Analyze in Excel or other supported data-access features expose unauthorized data	Not Tested
+Sharing and Export Testing	Verify whether users can copy reports or create reports in another workspace without authorization	Not Tested
+Sharing and Export Testing	Verify whether downloaded or exported reports contain sensitive information beyond the user's permitted access	Not Tested
+
+7.8 Configuration and Refresh Security Testing
+Category	Test Name	Testing Status
+Configuration Testing	Verify whether unauthorized users can modify workspace settings	Not Tested
+Configuration Testing	Verify whether unauthorized users can modify report or semantic model configurations	Not Tested
+Configuration Testing	Verify whether unauthorized users can trigger manual dataset or semantic model refreshes	Not Tested
+Configuration Testing	Verify whether scheduled refresh settings are accessible only to authorized users	Not Tested
+Configuration Testing	Verify whether users can access data-source or gateway configuration details without authorization	Not Tested
+Configuration Testing	Verify whether sensitive connection details or credentials are exposed in application responses	Not Tested
+Configuration Testing	Verify whether unauthorized users can modify gateway settings or data-source connections	Not Tested
+Configuration Testing	Verify whether refresh history or refresh error responses expose sensitive internal information	Not Tested
+Configuration Testing	Verify whether unauthorized users can create, modify, or delete workspace content	Not Tested
+
+7.9 Environment Segregation Testing
+Category	Test Name	Testing Status
+Environment Segregation	Verify whether QA and DEV workspaces are isolated from one another	Not Tested
+Environment Segregation	Verify whether QA users can access production workspace reports or semantic models	Not Tested
+Environment Segregation	Verify whether QA workspace users can access production data sources or production semantic models	Not Tested
+Environment Segregation	Verify whether composite models connect only to the intended environment's base semantic models	Not Tested
+Environment Segregation	Verify whether workspace identifiers can be manipulated to access other environments	Not Tested
+Environment Segregation	Verify whether permissions and group memberships are correctly separated across QA and DEV environments	Not Tested
+
+7.10 HTTP Security and Browser-Level Testing
+Category	Test Name	Testing Status
+HTTP Security Testing	Verify that application communication uses HTTPS and HTTP requests are redirected to HTTPS	Not Tested
+HTTP Security Testing	Verify the presence and configuration of the HTTP Strict Transport Security header	Not Tested
+HTTP Security Testing	Verify CORS configuration and whether cross-origin requests are restricted to trusted origins	Not Tested
+HTTP Security Testing	Verify whether security-related HTTP response headers are configured appropriately	Not Tested
+HTTP Security Testing	Verify whether sensitive authentication tokens are exposed in URLs or browser-accessible responses	Not Tested
+HTTP Security Testing	Verify whether sensitive information is cached by the browser or intermediary caches	Not Tested
+HTTP Security Testing	Verify whether application APIs enforce appropriate HTTP methods and reject unsupported methods	Not Tested
+HTTP Security Testing	Verify whether API responses disclose unnecessary internal information or stack traces	Not Tested
+HTTP Security Testing	Verify whether applicable API endpoints enforce rate limits and abuse protections	Not Tested
+
+
+Recommended checklist priorities
+For your five-day assessment, prioritize the following tests because they directly address the application's architecture and the access-control issue you identified.
+Priority	Category	Focus
+Critical	Authorization	Cross-workspace access and ID manipulation
+Critical	RBAC	Viewer vs Power User permissions
+Critical	Data Security	RLS, semantic model access, and data exposure
+High	Report Security	Direct URL access, report ID manipulation, hidden pages
+High	Sharing and Export	Unauthorized sharing, downloads, and underlying data
+High	Environment Segregation	QA, DEV, and production isolation
+Medium	Configuration	Refresh, workspace settings, gateway configuration
+Medium	Authentication	Session expiration and entitlement revocation
+Medium	HTTP Security	CORS, headers, caching, and token handling
+
+Testing status definitions
+Status	Meaning
+Pass	The security control was tested and behaved as expected.
+Fail	A security weakness was identified and supported by evidence.
+NA	The test is not applicable to the application or is not part of the agreed scope.
+Not Tested	The test has not yet been performed.
+
+Important testing restrictions for this engagement
+- Perform testing only in QA workspaces and with approved test accounts.
+- Do not modify, delete, publish, or refresh shared semantic models or reports without explicit client approval.
+- Do not change workspace permissions or group memberships during testing unless coordinated with the client.
+- Do not attempt to access production data or production workspaces.
+- Treat Power BI platform behavior as expected functionality unless you demonstrate that it violates the client's intended authorization policy.
+- For each failed test, capture the test account's group membership, actual workspace role, request/response, and evidence of unauthorized access.
+My recommendation: Use this as the master checklist, then mark tests as applicable based on the client's approved scope and actual Power BI configuration. In particular, do not mark RLS, gateway, or API rate-limiting tests as Pass or Fail until you have confirmed that those controls are applicable and configured.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+in my report i need to mention in out of scope note: like scope is only for access control checks not for power bi and as per walkthrough discussion they mention don't edit anything give me in single statement
+
+
+
+
+
+
+
+
+
+
+
+
+
+The assessment was limited to access control and authorization checks within the in-scope Power BI QA environment; comprehensive security testing of the Power BI platform was excluded, and as agreed during the walkthrough, no reports, dashboards, semantic models, workspace configurations, or permissions were modified during testing.
+
+
+
+Clarify the assessment scopeState the testing limitation more directly

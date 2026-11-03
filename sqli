@@ -1,1 +1,125 @@
-The assessment was limited to access control and authorization checks within the in-scope Power BI QA environment; comprehensive security testing of the Power BI platform was excluded, and as agreed during the walkthrough, no reports, dashboards, semantic models, workspace configurations, or permissions were modified during testing.
+7. Checklist – Power BI VAPT Assessment
+7.1 Information Gathering
+Category	Test Name	Testing Status
+Information Gathering	Identify Power BI workspaces accessible to the authenticated test account	Not Tested
+Information Gathering	Identify reports, dashboards, semantic models, and dataflows available in the authorized workspace	Not Tested
+Information Gathering	Review workspace names, IDs, report IDs, and semantic model IDs exposed through application responses	Not Tested
+Information Gathering	Review Power BI metadata responses for disclosure of unauthorized workspace information	Not Tested
+Information Gathering	Identify report-to-semantic-model relationships and workspace lineage	Not Tested
+Information Gathering	Review report titles, descriptions, metadata, and visual configurations for sensitive information disclosure	Not Tested
+Information Gathering	Identify accessible QA, DEV, and other environment workspaces	Not Tested
+Information Gathering	Identify Power BI service API endpoints used by the application through browser traffic	Not Tested
+Information Gathering	Review HTTP responses for sensitive information, internal identifiers, or configuration details	Not Tested
+
+7.2 Authentication and Session Management
+Category	Test Name	Testing Status
+Authentication Testing	Verify that unauthenticated users cannot access Power BI reports and workspace resources	Not Tested
+Authentication Testing	Verify that direct report and semantic model URLs require authentication	Not Tested
+Authentication Testing	Verify session invalidation after logout	Not Tested
+Authentication Testing	Verify that an expired session or access token cannot access protected resources	Not Tested
+Authentication Testing	Verify whether previously captured requests can be replayed after logout or session expiration	Not Tested
+Authentication Testing	Verify that revoked workspace entitlements prevent subsequent access	Not Tested
+Authentication Testing	Verify that access is denied when the required workspace entitlement is missing	Not Tested
+Authentication Testing	Verify whether users can access protected resources through another active browser session after entitlement revocation	Not Tested
+
+7.3 Authorization and Access Control Testing
+High priority for this assessment
+Category	Test Name	Testing Status
+Authorization Testing	Verify whether users can access only their assigned Power BI workspaces	Not Tested
+Authorization Testing	Test unauthorized cross-workspace access by modifying workspace IDs in application URLs	Not Tested
+Authorization Testing	Verify whether changing report IDs allows access to reports in unauthorized workspaces	Not Tested
+Authorization Testing	Verify whether changing semantic model IDs allows access to unauthorized semantic models	Not Tested
+Authorization Testing	Verify server-side authorization enforcement for report exploration API requests	Not Tested
+Authorization Testing	Verify server-side authorization enforcement for workspace metadata API requests	Not Tested
+Authorization Testing	Verify whether direct API requests bypass workspace-level access restrictions	Not Tested
+Authorization Testing	Verify whether users can access other business-unit workspaces without assigned entitlements	Not Tested
+Authorization Testing	Verify whether users can access DEV or other environment resources using QA credentials	Not Tested
+Authorization Testing	Verify whether workspace IDs or report IDs can be manipulated to access another user's resources	Not Tested
+Authorization Testing	Verify whether unauthorized users can view report metadata even when report content access is denied	Not Tested
+Authorization Testing	Verify whether access restrictions are consistently enforced across reports, dashboards, and semantic models	Not Tested
+
+7.4 Role-Based Access Control (RBAC)
+Category	Test Name	Testing Status
+RBAC Testing	Verify that Viewer users have only the permissions defined in the approved access matrix	Not Tested
+RBAC Testing	Verify that Viewer users cannot create reports or dashboards	Not Tested
+RBAC Testing	Verify that Viewer users cannot edit existing reports or dashboards	Not Tested
+RBAC Testing	Verify that Viewer users cannot delete reports, dashboards, or semantic models	Not Tested
+RBAC Testing	Verify that Viewer users cannot create or modify semantic models	Not Tested
+RBAC Testing	Verify that Viewer users cannot manage workspace access or permissions	Not Tested
+RBAC Testing	Verify that Viewer users cannot share or reshare reports unless explicitly authorized	Not Tested
+RBAC Testing	Verify that Power Users can perform only the operations permitted by their assigned workspace role	Not Tested
+RBAC Testing	Verify that Power Users cannot assign unauthorized workspace roles or add unauthorized users	Not Tested
+RBAC Testing	Verify that Power Users cannot modify or delete the base semantic model when they have read-only access to it	Not Tested
+RBAC Testing	Verify that users cannot escalate their permissions by manipulating API requests or role-related parameters	Not Tested
+RBAC Testing	Verify that workspace administrators and Power Users cannot perform unauthorized operations outside their assigned workspaces	Not Tested
+
+7.5 Report and Dashboard Security Testing
+Category	Test Name	Testing Status
+Report Security Testing	Verify that reports are accessible only to authorized workspace users	Not Tested
+Report Security Testing	Verify whether reports can be accessed using direct URLs without the required workspace entitlement	Not Tested
+Report Security Testing	Verify whether report IDs can be manipulated to access other reports	Not Tested
+Report Security Testing	Verify whether hidden report pages can be accessed through direct navigation or report parameters	Not Tested
+Report Security Testing	Verify whether report filters can be manipulated to reveal restricted information	Not Tested
+Report Security Testing	Verify whether drill-through functionality exposes information outside the user's authorization scope	Not Tested
+Report Security Testing	Verify whether report visuals expose sensitive information through tooltips or underlying data	Not Tested
+Report Security Testing	Verify whether report configuration or exploration responses expose sensitive data or internal metadata	Not Tested
+Report Security Testing	Verify whether report content remains inaccessible after workspace access is revoked	Not Tested
+
+7.6 Data Security and Semantic Model Testing
+Category	Test Name	Testing Status
+Data Security Testing	Verify whether Row-Level Security (RLS) is configured and enforced, where applicable	Not Tested
+Data Security Testing	Verify whether users can access records belonging to other business units or authorized data segments	Not Tested
+Data Security Testing	Verify whether report filters or query parameters can bypass configured data restrictions	Not Tested
+Data Security Testing	Verify whether semantic model access is restricted to authorized users	Not Tested
+Data Security Testing	Verify whether users can access data through the base semantic model without the required permissions	Not Tested
+Data Security Testing	Verify whether composite models expose data from unauthorized source models	Not Tested
+Data Security Testing	Verify whether sensitive columns or fields are exposed through report visuals or semantic model metadata	Not Tested
+Data Security Testing	Verify whether hidden columns or tables can be accessed through supported user operations	Not Tested
+Data Security Testing	Verify whether underlying data is exposed through report interactions or supported data-access features	Not Tested
+Data Security Testing	Verify whether cached or imported report data remains accessible after relevant access permissions are revoked	Not Tested
+
+7.7 Sharing, Export and Download Testing
+Category	Test Name	Testing Status
+Sharing and Export Testing	Verify whether unauthorized users can share reports or dashboards	Not Tested
+Sharing and Export Testing	Verify whether users can generate sharing links for reports outside their assigned workspace	Not Tested
+Sharing and Export Testing	Verify whether report links can be accessed by users who do not have the required permissions	Not Tested
+Sharing and Export Testing	Verify whether users can reshare reports or grant access to other users without authorization	Not Tested
+Sharing and Export Testing	Verify whether report export functionality is restricted according to assigned permissions	Not Tested
+Sharing and Export Testing	Verify whether export to Excel, CSV, or PDF exposes restricted report information	Not Tested
+Sharing and Export Testing	Verify whether export of underlying data is permitted only for authorized users	Not Tested
+Sharing and Export Testing	Verify whether Analyze in Excel or other supported data-access features expose unauthorized data	Not Tested
+Sharing and Export Testing	Verify whether users can copy reports or create reports in another workspace without authorization	Not Tested
+Sharing and Export Testing	Verify whether downloaded or exported reports contain sensitive information beyond the user's permitted access	Not Tested
+
+7.8 Configuration and Refresh Security Testing
+Category	Test Name	Testing Status
+Configuration Testing	Verify whether unauthorized users can modify workspace settings	Not Tested
+Configuration Testing	Verify whether unauthorized users can modify report or semantic model configurations	Not Tested
+Configuration Testing	Verify whether unauthorized users can trigger manual dataset or semantic model refreshes	Not Tested
+Configuration Testing	Verify whether scheduled refresh settings are accessible only to authorized users	Not Tested
+Configuration Testing	Verify whether users can access data-source or gateway configuration details without authorization	Not Tested
+Configuration Testing	Verify whether sensitive connection details or credentials are exposed in application responses	Not Tested
+Configuration Testing	Verify whether unauthorized users can modify gateway settings or data-source connections	Not Tested
+Configuration Testing	Verify whether refresh history or refresh error responses expose sensitive internal information	Not Tested
+Configuration Testing	Verify whether unauthorized users can create, modify, or delete workspace content	Not Tested
+
+7.9 Environment Segregation Testing
+Category	Test Name	Testing Status
+Environment Segregation	Verify whether QA and DEV workspaces are isolated from one another	Not Tested
+Environment Segregation	Verify whether QA users can access production workspace reports or semantic models	Not Tested
+Environment Segregation	Verify whether QA workspace users can access production data sources or production semantic models	Not Tested
+Environment Segregation	Verify whether composite models connect only to the intended environment's base semantic models	Not Tested
+Environment Segregation	Verify whether workspace identifiers can be manipulated to access other environments	Not Tested
+Environment Segregation	Verify whether permissions and group memberships are correctly separated across QA and DEV environments	Not Tested
+
+7.10 HTTP Security and Browser-Level Testing
+Category	Test Name	Testing Status
+HTTP Security Testing	Verify that application communication uses HTTPS and HTTP requests are redirected to HTTPS	Not Tested
+HTTP Security Testing	Verify the presence and configuration of the HTTP Strict Transport Security header	Not Tested
+HTTP Security Testing	Verify CORS configuration and whether cross-origin requests are restricted to trusted origins	Not Tested
+HTTP Security Testing	Verify whether security-related HTTP response headers are configured appropriately	Not Tested
+HTTP Security Testing	Verify whether sensitive authentication tokens are exposed in URLs or browser-accessible responses	Not Tested
+HTTP Security Testing	Verify whether sensitive information is cached by the browser or intermediary caches	Not Tested
+HTTP Security Testing	Verify whether application APIs enforce appropriate HTTP methods and reject unsupported methods	Not Tested
+HTTP Security Testing	Verify whether API responses disclose unnecessary internal information or stack traces	Not Tested
+HTTP Security Testing	Verify whether applicable API endpoints enforce rate limits and abuse protections	Not Tested

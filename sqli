@@ -1,125 +1,152 @@
-7. Checklist – Power BI VAPT Assessment
-7.1 Information Gathering
-Category	Test Name	Testing Status
-Information Gathering	Identify Power BI workspaces accessible to the authenticated test account	Not Tested
-Information Gathering	Identify reports, dashboards, semantic models, and dataflows available in the authorized workspace	Not Tested
-Information Gathering	Review workspace names, IDs, report IDs, and semantic model IDs exposed through application responses	Not Tested
-Information Gathering	Review Power BI metadata responses for disclosure of unauthorized workspace information	Not Tested
-Information Gathering	Identify report-to-semantic-model relationships and workspace lineage	Not Tested
-Information Gathering	Review report titles, descriptions, metadata, and visual configurations for sensitive information disclosure	Not Tested
-Information Gathering	Identify accessible QA, DEV, and other environment workspaces	Not Tested
-Information Gathering	Identify Power BI service API endpoints used by the application through browser traffic	Not Tested
-Information Gathering	Review HTTP responses for sensitive information, internal identifiers, or configuration details	Not Tested
+Vulnerability: Information Disclosure Through Verbose IIS Error Messages
+Suggested severity: Low
+CWE: CWE-209 – Generation of Error Message Containing Sensitive Information
+OWASP Top 10: A05:2021 – Security Misconfiguration
+CVSS v3.1: 3.7 (Low) — CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N
+Vulnerability description
+The application displays detailed Microsoft IIS error messages when an invalid URL is requested. The error response reveals internal server information, including the physical directory path, IIS modules, handler details, error codes, and Windows authentication information.
 
-7.2 Authentication and Session Management
-Category	Test Name	Testing Status
-Authentication Testing	Verify that unauthenticated users cannot access Power BI reports and workspace resources	Not Tested
-Authentication Testing	Verify that direct report and semantic model URLs require authentication	Not Tested
-Authentication Testing	Verify session invalidation after logout	Not Tested
-Authentication Testing	Verify that an expired session or access token cannot access protected resources	Not Tested
-Authentication Testing	Verify whether previously captured requests can be replayed after logout or session expiration	Not Tested
-Authentication Testing	Verify that revoked workspace entitlements prevent subsequent access	Not Tested
-Authentication Testing	Verify that access is denied when the required workspace entitlement is missing	Not Tested
-Authentication Testing	Verify whether users can access protected resources through another active browser session after entitlement revocation	Not Tested
+Exposing such internal implementation details may assist an attacker in understanding the application's server environment and identifying potential attack vectors.
+Impact
+An attacker who can access these error messages may obtain information about the application's internal directory structure, Windows environment, and request-handling configuration.
 
-7.3 Authorization and Access Control Testing
-High priority for this assessment
-Category	Test Name	Testing Status
-Authorization Testing	Verify whether users can access only their assigned Power BI workspaces	Not Tested
-Authorization Testing	Test unauthorized cross-workspace access by modifying workspace IDs in application URLs	Not Tested
-Authorization Testing	Verify whether changing report IDs allows access to reports in unauthorized workspaces	Not Tested
-Authorization Testing	Verify whether changing semantic model IDs allows access to unauthorized semantic models	Not Tested
-Authorization Testing	Verify server-side authorization enforcement for report exploration API requests	Not Tested
-Authorization Testing	Verify server-side authorization enforcement for workspace metadata API requests	Not Tested
-Authorization Testing	Verify whether direct API requests bypass workspace-level access restrictions	Not Tested
-Authorization Testing	Verify whether users can access other business-unit workspaces without assigned entitlements	Not Tested
-Authorization Testing	Verify whether users can access DEV or other environment resources using QA credentials	Not Tested
-Authorization Testing	Verify whether workspace IDs or report IDs can be manipulated to access another user's resources	Not Tested
-Authorization Testing	Verify whether unauthorized users can view report metadata even when report content access is denied	Not Tested
-Authorization Testing	Verify whether access restrictions are consistently enforced across reports, dashboards, and semantic models	Not Tested
+This information could assist in developing more targeted attacks, such as path traversal or file-handling attacks. However, the disclosed information does not independently demonstrate unauthorized file access or compromise.
+Mitigation
+Configure IIS to display generic error pages to remote users and prevent detailed diagnostic information from being exposed in HTTP responses. Enable appropriate httpErrors and customErrors settings, restrict detailed errors to authorized administrators, and maintain detailed diagnostic information only in protected server-side logs.
+Proof of Concept (PoC)
+Step 1: Open the application in a browser and navigate to an invalid URL:
+http://mip-decryptionservice.webfarm-uat.ms.com/@
 
-7.4 Role-Based Access Control (RBAC)
-Category	Test Name	Testing Status
-RBAC Testing	Verify that Viewer users have only the permissions defined in the approved access matrix	Not Tested
-RBAC Testing	Verify that Viewer users cannot create reports or dashboards	Not Tested
-RBAC Testing	Verify that Viewer users cannot edit existing reports or dashboards	Not Tested
-RBAC Testing	Verify that Viewer users cannot delete reports, dashboards, or semantic models	Not Tested
-RBAC Testing	Verify that Viewer users cannot create or modify semantic models	Not Tested
-RBAC Testing	Verify that Viewer users cannot manage workspace access or permissions	Not Tested
-RBAC Testing	Verify that Viewer users cannot share or reshare reports unless explicitly authorized	Not Tested
-RBAC Testing	Verify that Power Users can perform only the operations permitted by their assigned workspace role	Not Tested
-RBAC Testing	Verify that Power Users cannot assign unauthorized workspace roles or add unauthorized users	Not Tested
-RBAC Testing	Verify that Power Users cannot modify or delete the base semantic model when they have read-only access to it	Not Tested
-RBAC Testing	Verify that users cannot escalate their permissions by manipulating API requests or role-related parameters	Not Tested
-RBAC Testing	Verify that workspace administrators and Power Users cannot perform unauthorized operations outside their assigned workspaces	Not Tested
 
-7.5 Report and Dashboard Security Testing
-Category	Test Name	Testing Status
-Report Security Testing	Verify that reports are accessible only to authorized workspace users	Not Tested
-Report Security Testing	Verify whether reports can be accessed using direct URLs without the required workspace entitlement	Not Tested
-Report Security Testing	Verify whether report IDs can be manipulated to access other reports	Not Tested
-Report Security Testing	Verify whether hidden report pages can be accessed through direct navigation or report parameters	Not Tested
-Report Security Testing	Verify whether report filters can be manipulated to reveal restricted information	Not Tested
-Report Security Testing	Verify whether drill-through functionality exposes information outside the user's authorization scope	Not Tested
-Report Security Testing	Verify whether report visuals expose sensitive information through tooltips or underlying data	Not Tested
-Report Security Testing	Verify whether report configuration or exploration responses expose sensitive data or internal metadata	Not Tested
-Report Security Testing	Verify whether report content remains inaccessible after workspace access is revoked	Not Tested
+Step 2: Observe that the application returns an HTTP 404.0 detailed IIS error page exposing:
+- Physical server directory path (d:\inetpub\uat\...)
+- IIS module: IIS Web Core
+- Handler: StaticFile
+- Error code: 0x80070002
+- Windows logon method and user account information
+Observed result: Internal server configuration details are disclosed through the HTTP error response instead of a generic error page.
 
-7.6 Data Security and Semantic Model Testing
-Category	Test Name	Testing Status
-Data Security Testing	Verify whether Row-Level Security (RLS) is configured and enforced, where applicable	Not Tested
-Data Security Testing	Verify whether users can access records belonging to other business units or authorized data segments	Not Tested
-Data Security Testing	Verify whether report filters or query parameters can bypass configured data restrictions	Not Tested
-Data Security Testing	Verify whether semantic model access is restricted to authorized users	Not Tested
-Data Security Testing	Verify whether users can access data through the base semantic model without the required permissions	Not Tested
-Data Security Testing	Verify whether composite models expose data from unauthorized source models	Not Tested
-Data Security Testing	Verify whether sensitive columns or fields are exposed through report visuals or semantic model metadata	Not Tested
-Data Security Testing	Verify whether hidden columns or tables can be accessed through supported user operations	Not Tested
-Data Security Testing	Verify whether underlying data is exposed through report interactions or supported data-access features	Not Tested
-Data Security Testing	Verify whether cached or imported report data remains accessible after relevant access permissions are revoked	Not Tested
+PoC image caption:
 
-7.7 Sharing, Export and Download Testing
-Category	Test Name	Testing Status
-Sharing and Export Testing	Verify whether unauthorized users can share reports or dashboards	Not Tested
-Sharing and Export Testing	Verify whether users can generate sharing links for reports outside their assigned workspace	Not Tested
-Sharing and Export Testing	Verify whether report links can be accessed by users who do not have the required permissions	Not Tested
-Sharing and Export Testing	Verify whether users can reshare reports or grant access to other users without authorization	Not Tested
-Sharing and Export Testing	Verify whether report export functionality is restricted according to assigned permissions	Not Tested
-Sharing and Export Testing	Verify whether export to Excel, CSV, or PDF exposes restricted report information	Not Tested
-Sharing and Export Testing	Verify whether export of underlying data is permitted only for authorized users	Not Tested
-Sharing and Export Testing	Verify whether Analyze in Excel or other supported data-access features expose unauthorized data	Not Tested
-Sharing and Export Testing	Verify whether users can copy reports or create reports in another workspace without authorization	Not Tested
-Sharing and Export Testing	Verify whether downloaded or exported reports contain sensitive information beyond the user's permitted access	Not Tested
+Figure 1: Detailed IIS HTTP 404.0 error page disclosing the application's physical server path, IIS handler information, and Windows authentication details.
+References
+- CWE-209 – Generation of Error Message Containing Sensitive Information
+- Microsoft – IIS HTTP Errors Configuration
+- OWASP A05:2021 – Security Misconfiguration
+- CVSS v3.1 Specification
+Important scope consideration
+Since your agreed assessment scope is limited to encrypted EML upload and decryption, this finding should be included in the formal report only if server-level error handling is considered part of the in-scope application.
 
-7.8 Configuration and Refresh Security Testing
-Category	Test Name	Testing Status
-Configuration Testing	Verify whether unauthorized users can modify workspace settings	Not Tested
-Configuration Testing	Verify whether unauthorized users can modify report or semantic model configurations	Not Tested
-Configuration Testing	Verify whether unauthorized users can trigger manual dataset or semantic model refreshes	Not Tested
-Configuration Testing	Verify whether scheduled refresh settings are accessible only to authorized users	Not Tested
-Configuration Testing	Verify whether users can access data-source or gateway configuration details without authorization	Not Tested
-Configuration Testing	Verify whether sensitive connection details or credentials are exposed in application responses	Not Tested
-Configuration Testing	Verify whether unauthorized users can modify gateway settings or data-source connections	Not Tested
-Configuration Testing	Verify whether refresh history or refresh error responses expose sensitive internal information	Not Tested
-Configuration Testing	Verify whether unauthorized users can create, modify, or delete workspace content	Not Tested
+Also, the screenshot shows an authenticated Windows user. Therefore, the proposed CVSS vector assumes the same disclosure can be reproduced without authentication. If Windows authentication is required, PR:N is not justified and the score must be recalculated.
 
-7.9 Environment Segregation Testing
-Category	Test Name	Testing Status
-Environment Segregation	Verify whether QA and DEV workspaces are isolated from one another	Not Tested
-Environment Segregation	Verify whether QA users can access production workspace reports or semantic models	Not Tested
-Environment Segregation	Verify whether QA workspace users can access production data sources or production semantic models	Not Tested
-Environment Segregation	Verify whether composite models connect only to the intended environment's base semantic models	Not Tested
-Environment Segregation	Verify whether workspace identifiers can be manipulated to access other environments	Not Tested
-Environment Segregation	Verify whether permissions and group memberships are correctly separated across QA and DEV environments	Not Tested
+For an authenticated-only disclosure with otherwise equivalent assumptions, the vector would be CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:U/C:L/I:N/A:N — 3.1 (Low).
 
-7.10 HTTP Security and Browser-Level Testing
-Category	Test Name	Testing Status
-HTTP Security Testing	Verify that application communication uses HTTPS and HTTP requests are redirected to HTTPS	Not Tested
-HTTP Security Testing	Verify the presence and configuration of the HTTP Strict Transport Security header	Not Tested
-HTTP Security Testing	Verify CORS configuration and whether cross-origin requests are restricted to trusted origins	Not Tested
-HTTP Security Testing	Verify whether security-related HTTP response headers are configured appropriately	Not Tested
-HTTP Security Testing	Verify whether sensitive authentication tokens are exposed in URLs or browser-accessible responses	Not Tested
-HTTP Security Testing	Verify whether sensitive information is cached by the browser or intermediary caches	Not Tested
-HTTP Security Testing	Verify whether application APIs enforce appropriate HTTP methods and reject unsupported methods	Not Tested
-HTTP Security Testing	Verify whether API responses disclose unnecessary internal information or stack traces	Not Tested
-HTTP Security Testing	Verify whether applicable API endpoints enforce rate limits and abuse protections	Not Tested
+
+
+
+
+
+
+
+
+
+Vulnerability: Unencrypted HTTP Communication (Lack of HTTPS Enforcement)
+Suggested severity: Medium
+Affected application: MIP Decryption Service – UAT
+Affected endpoint: http://mip-decryptionservice.webfarm-uat.ms.com/
+Protocol: HTTP
+CWE: CWE-319 – Cleartext Transmission of Sensitive Information
+OWASP Top 10: A02:2021 – Cryptographic Failures
+Vulnerability description
+The MIP Decryption Service application is accessible over unencrypted HTTP instead of enforcing HTTPS communication. During testing, the application accepted an HTTP request and returned an HTTP response without redirecting the request to HTTPS.
+
+The HTTP connection does not provide transport encryption, allowing information transmitted between the client and server to potentially be intercepted or modified by an attacker positioned on the network.
+Impact
+An attacker with the ability to monitor network traffic may capture sensitive information transmitted between the user's browser and the application, including session cookies, authentication information, and uploaded encrypted EML files.
+
+An attacker may also modify requests or responses in transit, potentially affecting the integrity and confidentiality of the file upload and decryption workflow.
+Mitigation
+- Enforce HTTPS across the entire application and redirect all HTTP requests to HTTPS.
+- Configure TLS 1.2 or TLS 1.3 with strong cipher suites.
+- Enable the HTTP Strict Transport Security (HSTS) response header.
+- Set session cookies with the Secure, HttpOnly, and appropriate SameSite attributes.
+- Ensure sensitive file uploads and decrypted file downloads are permitted only over HTTPS.
+CVSS v3.1
+Suggested score: 6.5 – Medium
+CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N
+
+
+This score assumes an attacker can intercept traffic and that sensitive session or application data is transmitted. Reassess the score based on the actual data exposed and attack prerequisites.
+Proof of Concept (PoC)
+1. Open Burp Suite and configure the browser to route application traffic through the Burp proxy.
+2. Access the application using the HTTP URL:
+   GET /bin HTTP/1.1
+   Host: mip-decryptionservice.webfarm-uat.ms.com
+3. Observe the response:
+   HTTP/1.1 404 Not Found
+   Server: Microsoft-IIS
+   Content-Type: text/html; charset=utf-8
+4. Verify that the server responds over HTTP instead of redirecting the request to HTTPS.
+5. Check whether the application also permits authenticated upload/decryption requests and transmits session cookies over HTTP.
+PoC image caption
+Figure 1: The MIP Decryption Service responds to an HTTP request over an unencrypted connection without redirecting the request to HTTPS.
+
+
+
+Vulnerability: Insufficient Validation of Uploaded File Name
+Suggested severity: Low – Pending validation
+Affected endpoint: POST /_siteroot/api/decrypt-file
+Parameter: UploadFile (multipart form-data filename)
+CWE: CWE-22 – Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')
+OWASP category: A05:2021 – Security Misconfiguration
+Vulnerability description
+The application does not appear to properly validate or sanitize the filename supplied during encrypted EML file uploads.
+
+During testing, a directory traversal-style filename (../../../../etc.eml) was supplied in the UploadFile multipart parameter. The server processed the request and returned the supplied filename in the Content-Disposition response header.
+
+This indicates that traversal sequences are accepted and reflected by the application without apparent filename sanitization. Further validation is required to determine whether the filename is used in server-side file operations.
+Impact
+If the application uses the supplied filename to construct server-side file paths without proper validation, an attacker may potentially manipulate file locations and access or overwrite files outside the intended upload directory.
+
+This could result in unauthorized file access, file overwrite, or disruption of the application's file-processing functionality.
+
+Note: The current evidence demonstrates acceptance and reflection of a traversal-style filename, but does not independently prove arbitrary file read or write.
+Proof of Concept (PoC)
+Step 1: Intercept the encrypted EML file upload request using Burp Suite.
+
+Step 2: Modify the filename in the multipart request:
+Content-Disposition: form-data; name="UploadFile"; filename="../../../../etc.eml"
+Content-Type: message/rfc822
+
+
+Step 3: Forward the modified request to the application.
+
+Step 4: Observe the server response:
+HTTP/1.1 200 OK
+Content-Type: application/octet-stream
+MipStatusResponseCode: 100
+Content-Disposition: attachment; filename="../../../../etc.eml"
+
+
+Step 5: Verify that the application returns the traversal-style filename in the response without normalizing it.
+PoC image caption
+Figure 1: The application accepts a directory traversal-style filename in the EML upload request and reflects the supplied filename in the Content-Disposition response header.
+Mitigation
+1. Validate uploaded filenames on the server side using a strict allowlist.
+2. Reject filenames containing directory traversal sequences such as ../, ..\, and absolute path references.
+3. Generate unique server-side filenames instead of trusting user-supplied filenames.
+4. Use Path.GetFileName() and canonicalize paths using Path.GetFullPath() before file operations.
+5. Ensure uploaded files are stored in a dedicated directory with restricted filesystem permissions.
+CVSS v3.1 assessment
+Not yet scoreable as a confirmed path traversal
+The screenshot alone does not demonstrate a security impact sufficient to assign a defensible CVSS score for CWE-22.
+
+If you confirm that the supplied filename allows unauthorized file access or modification, the CVSS score should be calculated based on the demonstrated impact and required privileges.
+References
+- CWE-22 – Path Traversal
+- OWASP – Path Traversal
+- Microsoft – Path.GetFileName
+
+
+
+

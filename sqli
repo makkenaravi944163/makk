@@ -1,1 +1,26 @@
-postman://auth/callback?code=c12d9f4d4b4551e2452b57fb48f760afd655e93b27a3fb80cc7951adc35d5603
+Hi Caspar,
+
+Please find the reproduction steps for both issues below.
+
+**1. QR Code Authentication – Error Page**
+
+1. Open the application in a web browser.
+2. Click on the **Login with QR Code** option.
+3. The application displays a QR code on the browser.
+4. Open the MSBAL mobile application and scan the displayed QR code.
+5. After scanning the QR code, the web browser automatically redirects to an error page instead of completing the authentication process.
+
+**Actual Result:** The browser redirects to an error page after scanning the QR code through the MSBAL mobile application.
+
+**2. Push Notification Authentication – No Action After Clicking Notification**
+
+1. Open the application in a web browser.
+2. Click on the **Forgot Password / Reset Password** option.
+3. Proceed with the email verification process.
+4. Enter the OTP received via email and complete the verification step.
+5. A push notification is received on the registered mobile device.
+6. Click on the received push notification.
+
+**Actual Result:** After clicking on the push notification, no action is performed, and the authentication/reset password process does not proceed further.
+
+Please let us know if you require any additional information or details regarding the test accounts and platforms used.

@@ -1,122 +1,71 @@
-# ============================================
-# Bulk HTTP Endpoint Scanner
-# Reads hosts from hosts.txt
-# ============================================
+Vulnerability Title
+Client-Side OTP Resend Cooldown Bypass via Response Manipulation
 
-$Hosts = Get-Content ".\hosts.txt" | Where-Object { $_.Trim() -ne "" }
+OWASP Category
+A04:2021 – Insecure Design (Improper enforcement of business logic and rate-limiting intervals)
 
-$Paths = @(
-"/",
-"/config/",
-"/state/",
-"/version",
-"/metrics",
-"/health",
-"/debug/vars",
-"/debug/pprof/",
-"/swagger",
-"/openapi.json"
-)
+CVSS 3.1 Vector
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N
 
-$OutputDir = ".\Responses"
-$CsvFile = ".\HTTP_Results.csv"
+Description
+The application implements a 60-second cooldown timer before a user can request a new Email One-Time Passcode (OTP) during the password reset flow. However, this cooldown duration is controlled client-side via the "cool_down_in_seconds" parameter returned in the server's HTTP response from the /api/ido/api/v2/auth/assert endpoint.   
+1.jpg
++ 2
 
-if (!(Test-Path $OutputDir)) {
-    New-Item -ItemType Directory -Path $OutputDir | Out-Null
-}
+Because the server does not enforce the 60-second interval on the backend, an attacker can intercept and modify the response value from 60 to a lower value (such as 6). This allows triggering multiple OTP emails within seconds instead of waiting for the intended cooldown period. While the backend enforces a hard cap of 5 OTPs per session, the per-request cooldown restriction is completely bypassed.   
+2.jpg
++ 3
 
-"Host,Path,StatusCode,ContentType,Length,Interesting" | Out-File $CsvFile
+Impact
+Bypass of Security Controls: Attackers can defeat the intended 60-second throttling mechanism, allowing rapid generation of up to 5 OTP emails within seconds.   
+3.jpg
++ 1
 
-foreach ($TargetHost in $Hosts)
-{
-    Write-Host ""
-    Write-Host "===================================="
-    Write-Host "Scanning $TargetHost"
-    Write-Host "===================================="
+User Annoyance & Rapid Account Lockout: An attacker knowing a victim's email address can rapidly exhaust the user's 5-OTP limit in a few seconds, potentially causing minor email spam and temporarily locking the legitimate user out of the password reset flow.
 
-    $HostFolder = Join-Path $OutputDir ($TargetHost.Replace(".", "_"))
+Increased Resource Consumption: Rapidly triggering email delivery services unnecessarily increases SMTP/gateway load, even within the 5-OTP cap.
 
-    if (!(Test-Path $HostFolder))
-    {
-        New-Item -ItemType Directory -Path $HostFolder | Out-Null
-    }
+Proof of Concept (PoC) Steps & Captions
+Step 1: Navigate to the Morgan Stanley Matrix UAT login page ([https://auth.matrix-uat.ms.com/login](https://auth.matrix-uat.ms.com/login)), enter a valid username, and click on the Reset/Forgot Password link.
 
-    foreach ($Path in $Paths)
-    {
-        $Url = "http://$($TargetHost):6165$Path"
+PoC 1 Caption: Initiating the password reset flow by clicking the "Reset/Forgot Password" link on the login page.
 
-        Write-Host $Url
 
-        try
-        {
-            $Response = Invoke-WebRequest `
-                -Uri $Url `
-                -UseBasicParsing `
-                -TimeoutSec 10 `
-                -ErrorAction Stop
+1.jpg
+Step 2: Intercept the response to the POST /api/ido/api/v2/auth/assert request using an intercepting proxy (e.g., Burp Suite) and observe the "cool_down_in_seconds":60 parameter under the "resend" action in the JSON body.
 
-            $Status = $Response.StatusCode
-            $Type = $Response.Headers["Content-Type"]
-            $Length = $Response.RawContentLength
+PoC 2 Caption: Intercepted HTTP response from /api/ido/api/v2/auth/assert showing the default "cool_down_in_seconds":60 parameter.
 
-            $Interesting = ""
 
-            if($Status -eq 200)
-            {
-                $Interesting = "YES"
-            }
+2.jpg
+Step 3: Modify the "cool_down_in_seconds" value in the intercepted response from 60 to 6 and forward the response to the browser.
 
-            "$TargetHost,$Path,$Status,$Type,$Length,$Interesting" |
-                Add-Content $CsvFile
+PoC 3 Caption: Manipulating the "cool_down_in_seconds" parameter from 60 to 6 in the HTTP response.
 
-            $FileName = $Path.Replace("/","_")
 
-            if([string]::IsNullOrWhiteSpace($FileName))
-            {
-                $FileName = "root"
-            }
+3.jpg
+Step 4: Observe the "Verify with Email OTP" page in the browser; the resend countdown timer now starts from 6 seconds instead of 60 seconds, allowing the Resend option to be triggered immediately after 6 seconds.
 
-            $FileName = $FileName.Trim("_")
+PoC 4 Caption: Application UI reflecting the manipulated cooldown timer ("Resend code in 1s") instead of the standard 60-second wait.
 
-            if($FileName -eq "")
-            {
-                $FileName = "root"
-            }
 
-            $Response.Content | Out-File "$HostFolder\$FileName.txt" -Encoding utf8
+4.jpg
+Step 5: Click the resend option after 6 seconds and check the registered email inbox to confirm multiple distinct OTP emails are delivered within the same minute (up to the maximum limit of 5 OTPs).
 
-            Write-Host "  [+] $Status" -ForegroundColor Green
-        }
-        catch
-        {
-            $ErrorCode = ""
+PoC 5 Caption: Email inbox showing two separate OTPs (25614290 and 10402778) received simultaneously at 11:25 AM, confirming the 60-second cooldown bypass.
 
-            if ($_.Exception.Response)
-            {
-                try
-                {
-                    $ErrorCode = $_.Exception.Response.StatusCode.value__
-                }
-                catch
-                {
-                    $ErrorCode = "ERROR"
-                }
-            }
-            else
-            {
-                $ErrorCode = "FAILED"
-            }
 
-            "$TargetHost,$Path,$ErrorCode,,," | Add-Content $CsvFile
+5.png
+Mitigation
+Enforce Cooldown Server-Side: Track the timestamp of the last OTP generated for each user/session on the backend. If a resend request arrives before 60 seconds have elapsed since the previous OTP was issued, reject the request with an HTTP 429 Too Many Requests status code, regardless of client-side timer states.
 
-            Write-Host "  [-] $ErrorCode" -ForegroundColor Red
-        }
-    }
-}
+Treat Client-Side Timers as UI-Only: Use the "cool_down_in_seconds" response field strictly for user interface display purposes, never as a security boundary.
 
-Write-Host ""
-Write-Host "======================================"
-Write-Host "Completed!"
-Write-Host "CSV Report : $CsvFile"
-Write-Host "Responses  : $OutputDir"
-Write-Host "======================================"
+Maintain Session & Account Caps: Retain the existing maximum limit of 5 OTPs per session/window alongside strict server-side interval checks.
+
+References
+OWASP Top 10 – A04:2021 Insecure Design: https://owasp.org/Top10/A04_2021-Insecure_Design/
+
+CWE-602: Client-Side Enforcement of Server-Side Security: https://cwe.mitre.org/data/definitions/602.html
+
+CWE-799: Improper Control of Interaction Frequency: https://cwe.mitre.org/data/definitions/799.html

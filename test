@@ -1,43 +1,7 @@
-Vulnerability Title
-Concurrent Sessions Permitted (Multiple Simultaneous Logins Allowed)
-
-OWASP Category
-A07:2021 – Identification and Authentication Failures (Session Management)
-
-CVSS 3.1 Vector
-CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:N
-
-Description
-The application allows the same user account to maintain multiple active, concurrent sessions across different browsers, devices, or IP addresses simultaneously without invalidating the previous session or notifying the user. When a user logs in from a second device or browser, the original session remains fully active and functional.
-
-Impact
-Undetected Unauthorized Access: If an attacker obtains a user's credentials or hijacks an active session token, they can remain logged in alongside the legitimate user without triggering a session termination or alerting the user.
-
-Account Sharing & Audit Trail Ambiguity: Multiple individuals can use the same credentials at the same time, undermining individual accountability and making incident investigation more difficult.
-
-Increased Window for Session Abuse: Forgotten or unattended sessions on shared or public devices remain active even after the user signs in elsewhere.
-
-Proof of Concept (PoC) Steps & Captions
-Step 1: Open Browser 1 (e.g., Chrome), navigate to the application login page, and authenticate using valid user credentials.
-
-PoC 1 Caption: User successfully authenticated in Browser 1 with an active session.
-
-Step 2: Open Browser 2 (e.g., Firefox or an Incognito window / separate device), navigate to the same login page, and log in using the exact same user credentials.
-
-PoC 2 Caption: Same user account successfully authenticated simultaneously in Browser 2 without terminating the first session.
-
-Step 3: Return to Browser 1, refresh the page, and perform an authenticated action (such as viewing account details or navigating to a protected section). Observe that the session in Browser 1 remains active and valid alongside Browser 2.
-
-PoC 3 Caption: Browser 1 remaining logged in and processing authenticated requests while Browser 2 is concurrently active.
-
-Mitigation
-Enforce Single Active Session Policy (For High-Security Apps): Invalidate any existing server-side session for the user whenever a new login occurs, or prompt the user to confirm whether they want to terminate the previous session.
-
-Provide Active Session Management: Display a list of active sessions (device, IP address, last active timestamp) in the user's security settings and allow them to revoke individual or all other sessions.
-
-Notify Users of New Logins: Send an email or push notification whenever a new login occurs from an unrecognized device or location, and automatically terminate all active sessions upon a password reset or change.
-
-References
-OWASP Session Management Cheat Sheet (Simultaneous Session Logons): https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
-
-OWASP Web Security Testing Guide – Testing for Concurrent Sessions: https://wstg.owasp.org/latest/4-Web_Application_Security_Testing/06-Session_Management/11-Concurrent_Sessions/
+Implement multi-layered root and tamper detection using the Google Play Integrity API alongside runtime checks (su binary, Magisk/Zygisk detection) to terminate execution or block sensitive authentication flows on compromised devices.
+Migrate client-side key derivation to the native Web Cryptography API (window.crypto.subtle) and store symmetric keys strictly as non-extractable handles (extractable: false) within isolated browser memory.
+Enforce strict server-side alphanumeric whitelist validation (^[a-zA-Z0-9 _-]{1,32}$) and contextual output encoding before reflecting device names in push approval notifications and user management screens.
+Upgrade the client-side encryption scheme to an Authenticated Encryption with Associated Data (AEAD) cipher mode like AES-256-GCM (or apply an Encrypt-then-MAC HMAC-SHA256) to ensure cryptographic payload integrity.
+Enforce an aggregate, centralized rate limiter and dispatch cooldown tied to the user account and session across all delivery channels combined (SMS, Voice Call, and Email).
+Enforce the mandatory 60-second OTP resend cooldown strictly on the server backend, rejecting premature dispatch requests regardless of client-side DOM timers or manipulated response payloads.
+Implement a centralized session management policy that enforces a maximum concurrent session threshold per user account and terminates or prompts to invalidate existing sessions upon new logins.

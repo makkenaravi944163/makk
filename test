@@ -1,244 +1,43 @@
 Vulnerability Title
-Client-Side OTP Resend Cooldown Bypass via Response Manipulation
+Concurrent Sessions Permitted (Multiple Simultaneous Logins Allowed)
 
 OWASP Category
-A04:2021 – Insecure Design (Improper enforcement of business logic and rate-limiting intervals)
+A07:2021 – Identification and Authentication Failures (Session Management)
 
 CVSS 3.1 Vector
-CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N
-
-Description The application implements a 60-second cooldown timer before a user can request a new Email One-Time Passcode (OTP) during the password reset flow. However, this cooldown duration is controlled client-side via the "cool_down_in_seconds" parameter returned in the server's HTTP response from the /api/ido/api/v2/auth/assert endpoint.   Because the server does not enforce the 60-second interval on the backend, an attacker can intercept and modify the response value from 60 to a lower value (such as 6). This allows triggering multiple OTP emails within seconds instead of waiting for the intended cooldown period. While the backend enforces a hard cap of 5 OTPs per session, the per-request cooldown restriction is completely bypassed.  
-
-Impact Bypass of Security Controls: Attackers can defeat the intended 60-second throttling mechanism, allowing rapid generation of up to 5 OTP emails within seconds.   User Annoyance & Rapid Account Lockout: An attacker knowing a victim's email address can rapidly exhaust the user's 5-OTP limit in a few seconds, potentially causing minor email spam and temporarily locking the legitimate user out of the password reset flow.Increased Resource Consumption: Rapidly triggering email delivery services unnecessarily increases SMTP/gateway load, even within the 5-OTP cap.
-
-Proof of Concept (PoC) Steps & CaptionsStep 1: Navigate to the Morgan Stanley Matrix UAT login page ([https://auth.matrix-uat.ms.com/login](https://auth.matrix-uat.ms.com/login)), enter a valid username, and click on the Reset/Forgot Password link.PoC 1 Caption: Initiating the password reset flow by clicking the "Reset/Forgot Password" link on the login page.Step 2: Intercept the response to the POST /api/ido/api/v2/auth/assert request using an intercepting proxy (e.g., Burp Suite) and observe the "cool_down_in_seconds":60 parameter under the "resend" action in the JSON body.PoC 2 Caption: Intercepted HTTP response from /api/ido/api/v2/auth/assert showing the default "cool_down_in_seconds":60 parameter.Step 3: Modify the "cool_down_in_seconds" value in the intercepted response from 60 to 6 and forward the response to the browser.PoC 3 Caption: Manipulating the "cool_down_in_seconds" parameter from 60 to 6 in the HTTP response.Step 4: Observe the "Verify with Email OTP" page in the browser; the resend countdown timer now starts from 6 seconds instead of 60 seconds, allowing the Resend option to be triggered immediately after 6 seconds.PoC 4 Caption: Application UI reflecting the manipulated cooldown timer ("Resend code in 1s") instead of the standard 60-second wait.Step 5: Click the resend option after 6 seconds and check the registered email inbox to confirm multiple distinct OTP emails are delivered within the same minute (up to the maximum limit of 5 OTPs).PoC 5 Caption: Email inbox showing two separate OTPs (25614290 and 10402778) received simultaneously at 11:25 AM, confirming the 60-second cooldown bypass.
-
-Mitigation
-Enforce Cooldown Server-Side: Track the timestamp of the last OTP generated for each user/session on the backend. If a resend request arrives before 60 seconds have elapsed since the previous OTP was issued, reject the request with an HTTP 429 Too Many Requests status code, regardless of client-side timer states.
-
-Treat Client-Side Timers as UI-Only: Use the "cool_down_in_seconds" response field strictly for user interface display purposes, never as a security boundary.
-
-Maintain Session & Account Caps: Retain the existing maximum limit of 5 OTPs per session/window alongside strict server-side interval checks.
-
-References
-OWASP Top 10 – A04:2021 Insecure Design: https://owasp.org/Top10/A04_2021-Insecure_Design/
-
-CWE-602: Client-Side Enforcement of Server-Side Security: https://cwe.mitre.org/data/definitions/602.html
-
-CWE-799: Improper Control of Interaction Frequency: https://cwe.mitre.org/data/definitions/799.html
-
-
-
-Vulnerability Title
-Bypass of Disabled SMS OTP Verification Option via Request Parameter Manipulation (mfa_option)
-
-OWASP Category
-A04:2021 – Insecure Design (Improper server-side state validation and business logic enforcement)
-
-CVSS 3.1 Vector
-CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N
-
-Description After a user exhausts the maximum limit of 5 SMS OTP resend requests in a session, the application displays an error ("You have reached the maximum OTP request limit for this session. Please use another verification option.") and removes the SMS OTP option from the Choose Verification Method screen.   However, the restriction disabling SMS OTP for that session is not properly enforced at the MFA selection endpoint. By selecting an alternative verification method (such as Duo), intercepting and decrypting the request payload, modifying the "mfa_option" parameter back to "sms_otp", and re-encrypting the request, an attacker can force the application to re-enter the SMS OTP flow and submit new OTP requests. Although downstream backend controls prevent the actual SMS from being delivered, the application's authentication state machine fails to reject the disabled MFA method.   ImpactAuthentication Workflow / State Machine Bypass: Attackers can re-enable and invoke a verification method (sms_otp) that the application explicitly locked out for the current session.   Unnecessary Backend Processing: Even though a secondary control blocks actual SMS delivery, the application still processes the tampered MFA transition and accepts new "Request code" submissions, creating unnecessary backend load and inconsistent session states.   Defense-in-Depth Weakness: Relying solely on a downstream delivery block rather than rejecting the disabled option at the API layer increases the risk of full rate-limit bypass if the downstream control is ever misconfigured or modified.
-
-
-Proof of Concept (PoC) Steps & CaptionsStep 1: Exhaust the 5-OTP resend limit on the Verify with SMS OTP screen until the application displays the maximum limit error and prompts to use another verification option.PoC 1 Caption: Error banner indicating the maximum OTP request limit has been reached for the session, prompting the user to select another verification option.Step 2: Click Use another verification option to navigate to the Choose Verification Method screen (where SMS OTP is no longer listed), select an available method such as Duo, and click Next.   PoC 2 Caption: Selecting an alternative verification method (Duo) on the "Choose Verification Method" screen after SMS OTP is disabled.Step 3: Intercept the outgoing encrypted POST request to [https://auth.matrix-uat.ms.com](https://auth.matrix-uat.ms.com) using Burp Suite.PoC 3 Caption: Intercepted encrypted JSON request payload in Burp Suite after submitting the alternative MFA selection.Step 4: Decrypt the JSON envelope, modify the "mfa_option" field inside "input" to "sms_otp", and re-encrypt the modified payload.PoC 4 Caption: Decrypted request payload showing the "mfa_option" parameter modified to "sms_otp" and re-encrypted for submission.Step 5: Replace the original request body in Burp Suite with the newly re-encrypted payload and forward the request to the server.PoC 5 Caption: Forwarding the tampered, re-encrypted request payload in Burp Suite.Step 6: Observe that the application bypasses the lockout and loads the Verify with SMS OTP page with an active Request code button.PoC 6 Caption: Application re-rendering the disabled "Verify with SMS OTP" screen with the "Request code" button enabled.Step 7: Click Request code and observe that the application accepts the request and transitions to the OTP entry screen (though the SMS itself is blocked by a secondary control).   PoC 7 Caption: Application accepting the new SMS OTP request and displaying the passcode input screen with a fresh resend countdown timer.
-
-Mitigation
-Server-Side Session State Validation: Maintain a server-side list of allowed/locked MFA methods for each active authentication session. Once sms_otp reaches its maximum limit, mark it as locked in the session state and reject any subsequent requests specifying "mfa_option": "sms_otp" with an HTTP 400 Bad Request or HTTP 403 Forbidden error.
-
-Strict Allowlisting per Step: Validate that the submitted "mfa_option" matches one of the currently permitted options offered to the user in that specific authentication step.
-
-Defense-in-Depth: Keep the existing downstream SMS delivery block in place as a secondary safeguard while fixing the primary state-machine validation at the API layer.
-
-References
-OWASP Top 10 – A04:2021 Insecure Design: https://owasp.org/Top10/A04_2021-Insecure_Design/
-
-
-
-
-Vulnerability Title
-Improper Input Validation in Mobile Device Name Field
-
-CVSS 3.1 Vector
-CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:L/A:N
+CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:N
 
 Description
-The MSBAL Android mobile application fails to properly validate or restrict special characters and arbitrary symbols entered in the Device Name edit field. When a user updates their registered device name with special characters (such as +*+=/_)] [@#$%^&*()?,;:' and non-standard Unicode/emoji characters), the backend accepts and stores the input without sanitization.   
-1.jpg
-
-Subsequently, when the user initiates a Verify with Mobile Push Approval login on the web application, the unvalidated device name containing these special characters is fetched and displayed directly in the web interface. While the web frontend currently performs basic HTML entity encoding (e.g., encoding & as &), the lack of strict server-side input validation violates defense-in-depth principles.   
-1.jpg
+The application allows the same user account to maintain multiple active, concurrent sessions across different browsers, devices, or IP addresses simultaneously without invalidating the previous session or notifying the user. When a user logs in from a second device or browser, the original session remains fully active and functional.
 
 Impact
-UI Disruption / Formatting Issues: Unvalidated special characters, symbols, and excessively long strings can distort or break the web application's login UI layout during MFA push approval.   
-1.jpg
+Undetected Unauthorized Access: If an attacker obtains a user's credentials or hijacks an active session token, they can remain logged in alongside the legitimate user without triggering a session termination or alerting the user.
 
-Potential Injection Risk in Downstream Systems: Storing unsanitized special characters increases the risk of Cross-Site Scripting (XSS), CSV/log injection, or parsing errors if the device name is ever rendered in an administrative portal, audit log, email notification, or legacy component that does not enforce strict output encoding.
+Account Sharing & Audit Trail Ambiguity: Multiple individuals can use the same credentials at the same time, undermining individual accountability and making incident investigation more difficult.
 
-Data Integrity Weakness: Allowing arbitrary characters degrades data hygiene for registered MFA devices.
-
-Mitigation
-Enforce Strict Server-Side Allowlisting: Validate the device name on the backend using a strict allowlist regular expression (e.g., permitting only alphanumeric characters, spaces, hyphens, and underscores: ^[a-zA-Z0-9 _-]{1,50}$) and reject any input containing disallowed special characters with an HTTP 400 Bad Request response.
-
-Apply Client-Side Validation: Implement matching input validation and character length limits in the MSBAL Android mobile app to provide immediate user feedback.
-
-Maintain Context-Aware Output Encoding: Continue enforcing strict HTML/output encoding wherever the device name is displayed across web portals, mobile apps, and backend admin dashboards.
-
-References
-OWASP Input Validation Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
-
-CWE-20: Improper Input Validation: https://cwe.mitre.org/data/definitions/20.html
-
-
-
-
-
-
-
-
-
-
-Vulnerability Title
-Use of Unauthenticated AES-CBC Mode in Client-Side Payload Encryption
-
-OWASP Category
-A02:2021 – Cryptographic Failures
-
-CVSS 3.1 Vector
-CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N
-
-Description
-The application implements custom application-layer encryption for API requests and responses directly in client-side JavaScript (main.e071275530ec3e6f.js) using AES in Cipher Block Chaining (CBC) mode (ModeOfOperation.cbc) with PKCS#7 padding (pkcs7Pad / pkcs7Unpad)
-
-However, the implementation does not include a Message Authentication Code (MAC) or integrity check (Encrypt-then-MAC) to verify the ciphertext prior to decryption. Using unauthenticated AES-CBC mode with PKCS#7 padding is considered cryptographically weak and leaves the encryption layer susceptible to ciphertext malleability (bit-flipping) and potential padding oracle attacks. Furthermore, because the encryption/decryption routines (encryptRequest, decryptResponse, and this.aesKey) are executed in the browser, an attacker can easily inspect the source code, extract the symmetric key from memory, and tamper with encrypted payloads.
-
-Impact
-Lack of Ciphertext Integrity (Malleability): Without authenticated encryption (AEAD) or an HMAC, an attacker can modify encrypted blocks in transit without the decryption routine detecting tampering prior to unpadding.
-
-Potential Padding Oracle Exposure: Combining AES-CBC with PKCS#7 padding without authentication can expose the server or client to padding oracle attacks if decryption or unpadding errors are distinguishable.
-
-False Sense of Security: Relying on client-side JavaScript encryption (this.aesKey in main.e071275530ec3e6f.js) does not prevent an attacker with browser DevTools access from extracting the key, decrypting traffic, and re-encrypting forged requests.
+Increased Window for Session Abuse: Forgotten or unattended sessions on shared or public devices remain active even after the user signs in elsewhere.
 
 Proof of Concept (PoC) Steps & Captions
-Step 1: Navigate to [https://auth.matrix-uat.ms.com/login](https://auth.matrix-uat.ms.com/login), open the browser Developer Tools (Sources tab), and search across the loaded JavaScript bundles for ModeOfOperation.cbc.
+Step 1: Open Browser 1 (e.g., Chrome), navigate to the application login page, and authenticate using valid user credentials.
 
-Step 2: Inspect main.e071275530ec3e6f.js and observe the decryptResponse(), encryptRequest(), and encryptStringToBase64() functions utilizing ModeOfOperation.cbc alongside pkcs7Pad and pkcs7Unpad with no integrity or MAC verification.
+PoC 1 Caption: User successfully authenticated in Browser 1 with an active session.
 
-PoC 1 Caption: Client-side JavaScript (main.e071275530ec3e6f.js) in Chrome DevTools showing unauthenticated AES-CBC encryption/decryption (ModeOfOperation.cbc) with PKCS#7 padding.
+Step 2: Open Browser 2 (e.g., Firefox or an Incognito window / separate device), navigate to the same login page, and log in using the exact same user credentials.
 
-Mitigation
-Use Authenticated Encryption (AEAD): Replace AES-CBC with an authenticated encryption mode such as AES-GCM (Galois/Counter Mode) or ChaCha20-Poly1305, which provides both confidentiality and integrity verification out of the box. If CBC must be retained for legacy reasons, implement Encrypt-then-MAC using HMAC-SHA256 and verify the MAC in constant time before decrypting.
+PoC 2 Caption: Same user account successfully authenticated simultaneously in Browser 2 without terminating the first session.
 
-Rely on TLS for Transport Security: Do not rely on client-side JavaScript payload encryption as a security boundary against tampering. Enforce strong TLS 1.2 / 1.3 configurations for transport security and perform all authorization, input validation, and business logic checks strictly on the server side.
+Step 3: Return to Browser 1, refresh the page, and perform an authenticated action (such as viewing account details or navigating to a protected section). Observe that the session in Browser 1 remains active and valid alongside Browser 2.
 
-References
-OWASP Top 10 – A02:2021 Cryptographic Failures: https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
-
-
-
-Vulnerability Title
-Insecure In-Memory Cryptographic Key Protection (Extractable AES Key)
-
-OWASP Category
-A02:2021 – Cryptographic Failures
-
-CVSS 3.1 Vector
-CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:N/A:N
-
-Description
-During the login flow, the client-side JavaScript bundle (main.js — Transmit Security IDO Scheme 3) generates or derives a 256-bit AES symmetric key to encrypt sensitive authentication payloads before transmitting them over the network.
-
-However, the application stores this secret AES key directly in the browser's JavaScript heap as a plain, readable array of bytes (e.aesKey = Array.from(new Uint8Array(o))) and exposes a toJson() helper that serializes key material into plaintext/Base64. Instead of isolating the key inside the browser's native Web Cryptography API (SubtleCrypto) with extractable: false, storing it as an ordinary JavaScript object leaves the raw key bytes accessible to any script executing in the page context.
-
-Impact
-Trivial Key Theft via Client-Side Attacks: If the application is affected by Cross-Site Scripting (XSS), a malicious browser extension, or a compromised third-party script, an attacker can extract the raw AES-256 key and session ID in a single line of JavaScript.
-
-Offline Traffic Decryption & Forgery: Once the raw symmetric key is extracted, an attacker can decrypt intercepted authentication requests (such as credentials or MFA payloads) offline and re-encrypt forged requests.
-
-Memory Residuals: Because the key is held as a standard JavaScript array rather than a non-extractable CryptoKey handle, the raw bytes remain in browser RAM until garbage collection, increasing exposure in memory dumps or crash logs.
-
-Proof of Concept (PoC) Steps & Captions
-Step 1: Open Burp Suite, navigate to Proxy -> Proxy settings -> Match and replace rules, and add a new Response body rule to hook the key assignment in main.js:
-
-Match:
-
-JavaScript
-e.aesKey=Array.from(new Uint8Array(o))
-Replace:
-
-JavaScript
-e.aesKey=Array.from(new Uint8Array(o));const _k=btoa(String.fromCharCode(...e.aesKey));console.log("%c>>> EXPOSED AES KEY: "+_k,"color:#00ff00;font-size:20px;font-weight:bold");alert("SESSION ID: "+e.sessionId+"\n\nEXTRACTED AES-256 KEY:\n"+_k);
-PoC 1 Caption: Configuring a Burp Suite Match and Replace rule to hook the client-side e.aesKey assignment in main.js.
-
-Step 2: Clear the browser cache, route browser traffic through Burp Suite, and navigate to the application login page ([https://auth.matrix-uat.ms.com/login](https://auth.matrix-uat.ms.com/login)).
-
-PoC 2 Caption: Loading the login page with the Burp Suite Match and Replace rule active to intercept the JavaScript bundle.
-
-Step 3: Observe the browser alert dialog and DevTools Console displaying the active sessionId alongside the extracted Base64-encoded AES-256 key directly from JavaScript memory.
-
-PoC 3 Caption: Browser alert and DevTools console confirming successful extraction of the raw AES-256 symmetric key and Session ID from JavaScript memory.
+PoC 3 Caption: Browser 1 remaining logged in and processing authenticated requests while Browser 2 is concurrently active.
 
 Mitigation
-Use Non-Extractable Web Crypto Keys: Migrate client-side cryptographic operations to the browser's native Web Cryptography API (window.crypto.subtle) and set extractable: false when generating or importing keys. This ensures the browser can use the CryptoKey handle for encryption/decryption without ever exposing the raw key bytes to JavaScript.
+Enforce Single Active Session Policy (For High-Security Apps): Invalidate any existing server-side session for the user whenever a new login occurs, or prompt the user to confirm whether they want to terminate the previous session.
 
-Remove Key Serialization: Eliminate any toJson() or helper methods that serialize or export raw symmetric key material into strings or arrays.
+Provide Active Session Management: Display a list of active sessions (device, IP address, last active timestamp) in the user's security settings and allow them to revoke individual or all other sessions.
 
-Enforce Defense-in-Depth: Rely on TLS 1.2 / 1.3 as the primary transport security boundary rather than custom JavaScript encryption, and enforce a strict Content Security Policy (CSP) to reduce the risk of unauthorized script execution.
-
-References
-OWASP Top 10 – A02:2021 Cryptographic Failures: https://owasp.org/Top10/A02_2021-Cryptographic_Failures/
-
-CWE-320: Key Manageme
-
-
-
-
-Vulnerability Title
-Lack of Root Detection (Application Runs on Rooted Android Devices)
-
-OWASP Category
-M7:2024 – Insufficient Binary Protections (aligned with MASVS-RESILIENCE)
-
-CVSS 3.1 Vector
-CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:N
-
-Description
-The Android mobile application lacks effective root detection mechanisms, allowing it to be installed and executed without restriction on a rooted Android device. On a rooted device, the standard Android application sandbox is broken, granting superuser (root) privileges to users and other installed applications. Without runtime integrity and root checks, the application operates in an untrusted environment where its local data, memory, and execution flow can be easily inspected or manipulated.
-
-Impact
-Bypass of Android Sandbox & Local Data Exposure: Malicious apps or an attacker with physical/ADB access on a rooted device can read the application's private internal storage directory (/data/data/<package_name>/), exposing cached files, SQLite databases, or SharedPreferences.
-
-Runtime Manipulation & Hooking: Root privileges allow attackers to attach dynamic instrumentation frameworks (such as Frida or Xposed) to hook functions, bypass client-side security controls (e.g., SSL pinning, biometric prompts), and dump sensitive data from memory.
-
-Increased Risk for Sensitive Workflows: For financial or authentication applications, running on a compromised OS significantly lowers the barrier for reverse engineering, credential theft, and session hijacking.
-
-Proof of Concept (PoC) Steps & Captions
-Step 1: Verify that the test Android device has active root privileges (e.g., via Magisk, SuperSU, or by running adb shell su and confirming the # root prompt).
-
-PoC 1 Caption: Terminal/device output confirming active root (su) access on the Android test device.
-
-Step 2: Install the target Android application APK onto the rooted device and launch it.
-
-PoC 2 Caption: Application successfully installed and launched on the rooted Android device without any root-detection warning or termination.
-
-Step 3: Navigate through the application's core screens (such as login or dashboard) to confirm full functionality is permitted in the rooted environment.
-
-PoC 3 Caption: Application functioning normally on the rooted device, confirming the absence of runtime root detection controls.
-
-Mitigation
-Implement Multi-Layered Root Detection: Combine multiple detection checks rather than relying on a single indicator—such as checking for su binaries in system paths, inspecting Build.TAGS for test-keys, detecting known root management packages/daemons, and checking for writable system partitions.
-
-Use Hardware-Backed Attestation: Integrate the Google Play Integrity API to cryptographically verify device integrity on the backend server before allowing sensitive operations or logins.
-
-Enforce Native & Obfuscated Checks: Implement root detection logic in native C/C++ (JNI) alongside Java/Kotlin, obfuscate the code, and vary checks to make static patching and Frida hooking harder.
-
-Define a Risk-Based Response: When root is detected, either block execution with a clear security warning or enforce server-side policy restrictions (e.g., disabling high-risk transactions) based on the application's threat model.
+Notify Users of New Logins: Send an email or push notification whenever a new login occurs from an unrecognized device or location, and automatically terminate all active sessions upon a password reset or change.
 
 References
-OWASP Mobile Top 10 (2024): https://owasp.org/projects/mobile-top-10
+OWASP Session Management Cheat Sheet (Simultaneous Session Logons): https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
 
-OWASP MASTG – Root Detection (MASTG-KNOW-0027): https://mas.owasp.org/MASTG-KNOW-0027/
-
-OWASP MASTG – Implementing Root Detection (MASTG-BEST-0030): https://mas.owasp.org/MASTG/best-practices/MASTG-BEST-0030/
-
-CWE-919: Weaknesses in Mobile Applications: https://cwe.mitre.org/data/definitions/919.html
+OWASP Web Security Testing Guide – Testing for Concurrent Sessions: https://wstg.owasp.org/latest/4-Web_Application_Security_Testing/06-Session_Management/11-Concurrent_Sessions/
